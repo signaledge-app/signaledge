@@ -79,6 +79,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .push-text{flex:1}
 .push-btn{font-size:10px;padding:3px 12px;border-radius:4px;border:none;cursor:pointer;font-weight:500;background:#2962ff;color:#fff;font-family:inherit}
 .push-btn.off{background:#bdbdbd;cursor:default}
+.push-tf-sel{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px;width:100%}
+.push-tf-btn{font-size:9px;padding:2px 7px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer;color:#666;font-family:inherit;transition:all .15s}
+.push-tf-btn.on{background:#2962ff;color:#fff;border-color:#2962ff}
 /* ESTRUCTURA */
 .struct{border-radius:7px;padding:.5rem .875rem;margin-bottom:.5rem;border:1px solid #eee;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff}
 .struct.bull{background:#f9fffe;border-color:#a5d6a7}.struct.bear{background:#fffaf9;border-color:#f48fb1}
@@ -389,6 +392,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <span style="font-size:16px">🔔</span>
     <span id="push-text">Activa las alertas push para recibir notificaciones cuando aparezca 🚀 Entra Ya</span>
     <button class="push-btn" id="push-btn" onclick="requestPushPermission()">Activar</button>
+    <div class="push-tf-sel" id="push-tf-sel" style="display:none">
+      <span style="font-size:9px;color:#1b5e20;font-weight:600;margin-right:2px">Alertas en:</span>
+      <button class="push-tf-btn" data-ptf="1m" onclick="togglePushTF(this)">1m</button>
+      <button class="push-tf-btn" data-ptf="3m" onclick="togglePushTF(this)">3m</button>
+      <button class="push-tf-btn" data-ptf="5m" onclick="togglePushTF(this)">5m</button>
+      <button class="push-tf-btn on" data-ptf="15m" onclick="togglePushTF(this)">15m</button>
+      <button class="push-tf-btn on" data-ptf="30m" onclick="togglePushTF(this)">30m</button>
+      <button class="push-tf-btn on" data-ptf="1h" onclick="togglePushTF(this)">1h</button>
+      <button class="push-tf-btn" data-ptf="4h" onclick="togglePushTF(this)">4h</button>
+      <button class="push-tf-btn" data-ptf="1d" onclick="togglePushTF(this)">1D</button>
+      <button class="push-tf-btn" data-ptf="1w" onclick="togglePushTF(this)">1S</button>
+    </div>
   </div>
 
   <div class="struct neutral" id="spanel">
@@ -496,14 +511,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 // ── PUSH NOTIFICATIONS ────────────────────────────────────────
 let pushEnabled=false;
-const pushLog=new Map(); // sigId → timestamp darrera notificació
-const PUSH_COOLDOWN=180000; // 3 minuts mínim entre notificacions de la mateixa senyal
+const pushLog=new Map();
+const PUSH_COOLDOWN=180000;
+let pushTFs=new Set(['15m','30m','1h']);
+
+function togglePushTF(btn){
+  const t=btn.dataset.ptf;
+  if(pushTFs.has(t)){pushTFs.delete(t);btn.classList.remove('on');}
+  else{pushTFs.add(t);btn.classList.add('on');}
+  try{localStorage.setItem('btc_push_tfs',JSON.stringify([...pushTFs]));}catch(e){}
+}
+function loadPushTFs(){
+  try{
+    const raw=localStorage.getItem('btc_push_tfs');
+    if(!raw)return;
+    pushTFs=new Set(JSON.parse(raw));
+    document.querySelectorAll('.push-tf-btn').forEach(b=>{
+      b.classList.toggle('on',pushTFs.has(b.dataset.ptf));
+    });
+  }catch(e){}
+}
 
 function updatePushBar(){
   const bar=document.getElementById('push-bar'),text=document.getElementById('push-text'),btn=document.getElementById('push-btn');
   if(!('Notification' in window)){bar.className='push-bar unsupported';text.textContent='Las notificaciones push no están disponibles en este navegador';btn.style.display='none';return;}
   const perm=Notification.permission;
-  if(perm==='granted'){pushEnabled=true;bar.style.display='none';}
+  if(perm==='granted'){pushEnabled=true;bar.style.display='none';document.getElementById('push-tf-sel').style.display='flex';bar.className='push-bar granted';bar.style.display='flex';}
   else if(perm==='denied'){pushEnabled=false;bar.className='push-bar denied';text.textContent='🔕 Notificaciones bloqueadas — actívalas desde la configuración del navegador';btn.textContent='Bloqueado';btn.className='push-btn off';btn.onclick=null;}
   else{pushEnabled=false;bar.className='push-bar default';text.textContent='🔔 Activa las alertas push para recibir notificaciones cuando aparezca 🚀 Entra Ya';btn.textContent='Activar';btn.className='push-btn';btn.onclick=requestPushPermission;}
 }
@@ -516,6 +549,8 @@ function requestPushPermission(){
 }
 function sendPushNotification(sig,type){
   if(!pushEnabled||Notification.permission!=='granted')return;
+  // Filtre per TF — només notificar els TFs seleccionats
+  if(!pushTFs.has(tf))return;
   // ID basat en font+direcció+TF — NO en el preu (evita spam per canvis de preu)
   const sigId=`${sig.source}-${sig.dir}-${tf}-${type}`;
   const now=Date.now();
@@ -1091,6 +1126,7 @@ function loadPrefs(){
 // INICIO
 loadHistory();
 loadPrefs();
+loadPushTFs();
 syncCB();updLev();updTFinfo();
 updatePushBar();
 initChart();connectWS(tf);connectTicker();
