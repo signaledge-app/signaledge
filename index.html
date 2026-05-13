@@ -536,8 +536,14 @@ function updatePushBar(){
   const bar=document.getElementById('push-bar'),text=document.getElementById('push-text'),btn=document.getElementById('push-btn');
   if(!('Notification' in window)){bar.className='push-bar unsupported';text.textContent='Las notificaciones push no están disponibles en este navegador';btn.style.display='none';return;}
   const perm=Notification.permission;
-  if(perm==='granted'){pushEnabled=true;bar.style.display='none';document.getElementById('push-tf-sel').style.display='flex';bar.className='push-bar granted';bar.style.display='flex';}
-  else if(perm==='denied'){pushEnabled=false;bar.className='push-bar denied';text.textContent='🔕 Notificaciones bloqueadas — actívalas desde la configuración del navegador';btn.textContent='Bloqueado';btn.className='push-btn off';btn.onclick=null;}
+  if(perm==='granted'){
+    pushEnabled=true;
+    bar.className='push-bar granted';
+    bar.style.display='flex';
+    document.getElementById('push-text').innerHTML='🔔 Alertas push activadas';
+    document.getElementById('push-btn').style.display='none';
+    document.getElementById('push-tf-sel').style.display='flex';
+  }else if(perm==='denied'){pushEnabled=false;bar.className='push-bar denied';text.textContent='🔕 Notificaciones bloqueadas — actívalas desde la configuración del navegador';btn.textContent='Bloqueado';btn.className='push-btn off';btn.onclick=null;}
   else{pushEnabled=false;bar.className='push-bar default';text.textContent='🔔 Activa las alertas push para recibir notificaciones cuando aparezca 🚀 Entra Ya';btn.textContent='Activar';btn.className='push-btn';btn.onclick=requestPushPermission;}
 }
 function requestPushPermission(){
