@@ -597,23 +597,29 @@ function checkPartialTrigger(){
     try{new Notification('🎯 Parcial ejecutado',{body:`50% cerrado en TP1 $${ff(trade.tp1)} (+${pnl}%)\nSL movido a Breakeven $${ff(trade.ep)}\n50% continúa hacia TP2 $${ff(trade.tp2)}`,tag:'partial-btc',requireInteraction:true});}catch(e){}
   }
 }
-function executePartial(id){
+function executePartial(id,pctNum=50){
   const t=tradeHistory.find(x=>x.id===id);if(!t||t.partialDone)return null;
   const raw=t.dir==='long'?(t.tp1-t.ep)/t.ep:(t.ep-t.tp1)/t.ep;
-  t.partialPnlPct=raw*100*t.lev;t.partialDone=true;t.breakevenSL=t.ep;t.partialTs=Date.now();
-  saveHistory();lg(`🎯 Parcial en TP1 $${ff(t.tp1)} (+${t.partialPnlPct.toFixed(2)}%) · SL → BE $${ff(t.ep)}`);
+  t.partialPnlPct=raw*100*t.lev*(pctNum/100);
+  t.partialPct=pctNum;
+  t.partialDone=true;
+  t.breakevenSL=t.ep;
+  t.partialTs=Date.now();
+  saveHistory();
+  lg('🎯 Parcial '+pctNum+'% en TP1 $'+ff(t.tp1)+' (+'+t.partialPnlPct.toFixed(2)+'%) · SL → BE $'+ff(t.ep));
   return t;
 }
 function renderPartialBanner(t){
   const el=document.getElementById('partial-banner');
+  const pct=t.partialPct||50;
   el.style.display='flex';el.className='partial-banner';
   el.innerHTML=`<span style="font-size:20px;flex-shrink:0">🎯</span>
     <div style="flex:1">
-      <div class="pb-title">Parcial ejecutado — 50% cerrado en TP1</div>
-      <div class="pb-sub">SL movido a Breakeven · 50% de la posición continúa hacia TP2</div>
+      <div class="pb-title">Parcial ejecutado — ${pct}% cerrado en TP1</div>
+      <div class="pb-sub">${pct>=50?'SL movido a Breakeven · ':''} ${100-pct}% de la posición continúa hacia TP2</div>
       <div class="pb-lvls">
         <span style="color:#f57c00">TP1 cerrado $${ff(t.tp1)} (+${Math.abs(t.partialPnlPct).toFixed(2)}%)</span>
-        <span style="color:#ef5350">SL → Breakeven $${ff(t.ep)} 🔒</span>
+        ${pct>=50?`<span style="color:#ef5350">SL → Breakeven $${ff(t.ep)} 🔒</span>`:''}
         <span style="color:#26a69a">TP2 objetivo $${ff(t.tp2)}</span>
       </div>
     </div>
@@ -621,8 +627,49 @@ function renderPartialBanner(t){
 }
 function manualPartial(id){
   const t=tradeHistory.find(x=>x.id===id);if(!t||t.partialDone)return;
-  const pd=executePartial(id);if(!pd)return;
-  if(trade&&trade.histId===id){trade.sl=trade.ep;trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);}
+  const raw=t.dir==='long'?(t.tp1-t.ep)/t.ep:(t.ep-t.tp1)/t.ep;
+  const capital=parseFloat(document.getElementById('calc-capital').value)||1000;
+
+  // Popup personalitzat per triar el %
+  const pct=prompt(
+    '🎯 Ejecutar parcial en TP1 $'+ff(t.tp1)+'\n\n'+
+    '¿Qué % de la posición quieres cerrar?\n'+
+    '(Escribe un número entre 1 y 100)\n\n'+
+    'Ejemplos:\n'+
+    '• 50% → cierra la mitad, SL → Breakeven\n'+
+    '• 25% → cierra un cuarto\n'+
+    '• 100% → cierra toda la posición',
+    '50'
+  );
+  if(pct===null)return; // cancelat
+  const pctNum=parseFloat(pct);
+  if(isNaN(pctNum)||pctNum<=0||pctNum>100){alert('⚠️ Porcentaje no válido. Introduce un número entre 1 y 100.');return;}
+
+  const pnlPct=(raw*100*t.lev*(pctNum/100)).toFixed(2);
+  const confirmed=confirm(
+    '🎯 Confirmar cierre del '+pctNum+'% en TP1\n\n'+
+    'Precio: $'+ff(t.tp1)+'\n'+
+    'Ganancia ('+pctNum+'%): +'+pnlPct+'%\n'+
+    (pctNum>=50?'SL se moverá a Breakeven $'+ff(t.ep)+'\n':'')+
+    '\n¿Confirmar?'
+  );
+  if(!confirmed)return;
+
+  // Si és el 100%, tancar el trade completament
+  if(pctNum===100){
+    closeTrade_dashboard('tp1');
+    return;
+  }
+
+  // Guardar el % escollit al trade
+  t.partialPct=pctNum;
+  const pd=executePartial(id,pctNum);if(!pd)return;
+  // Moure SL a BE només si tanca el 50% o més
+  if(pctNum>=50&&trade&&trade.histId===id){
+    trade.sl=trade.ep;trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);
+  }else if(trade&&trade.histId===id){
+    trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);
+  }
   renderPartialBanner(pd);renderHistorial();
 }
 
@@ -931,7 +978,7 @@ function enterTrade(sig){const openT=tradeHistory.find(t=>t.result==='open');if(
   calcSetSig(sig); // actualizar calculadora
   update();lg('✓ '+trade.dir.toUpperCase()+' ['+trade.et+'] R:R='+trade.r1);}
 function closeTrade_dashboard(result){if(!trade)return;const closePrice=result==='tp1'?trade.tp1:result==='tp2'?trade.tp2:result==='sl'?trade.sl:price;if(trade.histId)closeTrade_hist(trade.histId,result||'manual',closePrice);const p=trade.dir==='long'?(price-trade.ep):(trade.ep-price);lg('Cerrado '+(p>=0?'✓ +':'✗ ')+(p/trade.ep*100*trade.lev).toFixed(2)+'%');trade=null;partialExecuted=false;clearTL();document.getElementById('atb').style.display='none';document.getElementById('parc-bar').style.display='none';document.getElementById('partial-banner').style.display='none';update();}
-function updAtb(){if(!trade){document.getElementById('atb').style.display='none';return;}const bar=document.getElementById('atb');bar.style.display='flex';bar.className='atb '+trade.dir+(trade.partialDone?' partial':'');const p=trade.dir==='long'?(price-trade.ep):(trade.ep-price),pc=(p/trade.ep*100*trade.lev).toFixed(2);const srcLbl=trade.source==='rt'?`🔁RT ${trade.levelType||''}`:trade.source==='fvg'?'⚡FVG':'📦OB';const currentSL=trade.partialDone?trade.ep:trade.sl;const badge=trade.partialDone?'<span style="font-size:9px;background:#fff8e1;color:#e65100;padding:1px 6px;border-radius:8px;border:1px solid #ffcc80;margin-left:4px">🎯 Parcial</span>':'';bar.innerHTML=`<div style="flex:1"><div style="font-size:11px;font-weight:600">${trade.dir==='long'?'▲ LONG':'▼ SHORT'} · ${srcLbl} · ${trade.et} · ${trade.lev}x · R:R ${trade.r1}${badge}</div><div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;margin-top:2px"><span style="color:#2962ff">$${ff(trade.e)}</span><span style="color:${trade.partialDone?'#f57c00':'#ef5350'}">${trade.partialDone?'🔒BE':'SL'} $${ff(currentSL)}</span>${!trade.partialDone?`<span style="color:#f57c00">TP1 $${ff(trade.tp1)}</span>`:''}<span style="color:#26a69a">TP2 $${ff(trade.tp2)}</span></div></div><span class="pnl ${p>=0?'pos':'neg'}">${p>=0?'+':''}${pc}%</span><div style="display:flex;gap:4px;flex-shrink:0">${!trade.partialDone?`<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px" onclick="closeTrade_dashboard('tp1')">TP1</button>`:''}<button class="btn" style="background:#26a69a;color:#fff;border:none;font-size:10px" onclick="closeTrade_dashboard('tp2')">TP2</button><button class="bct" onclick="closeTrade_dashboard('sl')">SL</button><button class="btn" onclick="closeTrade_dashboard('manual')">Cerrar</button></div>`;}
+function updAtb(){if(!trade){document.getElementById('atb').style.display='none';return;}const bar=document.getElementById('atb');bar.style.display='flex';bar.className='atb '+trade.dir+(trade.partialDone?' partial':'');const p=trade.dir==='long'?(price-trade.ep):(trade.ep-price),pc=(p/trade.ep*100*trade.lev).toFixed(2);const srcLbl=trade.source==='rt'?`🔁RT ${trade.levelType||''}`:trade.source==='fvg'?'⚡FVG':'📦OB';const currentSL=trade.partialDone?trade.ep:trade.sl;const badge=trade.partialDone?'<span style="font-size:9px;background:#fff8e1;color:#e65100;padding:1px 6px;border-radius:8px;border:1px solid #ffcc80;margin-left:4px">🎯 Parcial</span>':'';bar.innerHTML=`<div style="flex:1"><div style="font-size:11px;font-weight:600">${trade.dir==='long'?'▲ LONG':'▼ SHORT'} · ${srcLbl} · ${trade.et} · ${trade.lev}x · R:R ${trade.r1}${badge}</div><div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;margin-top:2px"><span style="color:#2962ff">$${ff(trade.e)}</span><span style="color:${trade.partialDone?'#f57c00':'#ef5350'}">${trade.partialDone?'🔒BE':'SL'} $${ff(currentSL)}</span>${!trade.partialDone?`<span style="color:#f57c00">TP1 $${ff(trade.tp1)}</span>`:''}<span style="color:#26a69a">TP2 $${ff(trade.tp2)}</span></div></div><span class="pnl ${p>=0?'pos':'neg'}">${p>=0?'+':''}${pc}%</span><div style="display:flex;gap:4px;flex-shrink:0">${!trade.partialDone?`<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px" onclick="manualPartial('${trade.histId}')">🎯 TP1 Parcial</button>`:''}<button class="btn" style="background:#26a69a;color:#fff;border:none;font-size:10px" onclick="closeTrade_dashboard('tp2')">TP2</button><button class="bct" onclick="closeTrade_dashboard('sl')">SL</button><button class="btn" onclick="closeTrade_dashboard('manual')">Cerrar</button></div>`;}
 function analyzeTF(tfn,cs,p){if(!cs||cs.length<6)return{tf:tfn,dir:'neu',sig:'none',bull:0,bear:0,detail:'--'};const obs=detectOBs(cs,p),bull=obs.filter(o=>o.type==='bull'),bear=obs.filter(o=>o.type==='bear');const last=cs[cs.length-1],prev=cs[cs.length-2];let bc=false,bz=false,ec=false,ez=false;bull.forEach(o=>{if(p>=o.low&&p<=o.high*1.005)bz=true;if(last.low<=o.high*1.003&&last.close>last.open&&last.close>prev.close)bc=true;});bear.forEach(o=>{if(p<=o.high&&p>=o.low*.995)ez=true;if(last.high>=o.low*.997&&last.close<last.open&&last.close<prev.close)ec=true;});if(bc&&!ec)return{tf:tfn,dir:'bull',sig:'confirmed',bull:bull.length,bear:bear.length,detail:'OB alcista ✓'};if(ec&&!bc)return{tf:tfn,dir:'bear',sig:'confirmed',bull:bull.length,bear:bear.length,detail:'OB bajista ✓'};if(bz&&!ez)return{tf:tfn,dir:'bull',sig:'zone',bull:bull.length,bear:bear.length,detail:'En zona alcista'};if(ez&&!bz)return{tf:tfn,dir:'bear',sig:'zone',bull:bull.length,bear:bear.length,detail:'En zona bajista'};if(bull.length>bear.length)return{tf:tfn,dir:'bull',sig:'weak',bull:bull.length,bear:bear.length,detail:bull.length+' OBs ▲'};if(bear.length>bull.length)return{tf:tfn,dir:'bear',sig:'weak',bull:bull.length,bear:bear.length,detail:bear.length+' OBs ▼'};return{tf:tfn,dir:'neu',sig:'none',bull:0,bear:0,detail:'Neutro'};}
 function getConf(a){const w={confirmed:1.5,zone:1.0,weak:0.5,none:0};const bulls=a.filter(x=>x.dir==='bull'),bears=a.filter(x=>x.dir==='bear');const bs=bulls.reduce((s,x)=>s+(w[x.sig]||0),0),es=bears.reduce((s,x)=>s+(w[x.sig]||0),0);if(bulls.length===3)return bs>=3?{k:'sl',l:'🟢 FUERTE ALCISTA',d:'3/3 TFs largo.'}:{k:'ml',l:'🟡 MEDIO ALCISTA',d:'2-3 TFs alcistas.'};if(bears.length===3)return es>=3?{k:'ss',l:'🔴 FUERTE BAJISTA',d:'3/3 TFs corto.'}:{k:'ms',l:'🟠 MEDIO BAJISTA',d:'2-3 TFs bajistas.'};if(bulls.length===2)return{k:'ml',l:'🟡 MEDIO ALCISTA',d:'2/3 TFs alcistas.'};if(bears.length===2)return{k:'ms',l:'🟠 MEDIO BAJISTA',d:'2/3 TFs bajistas.'};return{k:'wk',l:'⚪ SIN CONFLUENCIA',d:'TFs contradictorios.'};}
 function renderMTF(analyses,conf){const sl={confirmed:'✓',zone:'◎',weak:'~',none:'–'};document.getElementById('mtfgrid').innerHTML=analyses.map(a=>`<div class="mtf-c ${a.dir==='bull'?'bull':a.dir==='bear'?'bear':'neutral'}"><div class="mtf-tf">${a.tf}</div><div class="mtf-d ${a.dir==='bull'?'bull':a.dir==='bear'?'bear':'neu'}">${a.dir==='bull'?'▲ ALCISTA':a.dir==='bear'?'▼ BAJISTA':'➖ NEUTRO'}</div><div class="mtf-sb">${sl[a.sig]||'–'} ${a.detail}</div></div>`).join('');const cr=document.getElementById('confrow');cr.className='conf-r '+conf.k;const dots=analyses.map(a=>a.dir==='bull'?'#26a69a':a.dir==='bear'?'#ef5350':'#bdbdbd');cr.innerHTML=`<span class="conf-b ${conf.k}">${conf.l}</span><span class="conf-desc">${conf.d} · ${analyses.map(a=>a.tf).join(' · ')}</span><div style="display:flex;gap:4px">${dots.map(c=>`<div style="width:10px;height:10px;border-radius:50%;background:${c}"></div>`).join('')}</div>`;const cl={sl:'3/3 🟢',ss:'3/3 🔴',ml:'2/3 🟡',ms:'2/3 🟠',wk:'--'};document.getElementById('mc').textContent=cl[conf.k]||'--';document.getElementById('mtfst').textContent='Act. '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+(mtfCache[tf]?' 💾':'');lastConf=conf;renderTrendMain(analyses);}
