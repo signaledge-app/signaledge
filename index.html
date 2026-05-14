@@ -1274,7 +1274,7 @@ function showSigBanner(sig,type){
     <span style="font-size:22px;flex-shrink:0">${isNow?(isL?'🚀':'🔻'):'⚡'}</span>
     <div style="flex:1">
       <div class="sab-title" style="color:${titleColor}">
-        ${isNow?'ENTRA YA':'Entrada fuerte'} — ${srcL} ${sig.dir.toUpperCase()} · ${sig.et} · R:R ${l.r1}
+        ${isNow?'ENTRA YA':'Entrada fuerte'} — ${srcL} ${sig.dir.toUpperCase()} · <span style="background:${titleColor};color:#fff;padding:1px 6px;border-radius:4px;font-size:11px">${tf}</span> · ${sig.et} · R:R ${l.r1}
       </div>
       <div class="sab-lvls">
         <span style="color:#2962ff">${sig.et==='Market'?'🟢':'🔵'} $${ff(l.e)}</span>
