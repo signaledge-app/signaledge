@@ -991,7 +991,32 @@ function calcTP(dir){
 }
 function liq(e,dir,lv){return dir==='long'?e*(1-(1/lv)+.004):e*(1+(1/lv)-.004);}
 function calcLvls(z,dir,isRT=false){const{sl,m:sm}=calcSL(z,dir,isRT),{tp1,tp2,m:tm}=calcTP(dir);const e=isRT?z.level:(z.source==='fvg'?z.mid:(dir==='long'?z.high:z.low));const lq=liq(e,dir,lev),msl=maxSL();if(dir==='long'){const risk=e-sl;if(risk<=0)return null;const sp=(e-sl)/e;if(sp>msl)return null;const r1=(tp1-e)/risk,r2=(tp2-e)/risk;if(r1<MIN_RR&&r2<MIN_RR)return null;return{e,sl,tp1,tp2,lq,sm,tm,r1:r1.toFixed(1),r2:r2.toFixed(1),sp:(sp*100).toFixed(2),lc:sp>msl*.8,msp:(msl*100).toFixed(2)};}const risk=sl-e;if(risk<=0)return null;const sp=(sl-e)/e;if(sp>msl)return null;const r1=(e-tp1)/risk,r2=(e-tp2)/risk;if(r1<MIN_RR&&r2<MIN_RR)return null;return{e,sl,tp1,tp2,lq,sm,tm,r1:r1.toFixed(1),r2:r2.toFixed(1),sp:(sp*100).toFixed(2),lc:sp>msl*.8,msp:(msl*100).toFixed(2)};}
-function calcScore(s){const cs=s.candleStr||{level:'normal',score:1};const vs=s.volStr||{level:'normal',ratio:1};const c={confirmed:s.status==='confirmed',mtf:s.aligned&&(s.cstr==='strong'||s.cstr==='medium'),mtfS:s.aligned&&s.cstr==='strong',rr:parseFloat(s.lvls.r1)>=MIN_RR,rrS:parseFloat(s.lvls.r1)>=3,conf:!!(s.confFVG||s.confOB||s.source==='rt'),wt:s.withTrend,strongCandle:cs.level==='strong',weakCandle:cs.level==='weak',highVol:vs.level==='high'||vs.level==='above',lowVol:vs.level==='low'};const sc=(c.confirmed?2:0)+(c.mtfS?2:c.mtf?1:0)+(c.rrS?2:c.rr?1:0)+(c.conf?1:0)+(c.wt?1:0)+(c.strongCandle?1:0)+(c.highVol?1:0);return{...c,sc,now:c.confirmed&&c.mtf&&c.rr&&sc>=5&&!c.weakCandle,strong:c.confirmed&&sc>=3&&!c.weakCandle&&!(c.confirmed&&c.mtf&&c.rr&&sc>=5)};}
+function calcScore(s){
+  const cs=s.candleStr||{level:'normal',score:1};
+  const vs=s.volStr||{level:'normal',ratio:1};
+  const c={
+    confirmed:s.status==='confirmed',
+    mtf:s.aligned&&(s.cstr==='strong'||s.cstr==='medium'),
+    mtfS:s.aligned&&s.cstr==='strong',
+    rr:parseFloat(s.lvls.r1)>=MIN_RR,
+    rrS:parseFloat(s.lvls.r1)>=3,
+    conf:!!(s.confFVG||s.confOB||s.source==='rt'),
+    wt:s.withTrend,
+    strongCandle:cs.level==='strong',
+    weakCandle:cs.level==='weak',
+    highVol:vs.level==='high'||vs.level==='above',
+    lowVol:vs.level==='low'
+  };
+  const sc=(c.confirmed?2:0)+(c.mtfS?2:c.mtf?1:0)+(c.rrS?2:c.rr?1:0)+(c.conf?1:0)+(c.wt?1:0)+(c.strongCandle?1:0)+(c.highVol?1:0);
+
+  // ENTRA YA: molt estricte — necessita score≥7 + confirmada + MTF + R:R≥3 + vela no feble + amb tendència
+  const now=sc>=7&&c.confirmed&&c.mtf&&c.rrS&&!c.weakCandle&&c.wt;
+
+  // ENTRADA FUERTE: estricte — score≥5 + confirmada + vela no feble
+  const strong=!now&&sc>=5&&c.confirmed&&!c.weakCandle;
+
+  return{...c,sc,now,strong};
+}
 function genSigs(obs,fvgs,retests,pats,struct){const cands=[];let filtRR=0,filtSL=0;function ti(dir){const tr=struct.trend;let wt=false,ic=false,ich=false;if(tr==='bull'){wt=dir==='long';ic=dir==='short';}else if(tr==='bear'){wt=dir==='short';ic=dir==='long';}else if(tr==='choch-bull'){ich=true;wt=dir==='long';}else if(tr==='choch-bear'){ich=true;wt=dir==='short';}else wt=true;return{withTrend:wt,isContra:ic,isCHoCH:ich};}function tryAdd(zone,dir,st,src,et,extra){const lvls=calcLvls(zone,dir,src==='rt');if(!lvls){const{sl}=calcSL(zone,dir,src==='rt');const e=src==='rt'?zone.level:(zone.source==='fvg'?zone.mid:(dir==='long'?zone.high:zone.low));const risk=dir==='long'?e-sl:sl-e;if(risk<=0||risk/e>maxSL()){filtSL++;return;}filtRR++;return;}const{withTrend,isContra,isCHoCH}=ti(dir);cands.push({dir,zone,lvls,status:st,source:src,et,...extra,withTrend,isContra,isCHoCH});}if(useOB)for(const ob of obs){const dir=ob.type==='bull'?'long':'short';const conf=confirmZ(ob);const prox=TFCFG[tf].msl*1.5;const inZ=ob.type==='bull'?(price>=ob.low&&price<=ob.high*(1+prox)):(price<=ob.high&&price>=ob.low*(1-prox));const near=ob.type==='bull'?(price>=ob.low*(1-prox)&&price<ob.low):(price>ob.high&&price<=ob.high*(1+prox));let st=null;if(conf)st='confirmed';else if(inZ)st='zone';else if(near)st='watch';if(!st)continue;const cfvg=fvgs.find(f=>f.type===ob.type);tryAdd(ob,dir,st,'ob',st==='confirmed'?'Market':'Limit',{confFVG:!!cfvg,confOB:false});}if(useFVG)for(const fvg of fvgs){const dir=fvg.type==='bull'?'long':'short';const conf=confirmZ(fvg);const prox=TFCFG[tf].msl*1.5;const inZ=fvg.type==='bull'?(price>=fvg.low&&price<=fvg.high*(1+prox)):(price<=fvg.high&&price>=fvg.low*(1-prox));const near=fvg.type==='bull'?(price>=fvg.low*(1-prox)&&price<fvg.low):(price>fvg.high&&price<=fvg.high*(1+prox));let st=null;if(conf)st='confirmed';else if(inZ)st='zone';else if(near)st='watch';if(!st)continue;const cob=obs.find(ob=>ob.type===fvg.type);tryAdd(fvg,dir,st,'fvg',st==='confirmed'?'Market':'Limit',{confOB:!!cob,confFVG:false});}if(useRT)for(const rt of retests){tryAdd(rt,rt.dir,rt.status,'rt','Limit',{levelType:rt.levelType,levelPrice:rt.level,confirmNote:rt.confirmNote});}document.getElementById('dbg').textContent=`OBs:${obs.length} FVGs:${fvgs.length} RT:${retests.length} · Candidatos:${cands.length} · filtR:R:${filtRR} filtSL:${filtSL} · OB:${useOB} FVG:${useFVG} RT:${useRT}`;const cfg=TFCFG[tf],ck=lastConf.k;const vs=volumeStrength();
 // Filtrar per distància màxima al preu actual
 const maxDist={'scalp':0.015,'intraday':0.025,'swing':0.045};
@@ -1435,6 +1460,7 @@ function loadPrefs(){
   }
 }
 
+window.addEventListener('load',()=>{
 // INICIO
 document.addEventListener('DOMContentLoaded',()=>{},{once:true});
 loadHistory();
@@ -1452,6 +1478,7 @@ renderHistorial();updateHistCount();
 calcUpdate();
 setTimeout(fetchExtLevels,2000);
 startExtLevelsInterval();
+});
 document.getElementById('cob').addEventListener('change',savePrefs);
 document.getElementById('cfvg').addEventListener('change',savePrefs);
 document.getElementById('crt').addEventListener('change',savePrefs);
