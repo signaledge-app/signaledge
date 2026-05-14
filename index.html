@@ -816,8 +816,11 @@ function renderHistList(){
 function renderHistorial(){renderStats();renderOpenTrade();renderHistList();}
 
 // ── DASHBOARD ─────────────────────────────────────────────────
-let candles=[],ws=null,twS=null,tf='1m',price=0,open24=0,lev=2;
-let calcMode='pct'; // mode calculadora: 'pct' o 'margen'
+// Carregar preferències bàsiques IMMEDIATAMENT (abans de tot)
+const _prefsRaw=localStorage.getItem('btc_dashboard_prefs_v1');
+const _prefs=_prefsRaw?JSON.parse(_prefsRaw):{};
+let candles=[],ws=null,twS=null,tf=_prefs.tf||'1m',price=0,open24=0,lev=_prefs.lev||2;
+let calcMode=_prefs.calcMode||'pct';
 let chart=null,cSeries=null,sigL=[],trL=[],patL=[],fvgL=[],bosL=[],rtL=[];
 let logs=[],trade=null,mtfInt=null,mtfBusy=false;
 let lastConf={k:'wk',l:'--'};
