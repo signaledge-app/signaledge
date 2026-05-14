@@ -1,55 +1,32 @@
-// SignalEdge Service Worker v1
-const CACHE_NAME = 'signaledge-v1';
-const ASSETS = [
-  '/signaledge/',
-  '/signaledge/index.html',
-  '/signaledge/manifest.json'
-];
+// SignalEdge Service Worker v2
+const CACHE_NAME = 'signaledge-v2';
 
-// Instal·lació — guarda els fitxers a la caché
+// En instal·lar, neteja tot i no guarda res a la caché
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
-  );
   self.skipWaiting();
 });
 
-// Activació — elimina caches antigues
+// En activar, elimina totes les caches antigues
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(keys.map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
-// Fetch — serveix des de caché, actualitza en segon pla
+// Fetch — sempre de la xarxa, mai de caché
 self.addEventListener('fetch', e => {
-  // Només gestionar requests del nostre domini
-  if (!e.request.url.startsWith(self.location.origin)) return;
-  
-  // Per les dades de Binance (WebSocket/API) no fem caché
+  // No interceptar WebSockets ni Binance
   if (e.request.url.includes('binance.com')) return;
-
+  if (e.request.url.includes('ws://') || e.request.url.includes('wss://')) return;
+  
+  // Sempre agafar de la xarxa
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fetchPromise = fetch(e.request).then(response => {
-        // Actualitza la caché amb la versió nova
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        }
-        return response;
-      }).catch(() => cached); // Si no hi ha xarxa, usa la caché
-
-      // Retorna caché immediatament si existeix, actualitza en segon pla
-      return cached || fetchPromise;
+    fetch(e.request).catch(() => {
+      // Si no hi ha xarxa, retornar error
+      return new Response('Sin conexión', {status: 503});
     })
   );
-});
-
-// Missatge per forçar actualització
-self.addEventListener('message', e => {
-  if (e.data === 'skipWaiting') self.skipWaiting();
 });
