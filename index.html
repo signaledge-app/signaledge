@@ -1118,6 +1118,8 @@ function calcUpdate(){
     const capitalLimitat=posReal<posIdeal;
 
     // Calcular guanys/pèrdues amb la posició REAL
+    const tp1Dist=sig.dir==='long'?(l.tp1-l.e)/l.e:(l.e-l.tp1)/l.e;
+    const tp2Dist=sig.dir==='long'?(l.tp2-l.e)/l.e:(l.e-l.tp2)/l.e;
     const riesgoReal=posReal*slPct*lev;
     const slUsdt=-riesgoReal;
     const slPctCap=-(riesgoReal/capital*100);
