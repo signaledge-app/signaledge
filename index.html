@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SignalEdge — BTC Trading Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2962ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SignalEdge">
+<meta name="mobile-web-app-capable" content="yes">
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -153,6 +159,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .partial-banner{border-radius:8px;padding:.75rem 1rem;margin-bottom:.5rem;background:linear-gradient(135deg,#fff8e1,#fffde7);border:2px solid #f57c00;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .pb-title{font-size:13px;font-weight:700;color:#e65100;margin-bottom:2px}
 .pb-sub{font-size:10px;color:#795548}
+.update-banner{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1a237e;color:#fff;padding:.75rem 1.25rem;border-radius:12px;display:flex;align-items:center;gap:12px;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.3);font-size:13px;max-width:90vw}
+.update-banner button{background:#fff;color:#1a237e;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;font-family:inherit}
 .sig-alert-banner{border-radius:8px;padding:.75rem 1rem;margin-bottom:.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;animation:fadeIn .3s ease}
 .sig-alert-banner.now-long{background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:2px solid #26a69a}
 .sig-alert-banner.now-short{background:linear-gradient(135deg,#fce4ec,#fde8f0);border:2px solid #ef5350}
@@ -1102,14 +1110,19 @@ function calcUpdate(){
     const posSize=slPct>0?riesgoUsdt/slPct:0;
     const posLev=posSize*lev;
 
-    // Escenarios de ganancia/pérdida en USDT reales
-    const slUsdt=-riesgoUsdt;
-    const slPctCap=-(riesgoPct);
+    // Posició ideal vs posició real amb el capital disponible
+    const posIdeal=posSize; // margen ideal
+    const posReal=Math.min(posSize,capital); // margen real (limitat pel capital)
+    const posLevIdeal=posIdeal*lev;
+    const posLevReal=posReal*lev;
+    const capitalLimitat=posReal<posIdeal;
 
-    const tp1Dist=sig.dir==='long'?(l.tp1-l.e)/l.e:(l.e-l.tp1)/l.e;
-    const tp2Dist=sig.dir==='long'?(l.tp2-l.e)/l.e:(l.e-l.tp2)/l.e;
-    const tp1Usdt=posSize*tp1Dist*lev;
-    const tp2Usdt=posSize*tp2Dist*lev;
+    // Calcular guanys/pèrdues amb la posició REAL
+    const riesgoReal=posReal*slPct*lev;
+    const slUsdt=-riesgoReal;
+    const slPctCap=-(riesgoReal/capital*100);
+    const tp1Usdt=posReal*tp1Dist*lev;
+    const tp2Usdt=posReal*tp2Dist*lev;
     const tp1PctCap=tp1Usdt/capital*100;
     const tp2PctCap=tp2Usdt/capital*100;
 
@@ -1118,21 +1131,23 @@ function calcUpdate(){
     document.getElementById('calc-lev-val').textContent=lev+'x';
     document.getElementById('calc-sl-val').textContent=l.sp+'%';
     document.getElementById('calc-rr-val').textContent=l.r1+'R / '+l.r2+'R';
-    document.getElementById('calc-pos-val').textContent=posLev.toFixed(0)+' USDT';
+    // Mostrar posició REAL (no ideal)
+    document.getElementById('calc-pos-val').textContent=posLevReal.toFixed(0)+' USDT';
+    document.getElementById('calc-pos-lbl').textContent=capitalLimitat?'posición real (capital limitado)':'tamaño de posición';
     document.getElementById('calc-entry-val').textContent='$'+ff(l.e);
     document.getElementById('calc-liq-val').textContent='$'+ff(l.lq);
 
-    // Avís posició massa petita o capital insuficient
+    // Avís
     const avisoEl=document.getElementById('calc-margen-aviso');
     if(capital<=0){
       avisoEl.style.display='block';
       avisoEl.innerHTML='⚠️ <strong>Introduce tu capital disponible</strong>';
-    }else if(posLev<10){
+    }else if(posLevReal<10){
       avisoEl.style.display='block';
-      avisoEl.innerHTML='⚠️ <strong>Posición demasiado pequeña</strong> ('+posLev.toFixed(2)+' USDT) — aumenta el capital o el % de riesgo.';
-    }else if(posSize>capital){
+      avisoEl.innerHTML='⚠️ <strong>Posición demasiado pequeña</strong> ('+posLevReal.toFixed(2)+' USDT)';
+    }else if(capitalLimitat){
       avisoEl.style.display='block';
-      avisoEl.innerHTML='⚠️ <strong>Capital insuficiente</strong> — necesitas <strong>'+posSize.toFixed(0)+' USDT</strong> de margen. Con '+capital+' USDT puedes abrir máx. <strong>'+(capital*lev).toFixed(0)+' USDT</strong>.';
+      avisoEl.innerHTML='⚠️ Para la posición óptima necesitarías <strong>'+posIdeal.toFixed(0)+' USDT</strong> de margen.<br>Con '+capital+' USDT tu posición real es <strong>'+posLevReal.toFixed(0)+' USDT</strong> y arriesgas <strong>'+riesgoReal.toFixed(2)+' USDT</strong>.';
     }else{
       avisoEl.style.display='none';
     }
@@ -1326,6 +1341,15 @@ function updateCandleTimer(){
 setInterval(updateCandleTimer,1000);
 
 // ── FULLSCREEN GRÀFIC ─────────────────────────────────────────
+function showUpdateBanner(newSW){
+  const b=document.createElement('div');
+  b.className='update-banner';
+  b.innerHTML=`<span>🔄 Nueva versión disponible</span>
+    <button onclick="newSW.postMessage('skipWaiting');window.location.reload()">Actualizar</button>
+    <button onclick="this.parentElement.remove()" style="background:transparent;color:#aaa;padding:4px 8px">✕</button>`;
+  document.body.appendChild(b);
+}
+
 function pinSig(idx){
   const sig=window._S&&window._S[idx];
   if(!sig)return;
@@ -1481,6 +1505,22 @@ renderHistorial();updateHistCount();
 calcUpdate();
 setTimeout(fetchExtLevels,2000);
 startExtLevelsInterval();
+
+// ── SERVICE WORKER (PWA) ──────────────────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    // Detectar nova versió disponible
+    reg.addEventListener('updatefound',()=>{
+      const newSW=reg.installing;
+      newSW.addEventListener('statechange',()=>{
+        if(newSW.state==='installed'&&navigator.serviceWorker.controller){
+          // Mostrar banner d'actualització
+          showUpdateBanner(newSW);
+        }
+      });
+    });
+  }).catch(e=>console.log('SW error:',e));
+}
 });
 document.getElementById('cob').addEventListener('change',savePrefs);
 document.getElementById('cfvg').addEventListener('change',savePrefs);
