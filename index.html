@@ -707,7 +707,22 @@ function manualPartial(id){
 // ── HISTORIAL ─────────────────────────────────────────────────
 const HIST_KEY='btc_trade_history_v1';
 let tradeHistory=[],currentFilt='all';
-function loadHistory(){try{const r=localStorage.getItem(HIST_KEY);tradeHistory=r?JSON.parse(r):[];}catch(e){tradeHistory=[];}}
+function loadHistory(){
+  try{
+    const r=localStorage.getItem(HIST_KEY);
+    tradeHistory=r?JSON.parse(r):[];
+    // Restaurar trade obert si existeix
+    const openT=tradeHistory.find(t=>t.result==='open');
+    if(openT){
+      trade={
+        dir:openT.dir,e:openT.ep,sl:openT.sl,tp1:openT.tp1,tp2:openT.tp2,
+        lev:openT.lev,tf:openT.tf,ep:openT.ep,sp:openT.sp,r1:openT.r1,r2:openT.r2,
+        source:openT.source,et:openT.et,levelType:openT.levelType,
+        partialDone:openT.partialDone||false,histId:openT.id
+      };
+    }
+  }catch(e){tradeHistory=[];}
+}
 function saveHistory(){try{localStorage.setItem(HIST_KEY,JSON.stringify(tradeHistory));}catch(e){}}
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function addTradeToHistory(sig){
@@ -859,19 +874,30 @@ function detectOBs(cs,p){const obs=[];if(!cs||cs.length<6)return obs;for(let i=2
 function detectFVGs(cs,p){const fvgs=[];if(!cs||cs.length<5)return fvgs;for(let i=0;i<cs.length-2;i++){const c1=cs[i],c2=cs[i+1],c3=cs[i+2];if(c1.high<c3.low){const top=c3.low,bot=c1.high,mid=(top+bot)/2,sz=top-bot;if(sz>=p*0.0003)fvgs.push({type:'bull',high:top,low:bot,mid,time:c2.time,idx:i+1,source:'fvg',sz});}if(c1.low>c3.high){const top=c1.low,bot=c3.high,mid=(top+bot)/2,sz=top-bot;if(sz>=p*0.0003)fvgs.push({type:'bear',high:top,low:bot,mid,time:c2.time,idx:i+1,source:'fvg',sz});}}return fvgs.filter(f=>{const a=cs.slice(f.idx+2);return f.type==='bull'?!a.some(c=>c.close<f.mid):!a.some(c=>c.close>f.mid);}).filter(f=>f.type==='bull'?p>f.low*.94&&p<f.high*1.06:p<f.high*1.06&&p>f.low*.94).slice(-6);}
 function confirmZ(z){
   if(candles.length<3)return false;
-  const l=candles[candles.length-1],pv=candles[candles.length-2];
-  if(z.type==='bull'){
-    // Confirmació clàssica: vela tancada verda que ha tocat la zona
-    const classic=l.low<=z.high*1.003&&l.low>=z.low*.997&&l.close>l.open&&l.close>pv.close;
-    // Confirmació intracandle: preu actual ha entrat i ja ha pujat >0.1% del mínim
+  const cfg=TFCFG[tf];
+  const isScalp=cfg.t==='scalp';
+
+  if(isScalp){
+    // SCALP (1m/3m/5m): confirmació intracandle — entrar quan toca la zona
+    const l=candles[candles.length-1];
     const bodyPct=Math.abs(l.close-l.open)/(l.high-l.low||1)*100;
-    const intracandle=l.low<=z.high*1.003&&price>l.low*(1+0.001)&&bodyPct>30&&l.close>l.open;
-    return classic||intracandle;
+    if(z.type==='bull'){
+      // Long: preu ha tocat el OB/FVG i ja puja (body >25% i vela verda)
+      return l.low<=z.high*1.003&&l.low>=z.low*.997&&l.close>l.open&&bodyPct>25;
+    }else{
+      // Short: preu ha tocat el OB/FVG i ja baixa (body >25% i vela vermella)
+      return l.high>=z.low*.997&&l.high<=z.high*1.003&&l.close<l.open&&bodyPct>25;
+    }
+  }else{
+    // INTRADAY/SWING (15m+): esperar vela TANCADA
+    const l=candles[candles.length-2]; // última vela tancada
+    const pv=candles[candles.length-3];
+    if(z.type==='bull'){
+      return l.low<=z.high*1.003&&l.low>=z.low*.997&&l.close>l.open&&l.close>pv.close&&l.closed!==false;
+    }else{
+      return l.high>=z.low*.997&&l.high<=z.high*1.003&&l.close<l.open&&l.close<pv.close&&l.closed!==false;
+    }
   }
-  const classic=l.high>=z.low*.997&&l.high<=z.high*1.003&&l.close<l.open&&l.close<pv.close;
-  const bodyPct=Math.abs(l.close-l.open)/(l.high-l.low||1)*100;
-  const intracandle=l.high>=z.low*.997&&price<l.high*(1-0.001)&&bodyPct>30&&l.close<l.open;
-  return classic||intracandle;
 }
 function candleStrength(dir){
   if(candles.length<2)return{level:'normal',score:1,bodyPct:0,closePct:0,label:'Vela normal',note:''};
