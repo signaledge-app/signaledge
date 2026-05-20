@@ -78,6 +78,7 @@ async function seOnLogin(user){
   // Carregar dades del núvol
   await seLoadPrefs(user.id);
   await seLoadTrades(user.id);
+  await seLoadPinned(user.id);
 
   // Interceptar guardat local per sincronitzar
   seInterceptSave(user.id);
@@ -277,11 +278,41 @@ async function seSaveTrade(userId,t){
   }catch(e){}
 }
 
+
+// ── PINNED SIGS ───────────────────────────────────────────────
+async function seSavePinned(userId, raw){
+  if(!seDb||!userId)return;
+  try{
+    await seDb.from('pinned_sigs').upsert({
+      user_id:userId,
+      data:raw||'[]',
+      updated_at:new Date().toISOString()
+    },{onConflict:'user_id'});
+  }catch(e){}
+}
+
+async function seLoadPinned(userId){
+  if(!seDb||!userId)return;
+  try{
+    const{data,error}=await seDb.from('pinned_sigs').select('*').eq('user_id',userId).maybeSingle();
+    if(!data||!data.data)return;
+    const current=localStorage.getItem('btc_pinned_sigs');
+    if(current===data.data)return; // ja és igual
+    localStorage.setItem('btc_pinned_sigs',data.data);
+    // Recarregar les pinned al dashboard
+    if(typeof loadPinned==='function')loadPinned();
+    if(typeof renderPinnedBanner==='function')renderPinnedBanner();
+    console.log('SE Sync: Pinned sigs carregades ✓');
+  }catch(e){console.log('SE Sync loadPinned error:',e.message);}
+}
+
 // ── INTERCEPTAR GUARDAT LOCAL ─────────────────────────────────
 function seInterceptSave(userId){
   let lastPrefs=localStorage.getItem('btc_dashboard_prefs_v1');
   let lastHistoryStr=localStorage.getItem('btc_trade_history_v1');
   let lastTradesMap=seParseTradesMap(lastHistoryStr);
+
+  let lastPinned=localStorage.getItem('btc_pinned_sigs');
 
   setInterval(async()=>{
     if(!seUser)return;
@@ -289,6 +320,13 @@ function seInterceptSave(userId){
     // Preferències
     const currentPrefs=localStorage.getItem('btc_dashboard_prefs_v1');
     if(currentPrefs!==lastPrefs){lastPrefs=currentPrefs;await seSavePrefs(userId);}
+
+    // Pinned sigs
+    const currentPinned=localStorage.getItem('btc_pinned_sigs');
+    if(currentPinned!==lastPinned){
+      lastPinned=currentPinned;
+      await seSavePinned(userId,currentPinned);
+    }
 
     // Trades — detectar quins han canviat comparant per id+result+closePrice
     const currentHistoryStr=localStorage.getItem('btc_trade_history_v1');
