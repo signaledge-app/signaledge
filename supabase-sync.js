@@ -113,6 +113,7 @@ function seSubscribeRealtime(userId){
           sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
           closePrice:t.close_price,pnlPct:t.pnl_pct,
           partialDone:t.partial_done,partialPct:t.partial_pct,
+          partialPnlPct:t.partial_pnl_pct||null,breakevenSL:t.breakeven_sl||null,
           notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
         };
         if(idx>=0){
@@ -268,6 +269,7 @@ async function seSaveTrade(userId,t){
       sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
       close_price:t.closePrice||null,pnl_pct:t.pnlPct||null,
       partial_done:t.partialDone||false,partial_pct:t.partialPct||null,
+      partial_pnl_pct:t.partialPnlPct||null,breakeven_sl:t.breakevenSL||null,
       notes:t.notes||null,opened_at:t.openedAt||new Date().toISOString(),closed_at:t.closedAt||null
     });
   }catch(e){}
