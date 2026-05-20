@@ -86,9 +86,15 @@ async function seOnLogin(user){
 }
 
 // ── REALTIME: escoltar canvis del núvol ───────────────────────
+let seRealtimeChannel=null;
 function seSubscribeRealtime(userId){
   if(!seDb)return;
-  seDb.channel('trades-changes')
+  // Evitar subscripcions duplicades
+  if(seRealtimeChannel){
+    seDb.removeChannel(seRealtimeChannel);
+    seRealtimeChannel=null;
+  }
+  seRealtimeChannel=seDb.channel('trades-changes-'+userId)
     .on('postgres_changes',{
       event:'*',
       schema:'public',
@@ -126,7 +132,9 @@ function seSubscribeRealtime(userId){
         }
       }
     })
-    .subscribe();
+    .subscribe(status=>{
+      console.log('SE Realtime status:', status);
+    });
 }
 
 // ── QUAN ES FA LOGOUT ─────────────────────────────────────────
@@ -183,8 +191,8 @@ function seUpdateLoginBtn(loggedIn, user){
 // ── CARREGAR PREFERÈNCIES ─────────────────────────────────────
 async function seLoadPrefs(userId){
   try{
-    const{data,error}=await seDb.from('user_prefs').select('*').eq('user_id',userId).single();
-    if(error||!data)return;
+    const{data,error}=await seDb.from('user_prefs').select('*').eq('user_id',userId).maybeSingle();
+    if(!data)return;
     if(typeof lev!=='undefined'&&data.lev){
       lev=data.lev;
       document.querySelectorAll('.lev-btn').forEach(b=>b.classList.toggle('active',+b.dataset.lev===lev));
