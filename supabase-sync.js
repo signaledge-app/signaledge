@@ -96,6 +96,23 @@ function seSubscribeRealtime(userId){
     seDb.removeChannel(seRealtimeChannel);
     seRealtimeChannel=null;
   }
+  // Realtime per pinned_sigs
+  seDb.channel('pinned-changes-'+userId)
+    .on('postgres_changes',{
+      event:'*',schema:'public',table:'pinned_sigs',
+      filter:`user_id=eq.${userId}`
+    }, payload=>{
+      console.log('SE Realtime: pinned actualitzat');
+      const raw=payload.new?.data;
+      if(!raw)return;
+      const current=localStorage.getItem('btc_pinned_sigs');
+      if(current===raw)return;
+      localStorage.setItem('btc_pinned_sigs',raw);
+      if(typeof loadPinned==='function')loadPinned();
+      if(typeof renderPinnedBanner==='function')renderPinnedBanner();
+    })
+    .subscribe();
+
   seRealtimeChannel=seDb.channel('trades-changes-'+userId)
     .on('postgres_changes',{
       event:'*',
