@@ -379,9 +379,13 @@ body.dark .bk-card{background:#13151f}
 body.dark .date-filter input[type=date]{color-scheme:dark}
 
 
+#se-top-btns{position:fixed;top:6px;right:8px;z-index:200;display:flex;align-items:center;gap:4px;}
 @media(max-width:700px){
-  #se-top-btns{top:auto!important;bottom:auto!important;position:static!important;display:none!important}
+  #se-top-btns{display:none!important}
+  .tabs{position:relative}
+  #se-tab-btns{display:flex!important}
 }
+#se-tab-btns{display:none;align-items:center;gap:4px;margin-left:auto;padding-right:6px}
 
 /* ── DARK MODE ───────────────────────────────────────────────── */
 :root{
@@ -542,6 +546,7 @@ body.dark .btn-fullscreen{background:rgba(26,29,39,0.9);border-color:#2a2d3e;col
 
 <div class="tabs">
   <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+  <div id="se-tab-btns"></div>
   <button class="tab-btn" data-tab="historial">📈 Historial <span id="hist-count" style="font-size:10px;background:#e8f0ff;color:#2962ff;padding:1px 6px;border-radius:8px;margin-left:3px">0</span></button>
 </div>
 
@@ -1969,31 +1974,33 @@ document.getElementById('calc-margen-fix').addEventListener('input',savePrefs);
 function seInitDarkMode(){
   const saved = localStorage.getItem('se_dark_mode');
   if(saved==='1') document.body.classList.add('dark');
-  // Crear contenidor: fix al desktop, dins topbar al mòbil
+  // Contenidor fix al desktop
   if(!document.getElementById('se-top-btns')){
     const container = document.createElement('div');
     container.id='se-top-btns';
-    const isMobile = window.innerWidth <= 700;
-    if(isMobile){
-      // Al mòbil inserim dins la topbar del dashboard
-      container.style.cssText='display:flex;align-items:center;gap:4px;margin-left:auto;';
-      const topbar = document.querySelector('.topbar');
-      if(topbar) topbar.appendChild(container);
-      else document.body.appendChild(container);
-    } else {
-      container.style.cssText='position:fixed;top:6px;right:8px;z-index:200;display:flex;align-items:center;gap:4px;';
-      document.body.appendChild(container);
-    }
+    document.body.appendChild(container);
   }
   seInsertDarkBtn();
-  // Moure el botó login al contenidor si existeix
+  // Moure el botó login al contenidor fix
   setTimeout(()=>{
     const loginBtn = document.getElementById('se-login-btn');
     const container = document.getElementById('se-top-btns');
     if(loginBtn && container && loginBtn.parentNode !== container){
       container.appendChild(loginBtn);
     }
-  }, 2000);
+    // Al mòbil, copiar refs al contenidor dels tabs
+    const tabContainer = document.getElementById('se-tab-btns');
+    if(tabContainer){
+      const darkBtn = document.getElementById('se-dark-btn');
+      if(darkBtn) tabContainer.appendChild(darkBtn.cloneNode(true));
+      if(loginBtn) tabContainer.appendChild(loginBtn.cloneNode(true));
+      // Afegir events als clons
+      const cloneDark = tabContainer.querySelector('button:first-child');
+      const cloneLogin = tabContainer.querySelector('button:last-child');
+      if(cloneDark) cloneDark.onclick=seToggleDark;
+      if(cloneLogin) cloneLogin.onclick=()=>seLoginGoogle();
+    }
+  }, 2500);
 }
 
 function seInsertDarkBtn(){
