@@ -80,6 +80,53 @@ async function seOnLogin(user){
 
   // Interceptar guardat local per sincronitzar
   seInterceptSave(user.id);
+
+  // Escoltar canvis en temps real a la taula trades
+  seSubscribeRealtime(user.id);
+}
+
+// ── REALTIME: escoltar canvis del núvol ───────────────────────
+function seSubscribeRealtime(userId){
+  if(!seDb)return;
+  seDb.channel('trades-changes')
+    .on('postgres_changes',{
+      event:'*',
+      schema:'public',
+      table:'trades',
+      filter:`user_id=eq.${userId}`
+    }, payload=>{
+      console.log('SE Realtime: canvi detectat', payload.eventType);
+      const t=payload.new;
+      if(!t||typeof tradeHistory==='undefined')return;
+
+      if(payload.eventType==='UPDATE'||payload.eventType==='INSERT'){
+        const idx=tradeHistory.findIndex(x=>x.id===t.id);
+        const mapped={
+          id:t.id,dir:t.dir,source:t.source,et:t.et,
+          tf:t.tf,lev:t.lev,ep:t.ep,sl:t.sl,tp1:t.tp1,tp2:t.tp2,
+          sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
+          closePrice:t.close_price,pnlPct:t.pnl_pct,
+          partialDone:t.partial_done,partialPct:t.partial_pct,
+          notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
+        };
+        if(idx>=0){
+          tradeHistory[idx]=mapped;
+        } else {
+          tradeHistory.unshift(mapped);
+        }
+        if(typeof saveHistory==='function')saveHistory();
+        if(typeof renderHistorial==='function')renderHistorial();
+        if(typeof updateHistCount==='function')updateHistCount();
+
+        // Si el trade obert s'ha tancat remotament, tancar-lo també aquí
+        if(typeof trade!=='undefined'&&trade&&trade.histId===t.id&&t.result!=='open'){
+          trade=null;
+          if(typeof drawTradeLines==='function')drawTradeLines(null);
+          console.log('SE Realtime: trade tancat remotament ✓');
+        }
+      }
+    })
+    .subscribe();
 }
 
 // ── QUAN ES FA LOGOUT ─────────────────────────────────────────
