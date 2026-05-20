@@ -268,17 +268,40 @@ async function seSaveTrade(userId,t){
 // ── INTERCEPTAR GUARDAT LOCAL ─────────────────────────────────
 function seInterceptSave(userId){
   let lastPrefs=localStorage.getItem('btc_dashboard_prefs_v1');
-  let lastHistory=localStorage.getItem('btc_trade_history_v1');
+  let lastHistoryStr=localStorage.getItem('btc_trade_history_v1');
+  let lastTradesMap=seParseTradesMap(lastHistoryStr);
+
   setInterval(async()=>{
-    if(!seUser)return; // només sincronitzar si hi ha sessió
+    if(!seUser)return;
+
+    // Preferències
     const currentPrefs=localStorage.getItem('btc_dashboard_prefs_v1');
     if(currentPrefs!==lastPrefs){lastPrefs=currentPrefs;await seSavePrefs(userId);}
-    const currentHistory=localStorage.getItem('btc_trade_history_v1');
-    if(currentHistory!==lastHistory){
-      lastHistory=currentHistory;
-      try{const trades=JSON.parse(currentHistory)||[];if(trades.length>0)await seSaveTrade(userId,trades[0]);}catch(e){}
+
+    // Trades — detectar quins han canviat comparant per id+result+closePrice
+    const currentHistoryStr=localStorage.getItem('btc_trade_history_v1');
+    if(currentHistoryStr!==lastHistoryStr){
+      lastHistoryStr=currentHistoryStr;
+      const currentMap=seParseTradesMap(currentHistoryStr);
+      for(const [id,t] of Object.entries(currentMap)){
+        const prev=lastTradesMap[id];
+        // Guardar si és nou o ha canviat result/closePrice/pnlPct/partialDone
+        if(!prev||prev.result!==t.result||prev.closePrice!==t.closePrice||prev.pnlPct!==t.pnlPct||prev.partialDone!==t.partialDone){
+          await seSaveTrade(userId,t);
+        }
+      }
+      lastTradesMap=currentMap;
     }
-  },3000);
+  },2000);
+}
+
+function seParseTradesMap(str){
+  try{
+    const arr=JSON.parse(str)||[];
+    const map={};
+    arr.forEach(t=>{if(t.id)map[t.id]=t;});
+    return map;
+  }catch(e){return{};}
 }
 
 // ── INDICADOR VISUAL ──────────────────────────────────────────
