@@ -72,6 +72,7 @@ async function seLogout(){
 async function seOnLogin(user){
   console.log('SE Sync: Login ✓', user.email);
   seUpdateLoginBtn(true, user);
+  if(typeof seUpdateProfileMenu==='function') seUpdateProfileMenu(user);
   seShowIndicator(true);
 
   // Carregar dades del núvol
@@ -142,6 +143,7 @@ function seSubscribeRealtime(userId){
 function seOnLogout(){
   console.log('SE Sync: Logout');
   seUpdateLoginBtn(false, null);
+  if(typeof seUpdateProfileMenu==='function') seUpdateProfileMenu(null);
   seShowIndicator(false);
 }
 
