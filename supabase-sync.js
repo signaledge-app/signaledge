@@ -97,6 +97,8 @@ function seSubscribeRealtime(userId){
     seRealtimeChannel=null;
   }
   // Realtime per pinned_sigs
+  const existingPinned = seDb.getChannels().find(c=>c.topic.includes('pinned-changes'));
+  if(existingPinned) seDb.removeChannel(existingPinned);
   seDb.channel('pinned-changes-'+userId)
     .on('postgres_changes',{
       event:'*',schema:'public',table:'pinned_sigs',
