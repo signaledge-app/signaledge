@@ -12,7 +12,6 @@
 <meta name="apple-mobile-web-app-title" content="SignalEdge">
 <meta name="mobile-web-app-capable" content="yes">
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#222;min-height:100vh}
@@ -458,7 +457,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span class="tf-gl">Swing</span>
       <button class="tf" data-tf="4h" onclick="setTF('4h')">4h</button><button class="tf" data-tf="1d" onclick="setTF('1d')">1D</button><button class="tf" data-tf="1w" onclick="setTF('1w')">1S</button>
       <span class="tf-inf" id="tfinf">--</span>
-      <span id="sync-indicator" style="font-size:9px;color:#999;margin-left:6px">☁️</span>
       <span id="candle-timer" style="display:none;font-family:monospace;font-size:11px;font-weight:700;color:#2962ff;background:#e8f0ff;padding:2px 8px;border-radius:4px;border:1px solid #c5d8ff;margin-left:6px">--</span>
       <button class="btn" id="btn-fs" onclick="toggleFullscreen()" title="Pantalla completa" style="margin-left:6px;padding:2px 8px;font-size:13px">⛶</button>
     </div>
@@ -1517,107 +1515,8 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&document.querySelector('.chart-o.fullscreen'))toggleFullscreen();
 });
 
-// ── SUPABASE ──────────────────────────────────────────────────
-const SUPA_URL='https://aivhwxixdjfyckvplimt.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdmh3eGl4ZGpmeWNrdnBsaW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzgzOTYsImV4cCI6MjA5NDgxNDM5Nn0.6JeBBItEGNaVP7l7F-90e-QE1INr_FTJV00aUl4WGrc';
-const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
-
-// ID únic per dispositiu/usuari (anònim per ara)
-function getUserId(){
-  let uid=localStorage.getItem('se_user_id');
-  if(!uid){uid='user_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);localStorage.setItem('se_user_id',uid);}
-  return uid;
-}
-const USER_ID=getUserId();
-
-// ── SYNC PREFERÈNCIES ─────────────────────────────────────────
-async function syncPrefsToCloud(){
-  try{
-    const p={
-      user_id:USER_ID,lev,tf,use_ob:useOB,use_fvg:useFVG,use_rt:useRT,
-      capital:parseFloat(document.getElementById('calc-capital').value)||1000,
-      riesgo:parseFloat(document.getElementById('calc-riesgo').value)||2,
-      calc_mode:calcMode,updated_at:new Date().toISOString()
-    };
-    await supa.from('user_prefs').upsert(p,{onConflict:'user_id'});
-  }catch(e){}
-}
-async function loadPrefsFromCloud(){
-  try{
-    const{data}=await supa.from('user_prefs').select('*').eq('user_id',USER_ID).single();
-    if(!data)return false;
-    lev=data.lev||2;tf=data.tf||'1m';
-    useOB=data.use_ob??true;useFVG=data.use_fvg??false;useRT=data.use_rt??false;
-    document.querySelectorAll('.lev-btn').forEach(b=>b.classList.toggle('active',+b.dataset.lev===lev));
-    document.querySelectorAll('.tf').forEach(b=>b.classList.toggle('active',b.dataset.tf===tf));
-    document.getElementById('cob').checked=useOB;document.getElementById('lob').className='ecb'+(useOB?' ob-on':'');
-    document.getElementById('cfvg').checked=useFVG;document.getElementById('lfvg').className='ecb'+(useFVG?' fvg-on':'');
-    document.getElementById('crt').checked=useRT;document.getElementById('lrt').className='ecb'+(useRT?' rt-on':'');
-    if(data.capital)document.getElementById('calc-capital').value=data.capital;
-    if(data.riesgo)document.getElementById('calc-riesgo').value=data.riesgo;
-    if(data.calc_mode)setCalcMode(data.calc_mode);
-    lg('☁️ Preferencias cargadas desde la nube');
-    return true;
-  }catch(e){return false;}
-}
-
-// ── SYNC TRADES ───────────────────────────────────────────────
-async function syncTradeToCloud(t){
-  try{
-    await supa.from('trades').upsert({
-      id:t.id,user_id:USER_ID,dir:t.dir,source:t.source,et:t.et,
-      tf:t.tf,lev:t.lev,ep:t.ep,sl:t.sl,tp1:t.tp1,tp2:t.tp2,
-      sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
-      close_price:t.closePrice||null,pnl_pct:t.pnlPct||null,
-      partial_done:t.partialDone||false,partial_pct:t.partialPct||null,
-      notes:t.notes||null,
-      opened_at:t.openedAt||new Date().toISOString(),
-      closed_at:t.closedAt||null
-    });
-  }catch(e){}
-}
-async function loadTradesFromCloud(){
-  try{
-    const{data}=await supa.from('trades').select('*').eq('user_id',USER_ID).order('opened_at',{ascending:false});
-    if(!data||!data.length)return false;
-    // Convertir format cloud → format local
-    tradeHistory=data.map(t=>({
-      id:t.id,dir:t.dir,source:t.source,et:t.et,
-      tf:t.tf,lev:t.lev,ep:t.ep,sl:t.sl,tp1:t.tp1,tp2:t.tp2,
-      sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
-      closePrice:t.close_price,pnlPct:t.pnl_pct,
-      partialDone:t.partial_done,partialPct:t.partial_pct,
-      notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
-    }));
-    // Restaurar trade obert si existeix
-    const openT=tradeHistory.find(t=>t.result==='open');
-    if(openT){
-      trade={dir:openT.dir,e:openT.ep,sl:openT.sl,tp1:openT.tp1,tp2:openT.tp2,
-        lev:openT.lev,tf:openT.tf,ep:openT.ep,sp:openT.sp,r1:openT.r1,r2:openT.r2,
-        source:openT.source,et:openT.et,partialDone:openT.partialDone||false,histId:openT.id};
-    }
-    lg('☁️ '+tradeHistory.length+' trades cargados desde la nube');
-    return true;
-  }catch(e){return false;}
-}
-
-// ── INDICADOR DE SINCRONITZACIÓ ───────────────────────────────
-function showSyncIndicator(ok){
-  const el=document.getElementById('sync-indicator');
-  if(!el)return;
-  el.textContent=ok?'☁️ Sync':'📵 Local';
-  el.style.color=ok?'#26a69a':'#999';
-}
-
-// ── SOBREESCRIURE savePrefs i saveHistory per sincronitzar ────
-const _origSavePrefs=savePrefs;
-function savePrefs(){_origSavePrefs();syncPrefsToCloud();}
-const _origSaveHistory=saveHistory;
-function saveHistory(){
-  _origSaveHistory();
-  // Sincronitzar el trade més recent
-  if(tradeHistory.length>0)syncTradeToCloud(tradeHistory[tradeHistory.length-1]);
-}
+// ── PREFERÈNCIES ─────────────────────────────────────────────
+const PREFS_KEY='btc_dashboard_prefs_v1';
 function savePrefs(){
   try{
     localStorage.setItem(PREFS_KEY,JSON.stringify({
@@ -1653,8 +1552,9 @@ function loadPrefs(){
   }
 }
 
-window.addEventListener('load',async()=>{
+window.addEventListener('load',()=>{
 // INICIO
+document.addEventListener('DOMContentLoaded',()=>{},{once:true});
 loadHistory();
 loadPrefs();
 loadPushTFs();
@@ -1671,29 +1571,15 @@ calcUpdate();
 setTimeout(fetchExtLevels,2000);
 startExtLevelsInterval();
 
-// Carregar des del núvol en segon pla
-setTimeout(async()=>{
-  const prefsOk=await loadPrefsFromCloud();
-  const tradesOk=await loadTradesFromCloud();
-  if(prefsOk||tradesOk){
-    updLev();updTFinfo();
-    if(prefsOk)connectWS(tf);
-    renderHistorial();updateHistCount();
-    calcUpdate();
-    showSyncIndicator(true);
-    if(trade)setTimeout(()=>drawTradeLines(trade),500);
-  }else{
-    showSyncIndicator(false);
-  }
-},1500);
-
 // ── SERVICE WORKER (PWA) ──────────────────────────────────────
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').then(reg=>{
+    // Detectar nova versió disponible
     reg.addEventListener('updatefound',()=>{
       const newSW=reg.installing;
       newSW.addEventListener('statechange',()=>{
         if(newSW.state==='installed'&&navigator.serviceWorker.controller){
+          // Mostrar banner d'actualització
           showUpdateBanner(newSW);
         }
       });
