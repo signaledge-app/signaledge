@@ -823,7 +823,7 @@ function renderHistList(){
           <span style="color:#26a69a">TP2 $${ff(t.tp2)}</span>
           ${t.closePrice?`<span>Cierre $${ff(t.closePrice)}</span>`:''}
         </div>
-        ${t.partialDone&&isOpen?`<div style="font-size:9px;color:#e65100;margin-top:2px">🎯 50% cerrado en TP1 (+${t.partialPnlPct.toFixed(2)}%) · SL → BE $${ff(t.breakevenSL)}</div>`:''}
+        ${t.partialDone&&isOpen?`<div style="font-size:9px;color:#e65100;margin-top:2px">🎯 50% cerrado en TP1 (+${(t.partialPnlPct||0).toFixed(2)}%) · SL → BE $${ff(t.breakevenSL||0)}</div>`:''}
         ${t.note?`<div style="font-size:9px;color:#888;margin-top:2px;font-style:italic">💬 ${t.note}</div>`:''}
       </div>
       <div class="tr-pnl">
