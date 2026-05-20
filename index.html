@@ -378,6 +378,11 @@ body.dark .bk-card{background:#13151f}
 .dq-btn.active{background:#2962ff;color:#fff;border-color:#2962ff}
 body.dark .date-filter input[type=date]{color-scheme:dark}
 
+
+@media(max-width:700px){
+  #se-top-btns{top:auto!important;bottom:auto!important;position:static!important;display:none!important}
+}
+
 /* ── DARK MODE ───────────────────────────────────────────────── */
 :root{
   --bg:#f5f5f5;--bg2:#fff;--bg3:#fafafa;--bg4:#f0f0f0;
@@ -1964,12 +1969,21 @@ document.getElementById('calc-margen-fix').addEventListener('input',savePrefs);
 function seInitDarkMode(){
   const saved = localStorage.getItem('se_dark_mode');
   if(saved==='1') document.body.classList.add('dark');
-  // Crear contenidor fix
+  // Crear contenidor: fix al desktop, dins topbar al mòbil
   if(!document.getElementById('se-top-btns')){
     const container = document.createElement('div');
     container.id='se-top-btns';
-    container.style.cssText='position:fixed;top:8px;right:10px;z-index:9999;display:flex;align-items:center;gap:5px;';
-    document.body.appendChild(container);
+    const isMobile = window.innerWidth <= 700;
+    if(isMobile){
+      // Al mòbil inserim dins la topbar del dashboard
+      container.style.cssText='display:flex;align-items:center;gap:4px;margin-left:auto;';
+      const topbar = document.querySelector('.topbar');
+      if(topbar) topbar.appendChild(container);
+      else document.body.appendChild(container);
+    } else {
+      container.style.cssText='position:fixed;top:6px;right:8px;z-index:200;display:flex;align-items:center;gap:4px;';
+      document.body.appendChild(container);
+    }
   }
   seInsertDarkBtn();
   // Moure el botó login al contenidor si existeix
@@ -1997,7 +2011,7 @@ function seInsertDarkBtn(){
   if(!container){
     container = document.createElement('div');
     container.id='se-top-btns';
-    container.style.cssText='position:fixed;top:8px;right:10px;z-index:9999;display:flex;align-items:center;gap:5px;';
+    container.style.cssText='position:fixed;top:6px;right:8px;z-index:200;display:flex;align-items:center;gap:4px;';
     document.body.appendChild(container);
   }
   container.insertBefore(btn, container.firstChild);
@@ -2023,6 +2037,7 @@ function seToggleDark(){
     });
   }
 }
+
 
 // Inicialitzar quan la pàgina estigui llesta
 document.addEventListener('DOMContentLoaded', seInitDarkMode);
