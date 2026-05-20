@@ -770,7 +770,7 @@ function renderOpenTrade(){
   const p=openT.dir==='long'?(price-openT.ep)/openT.ep*100*openT.lev:(openT.ep-price)/openT.ep*100*openT.lev;
   const dc=openT.dir==='long'?'#26a69a':'#ef5350';
   const srcI=openT.source==='rt'?'🔁':openT.source==='fvg'?'⚡':'📦';
-  const partialInfo=openT.partialDone?`<div style="font-size:9px;margin-top:4px;padding:3px 7px;background:#fff8e1;border-radius:4px;color:#e65100;border:1px solid #ffcc80">🎯 Parcial ejecutado en TP1 (+${openT.partialPnlPct.toFixed(2)}%) · SL en breakeven $${ff(openT.breakevenSL)}</div>`:'';
+  const partialInfo=openT.partialDone?`<div style="font-size:9px;margin-top:4px;padding:3px 7px;background:#fff8e1;border-radius:4px;color:#e65100;border:1px solid #ffcc80">🎯 Parcial ejecutado en TP1 (+${(openT.partialPnlPct||0).toFixed(2)}%) · SL en breakeven $${ff(openT.breakevenSL||0)}</div>`:'';
   sec.innerHTML=`<div class="open-trade-card" style="${openT.partialDone?'border-color:#f57c00;background:#fffde7':''}">
     <div class="open-trade-title">
       <span>${openT.partialDone?'🎯 Parcial activo':'● Trade abierto'}</span>
