@@ -529,7 +529,7 @@ body.dark .bm-hint{color:#666}
 
   <!-- Resultados según señal activa -->
   <div class="calc-card" id="calc-signal-card">
-    <div class="calc-title">📊 Señal activa</div>
+    <div class="calc-title">📊 Señal activa — <span id="calc-sig-label" style="font-weight:400;color:#999;text-transform:none;letter-spacing:0">sin selección</span></div>
     <div class="calc-no-sig" id="calc-no-sig">Sin señal seleccionada.<br>Marca una señal en el gráfico.</div>
     <div id="calc-sig-content" style="display:none">
       <div class="calc-info-row"><span class="lbl">Apalancamiento</span><span class="val" id="calc-lev-val">--</span></div>
@@ -1403,8 +1403,27 @@ function renderMTF(analyses,conf){const sl={confirmed:'✓',zone:'◎',weak:'~',
 async function fetchMTF(){if(mtfBusy||!price)return;const cacheKey=tf,now=Date.now();if(mtfCache[cacheKey]&&(now-mtfCache[cacheKey].ts)<MTF_CACHE_MS){renderMTF(mtfCache[cacheKey].analyses,mtfCache[cacheKey].conf);return;}mtfBusy=true;document.getElementById('mtfst').textContent='Actualizando...';const tfs=MTFM[tf]||['15m','1h','4h'];try{const res=[];for(const t of tfs){const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${t}&limit=${(TFCFG[t]||{lim:100}).lim}`);if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();res.push(analyzeTF(t,d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4]})),price));await new Promise(r=>setTimeout(r,300));}const conf=getConf(res);mtfCache[cacheKey]={analyses:res,conf,ts:now};renderMTF(res,conf);lg('MTF → '+lastConf.l);}catch(e){document.getElementById('mtfst').textContent='Error';}mtfBusy=false;}
 function renderSigs(sigs,pats){const el=document.getElementById('sel');document.getElementById('tfl').textContent=tf;lastSigs=sigs;for(const idx of actSigs){if(idx>=sigs.length)actSigs.delete(idx);}renderAlert(sigs);updSigBar(sigs);drawZones(sigs);if(trade)checkPartialTrigger();if(tradeHistory.some(t=>t.result==='open'))renderHistorial();
   // Actualizar calculadora con la mejor señal (o con el trade activo)
-  if(trade){const openT=tradeHistory.find(t=>t.result==='open'&&t.id===trade.histId);if(openT){calcActiveSig={dir:trade.dir,lvls:{e:trade.e,sl:trade.sl,tp1:trade.tp1,tp2:trade.tp2,lq:liq(trade.e,trade.dir,lev),sp:trade.sp,r1:trade.r1,r2:trade.r2}};calcUpdate();}}else if(sigs.length){const best=sigs.find(s=>calcScore(s).now)||sigs.find(s=>calcScore(s).strong)||sigs[0];if(best){calcActiveSig=best;calcUpdate();}}else{calcActiveSig=null;calcUpdate();}
-  if(!sigs.length){el.innerHTML=`<div class="empty">Sin señales · ${TF_I[tf]||''}</div>`;return;}window._S=sigs;el.innerHTML=sigs.map((s,i)=>{const col=SC[i]||SC[0],l=s.lvls,dc=s.dir==='long'?'#26a69a':'#ef5350';const sc2=calcScore(s),isRT=s.source==='rt',isFVG=s.source==='fvg';const stag=s.status==='confirmed'?'<span class="tag tc">✓ Confirmada</span>':s.status==='zone'?'<span class="tag tz">◎ En zona</span>':'<span class="tag tw">~ Vigilar</span>';const srcTag=isRT?`<span class="tag trt">🔁 Retest</span>`:isFVG?'<span class="tag tfvg">⚡ FVG</span>':'<span class="tag tob">📦 OB</span>';const ttag=s.type==='scalp'?'<span class="tag tsc">Scalp</span>':s.type==='intraday'?'<span class="tag tid">Intraday</span>':'<span class="tag tsw">Swing</span>';const ctag=s.aligned?(s.cstr==='strong'?'<span class="tag tms">MTF✓</span>':s.cstr==='medium'?'<span class="tag tmm">MTF~</span>':''):'<span class="tag tmn">⚠MTF</span>';const rrTag=`<span class="${parseFloat(l.r1)>=3?'rg':'ro'}">R:R${l.r1}</span>`;const trendTag=s.isContra?'<span class="tag twt">⚠ Contra</span>':s.isCHoCH?'<span class="tag tchoch">🔄 CHoCH</span>':s.withTrend?'<span class="tag tms">↑ Tend.</span>':'';const cs2=s.candleStr||{level:'normal',label:'Vela normal',note:''};const vs2=s.volStr||{level:'normal',label:'',note:''};const velaTag=cs2.level==='strong'?'<span class="tag tc">💪 '+cs2.label+'</span>':cs2.level==='weak'?'<span class="tag" style="background:#fce4ec;color:#880e4f">⚠ '+cs2.label+'</span>':'';const volTag=vs2.level==='high'?'<span class="tag" style="background:#e3f2fd;color:#0d47a1">📊 Vol. alto</span>':vs2.level==='above'?'<span class="tag" style="background:#e8f4fd;color:#1565c0">📊 Vol. elevado</span>':vs2.level==='low'?'<span class="tag" style="background:#fff3e0;color:#e65100">📊 Vol. bajo</span>':'';const velaWarn=cs2.level==='weak'?'<div class="cn contra" style="border-left-color:#e91e63">⚠️ <strong>Vela débil</strong> — '+cs2.note+'</div>':'';const etTag=s.et==='Limit'?'<span class="tag tlim">🔵 Limit</span>':'<span class="tag tmkt">🟢 Market</span>';let encHtml='';if(sc2.now){encHtml=`<div class="enc ${s.dir==='long'?'nl':'ns'}"><span class="ei">${s.dir==='long'?'🚀':'🔻'}</span><div><div class="et2" style="color:${dc}">ENTRA YA${s.et==='Limit'?' (Limit)':''}</div><div class="eck"><span class="ck ok">✓ Confirmada</span><span class="ck ${sc2.mtf?'ok':'no'}">${sc2.mtf?'✓':'✗'} MTF</span><span class="ck ${sc2.rr?'ok':'no'}">${sc2.rr?'✓':'✗'} R:R</span><span class="ck ${s.withTrend?'ok':'no'}">${s.withTrend?'✓':'⚠'} Tend.</span><span class="ck ${sc2.strongCandle?'ok':sc2.weakCandle?'no':'ok'}">${sc2.strongCandle?'💪':sc2.weakCandle?'⚠':'✓'} Vela</span></div></div></div>`;}else if(sc2.strong){encHtml=`<div class="enc ${s.dir==='long'?'sl2':'ss2'}"><span class="ei">⚡</span><div><div class="et2" style="color:${s.dir==='long'?'#66bb6a':'#ef9a9a'}">ENTRADA FUERTE</div><div class="eck"><span class="ck ok">✓</span><span class="ck ${sc2.mtf?'ok':'no'}">${sc2.mtf?'✓':'✗'} MTF</span><span class="ck ${sc2.rr?'ok':'no'}">${sc2.rr?'✓':'✗'} R:R</span><span class="ck ${sc2.strongCandle?'ok':sc2.weakCandle?'no':'ok'}">${sc2.strongCandle?'💪':sc2.weakCandle?'⚠':'✓'} Vela</span></div></div></div>`;}const rtNote=isRT?`<div class="rt-info">🔁 <strong>Retest ${s.levelType} $${ff(s.levelPrice,0)}</strong> · ${s.confirmNote} · Orden Limit en $${ff(l.e)}</div>`:'';const tnote=!isRT&&s.isContra?`<div class="cn contra">⚠️ Contratendencia — ${lastStruct.label}</div>`:!isRT&&s.isCHoCH?`<div class="cn choch">🔄 CHoCH — Primera entrada en nueva dirección</div>`:'';const isPinned=pinnedSigs.has(i);const eb=s.isAct?`<button class="btn cx" onclick="closeTrade_dashboard()">Cerrar</button>`:`<button class="btn" style="background:${col.h};color:#fff;border:none;font-weight:600;font-size:11px;padding:5px 12px;border-radius:6px;box-shadow:0 2px 6px ${col.h}88" onclick="enterTrade(window._S[${i}])">▶ Marcar ${s.et}</button><button class="btn" onclick="copyOrder(window._S[${i}])" title="Copiar orden" style="font-size:11px;padding:2px 8px">📋</button><button class="btn pin-btn ${isPinned?'pinned':''}" onclick="pinSig(${i})" title="${isPinned?'Desanclar':'Anclar señal'}">📌</button>`;return`<div class="sc ${s.dir}" style="border-left:4px solid ${col.h}"><div class="sh"><span class="sn" style="background:${col.h}">${i+1}</span><span class="st2" style="color:${dc}">${s.dir==='long'?'▲ LONG':'▼ SHORT'}</span>${srcTag}${etTag}${stag}${ttag}${ctag}${rrTag}${trendTag}${velaTag}${volTag}<span class="tag" style="background:#f5f5f5">${lev}x</span><span style="font-size:9px;color:#999;margin-left:auto">${tf}</span></div>${encHtml}${rtNote}${tnote}${velaWarn}<div class="sm2">${isRT?`Retest $${ff(s.levelPrice,0)} (${s.levelType})`:isFVG?`FVG $${ff(s.zone.low)}–$${ff(s.zone.high)}`:`OB $${ff(s.zone.low)}–$${ff(s.zone.high)}`} · SL ${l.sp}% (${l.sm})</div><div class="lvls"><div class="lb" style="border-left:2px solid ${col.h};border-radius:0 4px 4px 0"><div class="ln">${s.et} ${s.et==='Limit'?'🔵':'🟢'}</div><div class="lp" style="color:${col.h}">$${ff(l.e)}</div><div class="ls">${isRT?`Nivel ${s.levelType}`:isFVG?'50% FVG':s.dir==='long'?'Techo OB':'Suelo OB'}</div></div><div class="lb" style="border-left:2px solid #ef5350;border-radius:0 4px 4px 0"><div class="ln">SL · ${l.sp}%</div><div class="lp" style="color:#ef5350">$${ff(l.sl)}</div><div class="ls">${l.sm}</div></div><div class="lb" style="border-left:2px solid #f57c00;border-radius:0 4px 4px 0"><div class="ln">TP1 · <strong>${l.r1}R</strong></div><div class="lp" style="color:#f57c00">$${ff(l.tp1)}</div></div><div class="lb" style="border-left:2px solid #26a69a;border-radius:0 4px 4px 0"><div class="ln">TP2 · <strong>${l.r2}R</strong></div><div class="lp" style="color:#26a69a">$${ff(l.tp2)}</div></div></div><div class="ld"><div class="di"><div class="dl">Liquidación</div><div class="dliq">$${ff(liq(l.e,s.dir,lev))}</div></div><div class="di"><div class="dl">Margen/1000</div><div class="dv">$${ff(1000/lev,0)}</div></div><div class="di"><div class="dl">Pérdida máx.</div><div class="dv" style="color:#ef5350">-$${ff(1000*(parseFloat(l.sp)/100)*lev,1)}</div></div><div class="di"><div class="dl">Ganancia TP1</div><div class="dv" style="color:#26a69a">+$${ff(1000*parseFloat(l.r1)*(parseFloat(l.sp)/100)*lev,1)}</div></div></div><div class="sa">${eb}<button class="btn p" onclick="alert('📊 Señal S'+(${i}+1)+'\\n──────────────────\\n${s.source.toUpperCase()} ${s.dir.toUpperCase()} · ${tf} · ${lev}x\\nR:R: ${l.r1}R/${l.r2}R · SL: ${l.sp}%\\n──────────────────\\n🔵 Entrada:    $${ff(l.e)}\\n🔴 Stop Loss:  $${ff(l.sl)}\\n🟠 TP1(${l.r1}R): $${ff(l.tp1)}\\n🟢 TP2(${l.r2}R): $${ff(l.tp2)}\\n──────────────────\\n⚡ Liquidación: $${ff(liq(l.e,s.dir,lev))}')">Info</button></div></div>`;}).join('');}
+  if(trade){
+    const openT=tradeHistory.find(t=>t.result==='open'&&t.id===trade.histId);
+    if(openT){
+      calcActiveSig={dir:trade.dir,lvls:{e:trade.e,sl:trade.sl,tp1:trade.tp1,tp2:trade.tp2,lq:liq(trade.e,trade.dir,lev),sp:trade.sp,r1:trade.r1,r2:trade.r2}};
+      calcManualSig=false;calcSigStale=false;calcUpdate();
+    }
+  } else if(calcManualSig&&calcActiveSig){
+    // Senyal seleccionada manualment — comprovar si segueix existint
+    const stillExists=sigs.some(s=>s.source===calcActiveSig.source&&s.dir===calcActiveSig.dir&&Math.abs((s.lvls.e-calcActiveSig.lvls.e)/calcActiveSig.lvls.e)<0.001);
+    if(!stillExists&&!calcSigStale){
+      calcSigStale=true;
+      calcUpdate(); // Mostrar avís
+    } else if(stillExists&&calcSigStale){
+      calcSigStale=false;calcUpdate();
+    }
+  } else if(!calcManualSig){
+    if(sigs.length){const best=sigs.find(s=>calcScore(s).now)||sigs.find(s=>calcScore(s).strong)||sigs[0];if(best){calcActiveSig=best;calcUpdate();}}
+    else{calcActiveSig=null;calcUpdate();}
+  }
+  if(!sigs.length){el.innerHTML=`<div class="empty">Sin señales · ${TF_I[tf]||''}</div>`;return;}window._S=sigs;el.innerHTML=sigs.map((s,i)=>{const col=SC[i]||SC[0],l=s.lvls,dc=s.dir==='long'?'#26a69a':'#ef5350';const sc2=calcScore(s),isRT=s.source==='rt',isFVG=s.source==='fvg';const stag=s.status==='confirmed'?'<span class="tag tc">✓ Confirmada</span>':s.status==='zone'?'<span class="tag tz">◎ En zona</span>':'<span class="tag tw">~ Vigilar</span>';const srcTag=isRT?`<span class="tag trt">🔁 Retest</span>`:isFVG?'<span class="tag tfvg">⚡ FVG</span>':'<span class="tag tob">📦 OB</span>';const ttag=s.type==='scalp'?'<span class="tag tsc">Scalp</span>':s.type==='intraday'?'<span class="tag tid">Intraday</span>':'<span class="tag tsw">Swing</span>';const ctag=s.aligned?(s.cstr==='strong'?'<span class="tag tms">MTF✓</span>':s.cstr==='medium'?'<span class="tag tmm">MTF~</span>':''):'<span class="tag tmn">⚠MTF</span>';const rrTag=`<span class="${parseFloat(l.r1)>=3?'rg':'ro'}">R:R${l.r1}</span>`;const trendTag=s.isContra?'<span class="tag twt">⚠ Contra</span>':s.isCHoCH?'<span class="tag tchoch">🔄 CHoCH</span>':s.withTrend?'<span class="tag tms">↑ Tend.</span>':'';const cs2=s.candleStr||{level:'normal',label:'Vela normal',note:''};const vs2=s.volStr||{level:'normal',label:'',note:''};const velaTag=cs2.level==='strong'?'<span class="tag tc">💪 '+cs2.label+'</span>':cs2.level==='weak'?'<span class="tag" style="background:#fce4ec;color:#880e4f">⚠ '+cs2.label+'</span>':'';const volTag=vs2.level==='high'?'<span class="tag" style="background:#e3f2fd;color:#0d47a1">📊 Vol. alto</span>':vs2.level==='above'?'<span class="tag" style="background:#e8f4fd;color:#1565c0">📊 Vol. elevado</span>':vs2.level==='low'?'<span class="tag" style="background:#fff3e0;color:#e65100">📊 Vol. bajo</span>':'';const velaWarn=cs2.level==='weak'?'<div class="cn contra" style="border-left-color:#e91e63">⚠️ <strong>Vela débil</strong> — '+cs2.note+'</div>':'';const etTag=s.et==='Limit'?'<span class="tag tlim">🔵 Limit</span>':'<span class="tag tmkt">🟢 Market</span>';let encHtml='';if(sc2.now){encHtml=`<div class="enc ${s.dir==='long'?'nl':'ns'}"><span class="ei">${s.dir==='long'?'🚀':'🔻'}</span><div><div class="et2" style="color:${dc}">ENTRA YA${s.et==='Limit'?' (Limit)':''}</div><div class="eck"><span class="ck ok">✓ Confirmada</span><span class="ck ${sc2.mtf?'ok':'no'}">${sc2.mtf?'✓':'✗'} MTF</span><span class="ck ${sc2.rr?'ok':'no'}">${sc2.rr?'✓':'✗'} R:R</span><span class="ck ${s.withTrend?'ok':'no'}">${s.withTrend?'✓':'⚠'} Tend.</span><span class="ck ${sc2.strongCandle?'ok':sc2.weakCandle?'no':'ok'}">${sc2.strongCandle?'💪':sc2.weakCandle?'⚠':'✓'} Vela</span></div></div></div>`;}else if(sc2.strong){encHtml=`<div class="enc ${s.dir==='long'?'sl2':'ss2'}"><span class="ei">⚡</span><div><div class="et2" style="color:${s.dir==='long'?'#66bb6a':'#ef9a9a'}">ENTRADA FUERTE</div><div class="eck"><span class="ck ok">✓</span><span class="ck ${sc2.mtf?'ok':'no'}">${sc2.mtf?'✓':'✗'} MTF</span><span class="ck ${sc2.rr?'ok':'no'}">${sc2.rr?'✓':'✗'} R:R</span><span class="ck ${sc2.strongCandle?'ok':sc2.weakCandle?'no':'ok'}">${sc2.strongCandle?'💪':sc2.weakCandle?'⚠':'✓'} Vela</span></div></div></div>`;}const rtNote=isRT?`<div class="rt-info">🔁 <strong>Retest ${s.levelType} $${ff(s.levelPrice,0)}</strong> · ${s.confirmNote} · Orden Limit en $${ff(l.e)}</div>`:'';const tnote=!isRT&&s.isContra?`<div class="cn contra">⚠️ Contratendencia — ${lastStruct.label}</div>`:!isRT&&s.isCHoCH?`<div class="cn choch">🔄 CHoCH — Primera entrada en nueva dirección</div>`:'';const isPinned=pinnedSigs.has(i);const eb=s.isAct?`<button class="btn cx" onclick="closeTrade_dashboard()">Cerrar</button>`:`<button class="btn" style="background:${col.h};color:#fff;border:none;font-weight:600;font-size:11px;padding:5px 12px;border-radius:6px;box-shadow:0 2px 6px ${col.h}88" onclick="enterTrade(window._S[${i}])">▶ Marcar ${s.et}</button><button class="btn" onclick="copyOrder(window._S[${i}])" title="Copiar orden" style="font-size:11px;padding:2px 8px">📋</button><button class="btn" onclick="loadSigToCalc(window._S[${i}])" title="Cargar en calculadora" style="font-size:11px;padding:2px 8px" id="calc-sig-btn-${i}">📊</button><button class="btn pin-btn ${isPinned?'pinned':''}" onclick="pinSig(${i})" title="${isPinned?'Desanclar':'Anclar señal'}">📌</button>`;const isCalcActive=calcManualSig&&calcActiveSig&&calcActiveSig.source===s.source&&calcActiveSig.dir===s.dir&&Math.abs((calcActiveSig.lvls.e-l.e)/l.e)<0.001;
+return`<div class="sc ${s.dir}" id="sig-card-${i}" style="border-left:4px solid ${col.h};${isCalcActive?'outline:2px solid #2962ff;outline-offset:-2px;background:rgba(41,98,255,0.04)':''}"><div class="sh"><span class="sn" style="background:${col.h}">${i+1}</span><span class="st2" style="color:${dc}">${s.dir==='long'?'▲ LONG':'▼ SHORT'}</span>${srcTag}${etTag}${stag}${ttag}${ctag}${rrTag}${trendTag}${velaTag}${volTag}<span class="tag" style="background:#f5f5f5">${lev}x</span><span style="font-size:9px;color:#999;margin-left:auto">${tf}</span></div>${encHtml}${rtNote}${tnote}${velaWarn}<div class="sm2">${isRT?`Retest $${ff(s.levelPrice,0)} (${s.levelType})`:isFVG?`FVG $${ff(s.zone.low)}–$${ff(s.zone.high)}`:`OB $${ff(s.zone.low)}–$${ff(s.zone.high)}`} · SL ${l.sp}% (${l.sm})</div><div class="lvls"><div class="lb" style="border-left:2px solid ${col.h};border-radius:0 4px 4px 0"><div class="ln">${s.et} ${s.et==='Limit'?'🔵':'🟢'}</div><div class="lp" style="color:${col.h}">$${ff(l.e)}</div><div class="ls">${isRT?`Nivel ${s.levelType}`:isFVG?'50% FVG':s.dir==='long'?'Techo OB':'Suelo OB'}</div></div><div class="lb" style="border-left:2px solid #ef5350;border-radius:0 4px 4px 0"><div class="ln">SL · ${l.sp}%</div><div class="lp" style="color:#ef5350">$${ff(l.sl)}</div><div class="ls">${l.sm}</div></div><div class="lb" style="border-left:2px solid #f57c00;border-radius:0 4px 4px 0"><div class="ln">TP1 · <strong>${l.r1}R</strong></div><div class="lp" style="color:#f57c00">$${ff(l.tp1)}</div></div><div class="lb" style="border-left:2px solid #26a69a;border-radius:0 4px 4px 0"><div class="ln">TP2 · <strong>${l.r2}R</strong></div><div class="lp" style="color:#26a69a">$${ff(l.tp2)}</div></div></div><div class="ld"><div class="di"><div class="dl">Liquidación</div><div class="dliq">$${ff(liq(l.e,s.dir,lev))}</div></div><div class="di"><div class="dl">Margen/1000</div><div class="dv">$${ff(1000/lev,0)}</div></div><div class="di"><div class="dl">Pérdida máx.</div><div class="dv" style="color:#ef5350">-$${ff(1000*(parseFloat(l.sp)/100)*lev,1)}</div></div><div class="di"><div class="dl">Ganancia TP1</div><div class="dv" style="color:#26a69a">+$${ff(1000*parseFloat(l.r1)*(parseFloat(l.sp)/100)*lev,1)}</div></div></div><div class="sa">${eb}<button class="btn p" onclick="alert('📊 Señal S'+(${i}+1)+'\\n──────────────────\\n${s.source.toUpperCase()} ${s.dir.toUpperCase()} · ${tf} · ${lev}x\\nR:R: ${l.r1}R/${l.r2}R · SL: ${l.sp}%\\n──────────────────\\n🔵 Entrada:    $${ff(l.e)}\\n🔴 Stop Loss:  $${ff(l.sl)}\\n🟠 TP1(${l.r1}R): $${ff(l.tp1)}\\n🟢 TP2(${l.r2}R): $${ff(l.tp2)}\\n──────────────────\\n⚡ Liquidación: $${ff(liq(l.e,s.dir,lev))}')">Info</button></div></div>`;}).join('');}
 function getChartColors(){const dark=document.body.classList.contains('dark');return{bg:dark?'#1a1d27':'#fff',text:dark?'#9294a0':'#555',grid:dark?'#252836':'#f0f0f0',border:dark?'#2a2d3e':'#e0e0e0'};}
 
 function initChart(){
@@ -1516,6 +1535,8 @@ document.querySelectorAll('.filt-btn').forEach(btn=>{btn.addEventListener('click
 
 // ── CALCULADORA DE CAPITAL ────────────────────────────────────
 let calcActiveSig=null; // señal actualmente seleccionada en el gráfico
+let calcManualSig=false; // true = seleccionada manualment per l'usuari
+let calcSigStale=false;  // true = senyal ja no existeix
 
 function setRiesgo(pct,btn){
   document.getElementById('calc-riesgo').value=pct;
@@ -1571,6 +1592,28 @@ function calcUpdate(){
 
     document.getElementById('calc-sig-content').style.display='block';
     document.getElementById('calc-no-sig').style.display='none';
+    // Label de la senyal activa
+    const sigLbl=document.getElementById('calc-sig-label');
+    if(sigLbl){
+      const srcI=sig.source==='rt'?'🔁':sig.source==='fvg'?'⚡':'📦';
+      const srcN=sig.source==='rt'?'Retest':sig.source==='fvg'?'FVG':'OB';
+      const dirN=sig.dir==='long'?'▲ Long':'▼ Short';
+      const tfN=typeof tf!=='undefined'?tf:'';
+      const isOpen=tradeHistory&&tradeHistory.some(t=>t.result==='open');
+      if(calcSigStale){
+        sigLbl.textContent='⚠️ Señal ya no activa';
+        sigLbl.style.color='#ef5350';
+      } else if(isOpen){
+        sigLbl.textContent=srcI+' '+srcN+' '+dirN+' · '+tfN+' 🔴 en curso';
+        sigLbl.style.color='#ef5350';
+      } else if(calcManualSig){
+        sigLbl.textContent=srcI+' '+srcN+' '+dirN+' · '+tfN+' ⚠️ puede desaparecer';
+        sigLbl.style.color=sig.dir==='long'?'#26a69a':'#ef5350';
+      } else {
+        sigLbl.textContent=srcI+' '+srcN+' '+dirN+' · '+tfN+' (auto)';
+        sigLbl.style.color='#aaa';
+      }
+    }
     document.getElementById('calc-lev-val').textContent=lev+'x';
     document.getElementById('calc-sl-val').textContent=l.sp+'%';
     document.getElementById('calc-rr-val').textContent=l.r1+'R / '+l.r2+'R';
@@ -1609,6 +1652,8 @@ function calcUpdate(){
   }else{
     document.getElementById('calc-sig-content').style.display='none';
     document.getElementById('calc-no-sig').style.display='block';
+    const sigLblH=document.getElementById('calc-sig-label');
+    if(sigLblH){sigLblH.textContent='sin selección';sigLblH.style.color='#bbb';}
     const sbBtn=document.getElementById('sidebar-bitunix-btn');
     if(sbBtn){const hasOpen=tradeHistory&&tradeHistory.some(t=>t.result==='open');sbBtn.style.display=hasOpen?'flex':'none';}
   }
@@ -1810,6 +1855,19 @@ function showUpdateBanner(newSW){
     <button onclick="newSW.postMessage('skipWaiting');window.location.reload()">Actualizar</button>
     <button onclick="this.parentElement.remove()" style="background:transparent;color:#aaa;padding:4px 8px">✕</button>`;
   document.body.appendChild(b);
+}
+
+// ── CARGAR SEÑAL A CALCULADORA ───────────────────────────────
+function loadSigToCalc(sig){
+  calcActiveSig=sig;
+  calcManualSig=true;
+  calcSigStale=false;
+  calcUpdate();
+  // Scroll amunt al sidebar
+  const sidebar=document.querySelector('.sidebar');
+  if(sidebar)sidebar.scrollTo({top:0,behavior:'smooth'});
+  // Re-render senyals per actualitzar highlights
+  if(typeof renderSigs==='function'&&lastSigs)renderSigs(lastSigs,[]);
 }
 
 function copyOrder(sig){
