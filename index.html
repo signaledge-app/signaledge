@@ -237,8 +237,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .empty{text-align:center;padding:1.5rem;color:#999;font-size:11px}
 .log{background:#f9f9f9;border-radius:4px;padding:.4rem .6rem;font-size:9px;color:#888;font-family:monospace;border:1px solid #eee}
 /* HISTORIAL */
-.hist-page{padding:.75rem 0}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px;margin-bottom:.75rem}
+.hist-page{padding:1rem .75rem .75rem}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px;margin-top:.5rem;margin-bottom:.75rem}
 .stat-card{background:#fff;border-radius:8px;padding:.625rem .75rem;text-align:center;border:1px solid #eee}
 .stat-val{font-size:20px;font-weight:700;margin-bottom:2px;color:#222}
 .stat-lbl{font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.05em}
@@ -294,6 +294,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .chart-vol{position:relative;flex-shrink:0;min-height:40px}
 #vol-label{position:absolute;top:4px;left:8px;font-size:9px;color:var(--text4);z-index:10;pointer-events:none}
 body.dark .chart-wrapper{background:var(--chart);border-color:var(--border)}
+
+
+/* ── GRÀFIC PNL ─────────────────────────────────────────────── */
+.pnl-chart-section{background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:.6rem .75rem;margin-bottom:.5rem}
+.pnl-chart-title{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;display:flex;align-items:center;justify-content:space-between}
+.pnl-chart-title span{font-size:11px;font-weight:700}
+.pnl-canvas-wrap{position:relative;height:80px}
+#pnl-canvas{width:100%;height:100%;display:block}
 
 /* ── DARK MODE ───────────────────────────────────────────────── */
 :root{
@@ -660,6 +668,15 @@ body.dark #se-profile-btn.logged{background:#1a2820;border-color:#26a69a}
     <div class="stat-card"><div class="stat-val" id="st-worst" style="color:#ef5350">--</div><div class="stat-lbl">Peor trade</div></div>
   </div>
   <div id="open-trade-section" style="display:none"></div>
+  <div class="pnl-chart-section" id="pnl-section" style="display:none">
+    <div class="pnl-chart-title">
+      <span>📈 PnL acumulado</span>
+      <span id="pnl-total-lbl"></span>
+    </div>
+    <div class="pnl-canvas-wrap">
+      <canvas id="pnl-canvas"></canvas>
+    </div>
+  </div>
   <div class="date-filter">
     <label>Desde</label>
     <input type="date" id="df-from" onchange="applyDateFilter()">
@@ -1002,7 +1019,7 @@ function renderHistList(){
     </div>`;
   }).join('');
 }
-function renderHistorial(){renderStats();renderOpenTrade();renderHistList();if(typeof renderBreakdown==="function")renderBreakdown();}
+function renderHistorial(){renderStats();renderOpenTrade();renderHistList();if(typeof renderBreakdown==="function")renderBreakdown();if(typeof renderPnlChart==="function")renderPnlChart();}
 
 // ── DASHBOARD ─────────────────────────────────────────────────
 // Carregar preferències bàsiques IMMEDIATAMENT (abans de tot)
@@ -1406,7 +1423,7 @@ function setData(){if(!cSeries||!candles.length)return;const d=candles.map(c=>({
     volSeries.setData(vd);
     volChart.timeScale().setVisibleRange({from:vd[Math.max(0,vd.length-TFCFG[tf].vis)].time,to:vd[vd.length-1].time});
   }catch(e){}}chart.timeScale().setVisibleRange({from:d[Math.max(0,d.length-TFCFG[tf].vis)].time,to:d[d.length-1].time});}
-function update(){if(!price||!candles.length)return;syncCB();const obs=detectOBs(candles,price),fvgs=detectFVGs(candles,price),pats=detectPats(),struct=detectStruct(candles);renderStruct(struct);drawBOS(struct);const retests=detectRetests(candles,price,struct);const sigs=genSigs(obs,fvgs,retests,pats,struct);renderSigs(sigs,pats);drawPats(pats);if(trade){updAtb();drawTradeLines(trade);}
+function update(){if(!price||!candles.length)return;syncCB();const obs=detectOBs(candles,price),fvgs=detectFVGs(candles,price),pats=detectPats(),struct=detectStruct(candles);renderStruct(struct);drawBOS(struct);const retests=detectRetests(candles,price,struct);const sigs=genSigs(obs,fvgs,retests,pats,struct);renderSigs(sigs,pats);drawPats(pats);if(trade){updAtb();drawTradeLines(trade);checkSLAlert();}
   // Auto-dibuixar nivells externs al gràfic
   if(typeof drawExtLevelsOnChart==='function')drawExtLevelsOnChart();
 }
@@ -1424,7 +1441,7 @@ document.getElementById('cob').addEventListener('change',function(){useOB=this.c
 document.getElementById('cfvg').addEventListener('change',function(){useFVG=this.checked;document.getElementById('lfvg').className='ecb'+(useFVG?' fvg-on':'');update();});
 document.getElementById('crt').addEventListener('change',function(){useRT=this.checked;document.getElementById('lrt').className='ecb'+(useRT?' rt-on':'');update();});
 document.querySelectorAll('.pcb input').forEach(cb=>{cb.addEventListener('change',()=>{const p=cb.dataset.pat;if(cb.checked){actPats.add(p);cb.closest('label').classList.add('on');}else{actPats.delete(p);cb.closest('label').classList.remove('on');}drawPats(detectPats());});});
-document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('tab-'+btn.dataset.tab).classList.add('active');if(btn.dataset.tab==='historial')renderHistorial();});});
+document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('tab-'+btn.dataset.tab).classList.add('active');if(btn.dataset.tab==='historial'){renderHistorial();setTimeout(()=>{if(typeof renderPnlChart==='function')renderPnlChart();},50);}});});
 document.querySelectorAll('.filt-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.filt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentFilt=btn.dataset.filt;renderHistList();});});
 
 // ── CALCULADORA DE CAPITAL ────────────────────────────────────
@@ -2113,6 +2130,128 @@ function renderBreakdown(){
   document.getElementById('bk-tf').innerHTML=tfData.map(renderBreakdownCard).join('');
   document.getElementById('bk-src').innerHTML=srcData.map(renderBreakdownCard).join('');
   document.getElementById('bk-dir').innerHTML=dirData.map(renderBreakdownCard).join('');
+}
+</script>
+
+
+<script>
+// ── GRÀFIC PNL ACUMULAT ───────────────────────────────────────
+function renderPnlChart(){
+  const closed=filterByDate(tradeHistory).filter(t=>t.result!=='open'&&t.pnlPct!=null);
+  const sec=document.getElementById('pnl-section');
+  if(!sec)return;
+  if(closed.length<2){sec.style.display='none';return;}
+  sec.style.display='block';
+
+  // Calcular PnL acumulat
+  const sorted=[...closed].sort((a,b)=>new Date(a.openedAt||a.ts||0)-new Date(b.openedAt||b.ts||0));
+  let acc=0;
+  const points=sorted.map(t=>{acc+=t.pnlPct||0;return acc;});
+  const total=points[points.length-1];
+  const lbl=document.getElementById('pnl-total-lbl');
+  if(lbl){
+    lbl.textContent=(total>=0?'+':'')+total.toFixed(2)+'%';
+    lbl.style.color=total>=0?'#26a69a':'#ef5350';
+  }
+
+  // Dibuixar al canvas
+  const canvas=document.getElementById('pnl-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const wrap=canvas.parentElement;
+  const W=wrap.offsetWidth||wrap.parentElement?.offsetWidth||600;
+  const H=wrap.offsetHeight||80;
+  canvas.width=W*dpr;
+  canvas.height=H*dpr;
+  canvas.style.width=W+'px';
+  canvas.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  const dark=document.body.classList.contains('dark');
+  ctx.clearRect(0,0,W,H);
+
+  const min=Math.min(0,...points),max=Math.max(0,...points);
+  const range=max-min||1;
+  const pad=10;
+  const toY=v=>H-pad-(v-min)/range*(H-pad*2);
+  const toX=(i)=>pad+i/(points.length-1)*(W-pad*2);
+  const zeroY=toY(0);
+
+  // Línia zero
+  ctx.beginPath();
+  ctx.strokeStyle=dark?'#2a2d3e':'#e0e0e0';
+  ctx.lineWidth=1;
+  ctx.setLineDash([4,4]);
+  ctx.moveTo(0,zeroY);ctx.lineTo(W,zeroY);
+  ctx.stroke();ctx.setLineDash([]);
+
+  // Àrea sota la línia
+  const gradient=ctx.createLinearGradient(0,0,0,H);
+  if(total>=0){
+    gradient.addColorStop(0,'rgba(38,166,154,0.3)');
+    gradient.addColorStop(1,'rgba(38,166,154,0.0)');
+  } else {
+    gradient.addColorStop(0,'rgba(239,83,80,0.0)');
+    gradient.addColorStop(1,'rgba(239,83,80,0.3)');
+  }
+  ctx.beginPath();
+  ctx.moveTo(toX(0),toY(points[0]));
+  points.forEach((v,i)=>{if(i>0)ctx.lineTo(toX(i),toY(v));});
+  ctx.lineTo(toX(points.length-1),H);
+  ctx.lineTo(toX(0),H);
+  ctx.closePath();
+  ctx.fillStyle=gradient;
+  ctx.fill();
+
+  // Línia principal
+  ctx.beginPath();
+  ctx.strokeStyle=total>=0?'#26a69a':'#ef5350';
+  ctx.lineWidth=2;
+  ctx.lineJoin='round';
+  ctx.moveTo(toX(0),toY(points[0]));
+  points.forEach((v,i)=>{if(i>0)ctx.lineTo(toX(i),toY(v));});
+  ctx.stroke();
+
+  // Punt final
+  const lastX=toX(points.length-1),lastY=toY(points[points.length-1]);
+  ctx.beginPath();
+  ctx.arc(lastX,lastY,4,0,Math.PI*2);
+  ctx.fillStyle=total>=0?'#26a69a':'#ef5350';
+  ctx.fill();
+}
+</script>
+
+
+<script>
+// ── NOTIFICACIÓ SL PROPER ────────────────────────────────────
+let slWarnSent=false;
+let slWarnLastPrice=null;
+
+function checkSLAlert(){
+  if(!trade||!price||!pushEnabled||Notification.permission!=='granted')return;
+  const sl=trade.sl,ep=trade.ep||trade.e;
+  if(!sl||!ep)return;
+  const totalDist=Math.abs(ep-sl);
+  const currentDist=Math.abs(price-sl);
+  const pct=currentDist/totalDist;
+
+  // Avisar quan queda menys del 25% de distància fins al SL
+  if(pct<0.25&&!slWarnSent){
+    slWarnSent=true;
+    const dir=trade.dir==='long'?'LONG':'SHORT';
+    const slPct=((Math.abs(price-sl)/price)*100).toFixed(2);
+    try{
+      new Notification('⚠️ SL muy cerca!',{
+        body:`${dir} — Precio $${ff(price)} · SL $${ff(sl)} (${slPct}% restante)`,
+        tag:'sl-warning',
+        renotify:true,
+        icon:'/signaledge/icon-192.png'
+      });
+    }catch(e){}
+  } else if(pct>=0.4){
+    // Reset quan el preu s'allunya del SL
+    slWarnSent=false;
+  }
 }
 </script>
 
