@@ -1574,7 +1574,7 @@ function pinSig(idx){
   }
   savePinned();
   renderPinnedBanner();
-  renderSigs();
+  if(typeof lastSigs!=='undefined'&&lastSigs)renderSigs(lastSigs);
 }
 
 function savePinned(){
