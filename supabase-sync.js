@@ -112,6 +112,7 @@ function seSubscribeRealtime(userId){
       localStorage.setItem('btc_pinned_sigs',raw);
       if(typeof loadPinned==='function')loadPinned();
       if(typeof renderPinnedBanner==='function')renderPinnedBanner();
+      setTimeout(()=>{if(typeof lastSigs!=='undefined'&&lastSigs&&typeof renderSigs==='function')renderSigs(lastSigs);},100);
     })
     .subscribe();
 
@@ -334,6 +335,7 @@ async function seLoadPinned(userId){
     // Recarregar les pinned al dashboard
     if(typeof loadPinned==='function')loadPinned();
     if(typeof renderPinnedBanner==='function')renderPinnedBanner();
+    setTimeout(()=>{if(typeof lastSigs!=='undefined'&&lastSigs&&typeof renderSigs==='function')renderSigs(lastSigs);},100);
     console.log('SE Sync: Pinned sigs carregades ✓');
   }catch(e){console.log('SE Sync loadPinned error:',e.message);}
 }
