@@ -105,7 +105,7 @@ function seSubscribeRealtime(userId){
       filter:`user_id=eq.${userId}`
     }, payload=>{
       console.log('SE Realtime: pinned actualitzat');
-      const raw=payload.new?.data;
+      const raw=payload.new?.sig_data||payload.new?.data;
       if(!raw)return;
       const current=localStorage.getItem('btc_pinned_sigs');
       if(current===raw)return;
@@ -306,12 +306,14 @@ async function seSavePinned(userId, raw){
     const{data:existing}=await seDb.from('pinned_sigs').select('id').eq('user_id',userId).maybeSingle();
     if(existing){
       await seDb.from('pinned_sigs').update({
+        sig_data:raw||'[]',
         data:raw||'[]',
         updated_at:new Date().toISOString()
       }).eq('user_id',userId);
     }else{
       await seDb.from('pinned_sigs').insert({
         user_id:userId,
+        sig_data:raw||'[]',
         data:raw||'[]',
         updated_at:new Date().toISOString()
       });
@@ -323,10 +325,12 @@ async function seLoadPinned(userId){
   if(!seDb||!userId)return;
   try{
     const{data,error}=await seDb.from('pinned_sigs').select('*').eq('user_id',userId).maybeSingle();
-    if(!data||!data.data)return;
+    if(!data)return;
+    const raw=data.sig_data||data.data;
+    if(!raw)return;
     const current=localStorage.getItem('btc_pinned_sigs');
-    if(current===data.data)return; // ja és igual
-    localStorage.setItem('btc_pinned_sigs',data.data);
+    if(current===raw)return; // ja és igual
+    localStorage.setItem('btc_pinned_sigs',raw);
     // Recarregar les pinned al dashboard
     if(typeof loadPinned==='function')loadPinned();
     if(typeof renderPinnedBanner==='function')renderPinnedBanner();
