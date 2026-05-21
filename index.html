@@ -128,11 +128,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .trend-main.bull{background:#e8f5e9;color:#1b5e20}.trend-main.bear{background:#fce4ec;color:#880e4f}.trend-main.neutral{background:#fafafa;color:#888}
 /* GRÁFICO */
 .chart-o{border-radius:6px;overflow:hidden;margin-bottom:.5rem;background:#fff;border:1px solid #e0e0e0;position:relative}
-.chart-o.fullscreen{position:fixed;top:0;left:0;width:100vw!important;height:100vh!important;z-index:9999;border-radius:0;margin:0;border:none;display:flex;flex-direction:column}
-.chart-o.fullscreen #cc{flex:1;min-height:0;height:auto!important}
-.chart-o.fullscreen #chart-vol-panel{height:100px!important;flex-shrink:0}
-.chart-o.fullscreen .cf{flex-shrink:0}
-.chart-o.fullscreen .chart-divider{flex-shrink:0;cursor:ns-resize}
+.chart-o.fullscreen{position:fixed;top:0;left:0;width:100vw!important;height:100vh!important;z-index:9999;border-radius:0;margin:0;border:none}
 .btn-fullscreen{position:absolute;top:8px;right:8px;z-index:10;background:rgba(255,255,255,0.9);border:1px solid #ddd;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:13px;line-height:1;backdrop-filter:blur(4px)}
 .btn-fullscreen:hover{background:#fff;border-color:#2962ff;color:#2962ff}
 .tf-bar{display:flex;align-items:center;gap:2px;padding:.4rem .6rem;background:#fafafa;border-bottom:1px solid #ebebeb;flex-wrap:wrap}
@@ -712,10 +708,10 @@ body.dark .bm-hint{color:#666}
       <label class="pcb"><input type="checkbox" data-pat="can"><span>Canal</span></label>
     </div>
     <div id="cc"></div>
-    <div class="chart-divider" id="chart-divider"></div>
-    <div class="chart-vol" id="chart-vol-panel" style="height:80px"><div id="vc"></div><span id="vol-label">Vol</span></div>
-    <div class="cf"><span id="ci" style="font-family:monospace">--</span><span id="obi" style="margin-left:auto">--</span></div>
   </div>
+  <div class="chart-divider" id="chart-divider"></div>
+  <div class="chart-vol" id="chart-vol-panel" style="height:80px"><div id="vc"></div><span id="vol-label">Vol</span></div>
+  <div class="cf"><span id="ci" style="font-family:monospace">--</span><span id="obi" style="margin-left:auto">--</span></div>
   </div>
   <div class="chart-o chart-wrapper-end" style="display:none"></div>
   <div class="dbg-toggle" onclick="toggleDbg()">⚙ debug</div>
@@ -1997,33 +1993,51 @@ function setTF(t){
 function toggleDbg(){const d=document.getElementById('dbg');d.style.display=d.style.display==='block'?'none':'block';}
 
 function toggleFullscreen(){
-  const co=document.querySelector('.chart-o');
+  const co=document.getElementById('chart-main-panel');
   const btn=document.getElementById('btn-fs');
-  const volPanel=document.getElementById('chart-vol-panel');
   const isFs=co.classList.contains('fullscreen');
+  const divider=document.getElementById('chart-divider');
+  const volPanel=document.getElementById('chart-vol-panel');
+  const cfBar=document.querySelector('.cf');
+  const wrapper=document.getElementById('chart-wrapper');
+  const cc=document.getElementById('cc');
+
   if(isFs){
+    // Sortir fullscreen
     co.classList.remove('fullscreen');
-    btn.textContent='⛶';
-    btn.title='Pantalla completa';
-    if(volPanel)volPanel.style.height='80px';
-    const ccEl2=document.getElementById('cc');
-    if(ccEl2){ccEl2.style.flex='';ccEl2.style.height='420px';}
-    if(chart)chart.applyOptions({width:co.clientWidth,height:420});
-    if(volChart)volChart.applyOptions({width:co.clientWidth,height:80});
+    co.style.cssText='';
+    btn.textContent='⛶'; btn.title='Pantalla completa';
+    // Tornar elements al wrapper
+    if(divider)wrapper.appendChild(divider);
+    if(volPanel){volPanel.style.height='80px';wrapper.appendChild(volPanel);}
+    if(cfBar)wrapper.appendChild(cfBar);
+    document.body.style.overflow='';
+    if(cc)cc.style.height='420px';
+    setTimeout(()=>{
+      if(chart)chart.applyOptions({width:co.clientWidth,height:420});
+      if(volChart)volChart.applyOptions({width:co.clientWidth,height:80});
+    },30);
   }else{
+    // Entrar fullscreen
     co.classList.add('fullscreen');
-    btn.textContent='✕';
-    btn.title='Cerrar';
-    // Reservem ~110px per la barra TF + 100px volum + 24px cf
-    const volH=100;
-    const mainH=window.innerHeight-volH-24;
-    if(volPanel)volPanel.style.height=volH+'px';
-    const ccEl=document.getElementById('cc');
-    if(ccEl){ccEl.style.flex='0 0 '+mainH+'px';ccEl.style.height=mainH+'px';}
+    co.style.cssText='position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;border-radius:0;margin:0;border:none;display:flex;flex-direction:column;background:#fff;overflow:hidden';
+    btn.textContent='✕'; btn.title='Cerrar';
+    document.body.style.overflow='hidden';
+    // Moure elements dins del panel
+    if(divider)co.appendChild(divider);
+    const volH=120;
+    // Calcular altura del gràfic = total - barres fixes - volum
+    const fixedH=co.querySelector('.tf-bar').offsetHeight +
+      (co.querySelector('.ebar')?co.querySelector('.ebar').offsetHeight:0) +
+      (co.querySelector('.sbar')?co.querySelector('.sbar').offsetHeight:0) + 5;
+    const mainH=window.innerHeight - fixedH - volH - 20;
+    if(cc)cc.style.height=mainH+'px';
+    if(volPanel){volPanel.style.height=volH+'px';co.appendChild(volPanel);}
+    if(cfBar)co.appendChild(cfBar);
     setTimeout(()=>{
       if(chart)chart.applyOptions({width:window.innerWidth,height:mainH});
       if(volChart)volChart.applyOptions({width:window.innerWidth,height:volH});
-    },30);
+    },50);
   }
 }
 // Tancar amb Escape
