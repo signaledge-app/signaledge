@@ -343,9 +343,11 @@ body{background:var(--bg);color:var(--text)}
 .lev-bar{background:var(--lev-bar)!important;border-color:var(--border2)!important}
 .lev-info{background:var(--lev-info)!important;border-color:var(--border2)!important;color:var(--text4)!important}
 .lev-btn{background:var(--card)!important;border-color:var(--border)!important;color:var(--text3)!important}
+.lev-btn.active{background:#2962ff!important;border-color:#2962ff!important;color:#fff!important}
 .lev-input{background:var(--input-bg)!important;border-color:var(--border)!important;color:var(--text)!important}
 .calc-inp{background:var(--input-bg)!important;border-color:var(--border)!important;color:var(--text)!important}
 .calc-pct-btn{background:var(--card)!important;border-color:var(--border)!important;color:var(--text3)!important}
+.calc-pct-btn.active{background:#2962ff!important;border-color:#2962ff!important;color:#fff!important}
 .tf-bar{background:var(--tf-bar)!important;border-color:var(--border3)!important}
 .ebar{background:var(--ebar)!important;border-color:var(--ebar-border)!important}
 .mtf-p{background:var(--mtf)!important;border-color:var(--border2)!important}
@@ -513,11 +515,11 @@ body.dark .bm-hint{color:#666}
         <span class="calc-unit">%</span>
       </div>
       <div class="calc-pct-btns">
-        <button class="calc-pct-btn" onclick="setRiesgo(0.5)">0.5%</button>
-        <button class="calc-pct-btn" onclick="setRiesgo(1)">1%</button>
-        <button class="calc-pct-btn active" onclick="setRiesgo(2)">2%</button>
-        <button class="calc-pct-btn" onclick="setRiesgo(3)">3%</button>
-        <button class="calc-pct-btn" onclick="setRiesgo(5)">5%</button>
+        <button class="calc-pct-btn" onclick="setRiesgo(0.5,this)">0.5%</button>
+        <button class="calc-pct-btn" onclick="setRiesgo(1,this)">1%</button>
+        <button class="calc-pct-btn active" onclick="setRiesgo(2,this)">2%</button>
+        <button class="calc-pct-btn" onclick="setRiesgo(3,this)">3%</button>
+        <button class="calc-pct-btn" onclick="setRiesgo(5,this)">5%</button>
       </div>
     </div>
     <div class="calc-riesgo-usdt" id="calc-riesgo-usdt">-- USDT</div>
@@ -593,12 +595,12 @@ body.dark .bm-hint{color:#666}
   </div>
   <div class="lev-bar">
     <span style="font-size:10px;color:#666;font-weight:500">Apal.:</span>
-    <button class="lev-btn" data-lev="1" onclick="setLev(1)">1x</button>
-    <button class="lev-btn" data-lev="2" onclick="setLev(2)">2x</button>
-    <button class="lev-btn" data-lev="3" onclick="setLev(3)">3x</button>
-    <button class="lev-btn" data-lev="5" onclick="setLev(5)">5x</button>
-    <button class="lev-btn" data-lev="10" onclick="setLev(10)">10x</button>
-    <button class="lev-btn" data-lev="20" onclick="setLev(20)">20x</button>
+    <button class="lev-btn" data-lev="1">1x</button>
+    <button class="lev-btn" data-lev="2">2x</button>
+    <button class="lev-btn" data-lev="3">3x</button>
+    <button class="lev-btn" data-lev="5">5x</button>
+    <button class="lev-btn" data-lev="10">10x</button>
+    <button class="lev-btn" data-lev="20">20x</button>
     <div style="display:flex;align-items:center;gap:3px">
       <input class="lev-input" type="number" id="lci" min="1" max="100" placeholder="15">
       <button class="btn" id="lcb" style="padding:2px 7px">OK</button>
@@ -1503,7 +1505,7 @@ async function loadHist2(t){try{const cfg=TFCFG[t];lg('Cargando '+cfg.lim+' vela
 
 // EVENTOS
 document.querySelectorAll('.tf').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.tf').forEach(x=>x.classList.remove('active'));b.classList.add('active');tf=b.dataset.tf;updTFinfo();if(mtfInt)clearInterval(mtfInt);mtfCache={};connectWS(tf);savePrefs();setTimeout(fetchExtLevels,1500);});});
-document.querySelectorAll('.lev-btn').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.lev-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');lev=+b.dataset.lev;updLev();update();savePrefs();});});
+document.querySelectorAll('.lev-btn').forEach(b=>{b.addEventListener('click',function(){setLev(+this.dataset.lev,this);});});
 document.getElementById('lcb').addEventListener('click',()=>{const v=parseInt(document.getElementById('lci').value);if(v>=1&&v<=100){document.querySelectorAll('.lev-btn').forEach(x=>x.classList.remove('active'));lev=v;updLev();update();savePrefs();}});
 document.getElementById('cob').addEventListener('change',function(){useOB=this.checked;document.getElementById('lob').className='ecb'+(useOB?' ob-on':'');update();});
 document.getElementById('cfvg').addEventListener('change',function(){useFVG=this.checked;document.getElementById('lfvg').className='ecb'+(useFVG?' fvg-on':'');update();});
@@ -1515,11 +1517,11 @@ document.querySelectorAll('.filt-btn').forEach(btn=>{btn.addEventListener('click
 // ── CALCULADORA DE CAPITAL ────────────────────────────────────
 let calcActiveSig=null; // señal actualmente seleccionada en el gráfico
 
-function setRiesgo(pct){
+function setRiesgo(pct,btn){
   document.getElementById('calc-riesgo').value=pct;
   document.querySelectorAll('.calc-pct-btn').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
-  calcUpdate();
+  if(btn)btn.classList.add('active');
+  calcUpdate();savePrefs();
 }
 
 function calcUpdate(){
@@ -1911,9 +1913,12 @@ function renderPinnedBanner(){
   });
   el.innerHTML=rows.join('');
 }
-function setLev(v){
+function setLev(v,btn){
   lev=v;
-  document.querySelectorAll('.lev-btn').forEach(b=>b.classList.toggle('active',+b.dataset.lev===v));
+  document.querySelectorAll('.lev-btn').forEach(b=>b.classList.remove('active'));
+  if(btn){btn.classList.add('active');}
+  else{document.querySelectorAll('.lev-btn').forEach(b=>{if(+b.dataset.lev===v)b.classList.add('active');});}
+  const li=document.getElementById('lci');if(li)li.value='';
   updLev();update();savePrefs();
 }
 function setTF(t){
@@ -1977,6 +1982,13 @@ function loadPrefs(){
     if(p.capital)document.getElementById('calc-capital').value=p.capital;
     if(p.capitalUsar)document.getElementById('calc-capital-usar').value=p.capitalUsar;
     else if(p.capital)document.getElementById('calc-capital-usar').value=p.capital;
+    if(p.riesgo){
+      const rv=parseFloat(p.riesgo);
+      document.querySelectorAll('.calc-pct-btn').forEach(b=>{
+        const bv=parseFloat(b.textContent);
+        b.classList.toggle('active',bv===rv);
+      });
+    }
     if(p.riesgo)document.getElementById('calc-riesgo').value=p.riesgo;
     if(p.margenFix)document.getElementById('calc-margen-fix').value=p.margenFix;
     if(p.calcMode)setCalcMode(p.calcMode);
