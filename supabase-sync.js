@@ -302,12 +302,21 @@ async function seSaveTrade(userId,t){
 async function seSavePinned(userId, raw){
   if(!seDb||!userId)return;
   try{
-    await seDb.from('pinned_sigs').upsert({
-      user_id:userId,
-      data:raw||'[]',
-      updated_at:new Date().toISOString()
-    },{onConflict:'user_id'});
-  }catch(e){}
+    // Comprovar si ja existeix
+    const{data:existing}=await seDb.from('pinned_sigs').select('id').eq('user_id',userId).maybeSingle();
+    if(existing){
+      await seDb.from('pinned_sigs').update({
+        data:raw||'[]',
+        updated_at:new Date().toISOString()
+      }).eq('user_id',userId);
+    }else{
+      await seDb.from('pinned_sigs').insert({
+        user_id:userId,
+        data:raw||'[]',
+        updated_at:new Date().toISOString()
+      });
+    }
+  }catch(e){console.log('seSavePinned error:',e.message);}
 }
 
 async function seLoadPinned(userId){
