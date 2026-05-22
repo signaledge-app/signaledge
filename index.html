@@ -994,7 +994,7 @@ function addTradeToHistory(sig){
   const t={id:genId(),ts:Date.now(),date:new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),dir:sig.dir,source:sig.source,et:sig.et,tf,lev,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,r1:l.r1,r2:l.r2,sp:l.sp,ep:price,result:'open',pnl:null,pnlPct:null,closePrice:null,closeTs:null,duration:null,note:'',levelType:sig.levelType||null,partialDone:false,partialPnlPct:null,breakevenSL:null};
   tradeHistory.unshift(t);saveHistory();renderHistorial();updateHistCount();lg('📝 Trade añadido al historial');return t.id;
 }
-function closeTrade_hist(id,result,closePrice){
+function closeTrade_hist(id,result,closePrice){resetTradeAlerts();
   const t=tradeHistory.find(x=>x.id===id);if(!t)return;
   t.result=result;t.closePrice=closePrice||price;t.closeTs=Date.now();t.duration=Math.round((t.closeTs-t.ts)/60000);
   const raw=t.dir==='long'?(t.closePrice-t.ep)/t.ep:(t.ep-t.closePrice)/t.ep;
@@ -2615,35 +2615,85 @@ document.addEventListener('keydown', e => {
 </script>
 
 <script>
-// ── NOTIFICACIÓ SL PROPER ────────────────────────────────────
+// ── NOTIFICACIONS DE TRADE ───────────────────────────────────
 let slWarnSent=false;
 let slWarnLastPrice=null;
+let tp1WarnSent=false;       // TP1 proper (<25%)
+let againstWarnSent=false;   // Trade en contra >50%
+let timeWarnNext=0;          // Pròxima alerta de temps (ms)
+
+function notify(title, body, tag){
+  if(!pushEnabled||Notification.permission!=='granted')return;
+  try{
+    new Notification(title,{body,tag,renotify:true,icon:'/signaledge/icon-192.png'});
+  }catch(e){}
+}
 
 function checkSLAlert(){
-  if(!trade||!price||!pushEnabled||Notification.permission!=='granted')return;
-  const sl=trade.sl,ep=trade.ep||trade.e;
+  if(!trade||!price)return;
+  const sl=trade.sl, ep=trade.ep||trade.e, tp1=trade.tp1, ts=trade.ts;
   if(!sl||!ep)return;
+  const dir=trade.dir==='long'?'LONG':'SHORT';
+  const isLong=trade.dir==='long';
   const totalDist=Math.abs(ep-sl);
   const currentDist=Math.abs(price-sl);
   const pct=currentDist/totalDist;
 
-  // Avisar quan queda menys del 25% de distància fins al SL
+  // 1. SL molt proper (<25%)
   if(pct<0.25&&!slWarnSent){
     slWarnSent=true;
-    const dir=trade.dir==='long'?'LONG':'SHORT';
     const slPct=((Math.abs(price-sl)/price)*100).toFixed(2);
-    try{
-      new Notification('⚠️ SL muy cerca!',{
-        body:`${dir} — Precio $${ff(price)} · SL $${ff(sl)} (${slPct}% restante)`,
-        tag:'sl-warning',
-        renotify:true,
-        icon:'/signaledge/icon-192.png'
-      });
-    }catch(e){}
+    notify('⚠️ SL muy cerca!',
+      `${dir} — Precio $${ff(price)} · SL $${ff(sl)} (${slPct}% restante)`,
+      'sl-warning');
   } else if(pct>=0.4){
-    // Reset quan el preu s'allunya del SL
     slWarnSent=false;
   }
+
+  // 2. Trade en contra >50% del recorregut fins al SL
+  const against=isLong?(price<ep):(price>ep);
+  const againstPct=against?(Math.abs(price-ep)/totalDist):0;
+  if(againstPct>=0.5&&!againstWarnSent){
+    againstWarnSent=true;
+    notify('📉 Trade muy en contra',
+      `${dir} — Precio $${ff(price)} · Entrada $${ff(ep)} · SL $${ff(sl)}`,
+      'against-warning');
+  } else if(againstPct<0.3){
+    againstWarnSent=false;
+  }
+
+  // 3. TP1 proper (<25% de distància)
+  if(tp1){
+    const tp1Dist=Math.abs(ep-tp1);
+    const tp1Current=Math.abs(price-tp1);
+    const tp1Pct=tp1Current/tp1Dist;
+    if(tp1Pct<0.25&&!tp1WarnSent){
+      tp1WarnSent=true;
+      notify('🎯 TP1 muy cerca!',
+        `${dir} — Precio $${ff(price)} · TP1 $${ff(tp1)}`,
+        'tp1-warning');
+    } else if(tp1Pct>=0.4){
+      tp1WarnSent=false;
+    }
+  }
+
+  // 4. Alerta de temps — cada 4 hores
+  if(ts){
+    const now=Date.now();
+    if(timeWarnNext===0) timeWarnNext=ts+4*3600*1000; // primera a les 4h
+    if(now>=timeWarnNext){
+      const hores=Math.floor((now-ts)/3600000);
+      notify('⏰ Trade abierto hace '+hores+'h',
+        `${dir} — Entrada $${ff(ep)} · Precio actual $${ff(price)}`,
+        'time-warning');
+      timeWarnNext=now+4*3600*1000; // pròxima d'aquí 4h
+    }
+  }
+}
+
+// Reset flags quan es tanca el trade
+function resetTradeAlerts(){
+  slWarnSent=false;tp1WarnSent=false;againstWarnSent=false;timeWarnNext=0;
 }
 </script>
 
