@@ -190,8 +190,14 @@ async function seLoadTrades(userId){
       notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
     }));
     if(typeof tradeHistory!=='undefined'){
+      // Obtenir ids eliminats localment
+      let deletedIds=new Set();
+      try{deletedIds=new Set(JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]'));}catch(e){}
+      // Eliminar del servidor els que tenim pendents
+      for(const id of deletedIds){await seDeleteTrade(userId,id);}
+      // Filtrar: no afegir trades que ja existeixen o que s'han eliminat
       const localIds=new Set(tradeHistory.map(t=>t.id));
-      const newTrades=cloudTrades.filter(t=>!localIds.has(t.id));
+      const newTrades=cloudTrades.filter(t=>!localIds.has(t.id)&&!deletedIds.has(t.id));
       if(newTrades.length>0){
         tradeHistory=[...tradeHistory,...newTrades].sort((a,b)=>new Date(b.openedAt||0)-new Date(a.openedAt||0));
         if(typeof saveHistory==='function')saveHistory();
@@ -307,6 +313,11 @@ function seInterceptSave(userId){
           // Aquest trade existia abans i ara no — l'han eliminat localment
           console.log('SE Sync: eliminant trade del servidor',id);
           await seDeleteTrade(userId,id);
+          // Afegir a la llista de pendents si no hi és
+          try{
+            const del=JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]');
+            if(!del.includes(id)){del.push(id);localStorage.setItem('btc_deleted_trades',JSON.stringify(del));}
+          }catch(e){}
         }
       }
 
