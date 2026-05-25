@@ -1013,7 +1013,15 @@ function closeTrade_hist(id,result,closePrice){resetTradeAlerts();
   const em=result==='tp2'?'🎯':result==='tp1'?'✓':result==='sl'?'✗':'◎';
   lg(`${em} [${result.toUpperCase()}] ${t.pnl>0?'+':''}${t.pnl}%${t.partialDone?' (incl. parcial)':''}`);
 }
-function deleteTradeFromHistory(id){tradeHistory=tradeHistory.filter(x=>x.id!==id);saveHistory();renderHistorial();updateHistCount();}
+function deleteTradeFromHistory(id){
+  tradeHistory=tradeHistory.filter(x=>x.id!==id);
+  // Guardar id eliminat per evitar que torni del servidor
+  try{
+    const deleted=JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]');
+    if(!deleted.includes(id)){deleted.push(id);localStorage.setItem('btc_deleted_trades',JSON.stringify(deleted));}
+  }catch(e){}
+  saveHistory();renderHistorial();updateHistCount();
+}
 function updateTradeNote(id,note){const t=tradeHistory.find(x=>x.id===id);if(t){t.note=note;saveHistory();}}
 function updateHistCount(){document.getElementById('hist-count').textContent=tradeHistory.length;}
 function calcStats(){
