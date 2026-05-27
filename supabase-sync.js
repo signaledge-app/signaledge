@@ -29,7 +29,8 @@ window.addEventListener('load',()=>{
 async function seLoginGoogle(){
   if(!seDb)return;
   try{
-    await seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledge-app.github.io/signaledge'}});
+    // redirectTo apunta al dashboard /app, no a la landing
+    await seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledge-app.github.io/signaledge/app'}});
   }catch(e){console.log('SE Login error:',e.message);}
 }
 async function seLogout(){
@@ -56,7 +57,6 @@ function seSubscribeRealtime(userId){
   if(!seDb)return;
   if(seRealtimeChannel){seDb.removeChannel(seRealtimeChannel);seRealtimeChannel=null;}
 
-  // Realtime pinned
   const existingPinned=seDb.getChannels().find(c=>c.topic.includes('pinned-changes'));
   if(existingPinned)seDb.removeChannel(existingPinned);
   seDb.channel('pinned-changes-'+userId)
@@ -71,36 +71,26 @@ function seSubscribeRealtime(userId){
       setTimeout(()=>{if(typeof lastSigs!=='undefined'&&lastSigs&&typeof renderSigs==='function')renderSigs(lastSigs);},100);
     }).subscribe();
 
-  // Realtime trades
   seRealtimeChannel=seDb.channel('trades-changes-'+userId)
     .on('postgres_changes',{event:'*',schema:'public',table:'trades',filter:`user_id=eq.${userId}`},payload=>{
       console.log('SE Realtime:',payload.eventType);
       if(typeof tradeHistory==='undefined')return;
-
       if(payload.eventType==='DELETE'){
-        // ── ELIMINAR: vé del servidor, aplicar localment ──
         const deletedId=payload.old?.id;
         if(!deletedId)return;
         const exists=tradeHistory.some(x=>x.id===deletedId);
-        if(!exists)return; // ja eliminat localment, ignorar
+        if(!exists)return;
         tradeHistory=tradeHistory.filter(x=>x.id!==deletedId);
         if(typeof saveHistory==='function')saveHistory();
         if(typeof renderHistorial==='function')renderHistorial();
         if(typeof updateHistCount==='function')updateHistCount();
-        console.log('SE Realtime: trade eliminat remotament ✓');
         return;
       }
-
       if(payload.eventType==='UPDATE'||payload.eventType==='INSERT'){
         const t=payload.new;
         if(!t)return;
-        // Comprovar si existeix localment — si no existeix, és perquè l'hem eliminat nosaltres
         const localExists=tradeHistory.some(x=>x.id===t.id);
-        if(!localExists&&payload.eventType==='UPDATE'){
-          // L'hem eliminat localment però el servidor envia UPDATE → ignorar
-          console.log('SE Realtime: ignorant UPDATE de trade eliminat localment');
-          return;
-        }
+        if(!localExists&&payload.eventType==='UPDATE'){return;}
         const idx=tradeHistory.findIndex(x=>x.id===t.id);
         const mapped={
           id:t.id,dir:t.dir,source:t.source,et:t.et,
@@ -153,7 +143,7 @@ function seUpdateLoginBtn(loggedIn,user){
     const avatar=user.user_metadata?.avatar_url;
     btn.innerHTML=`${avatar?`<img src="${avatar}" style="width:16px;height:16px;border-radius:50%">`:''}<span>${name}</span><span style="color:#999;font-size:9px">✕</span>`;
     btn.style.cssText='font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #a5d6a7;background:#e8f5e9;color:#1b5e20;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;font-weight:500;transition:all .15s;white-space:nowrap;';
-    btn.title='Clic per tancar sessió';
+    btn.title='Clic para cerrar sesión';
     btn.onclick=seLogout;
   }else{
     btn.innerHTML='<svg width="14" height="14" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-21 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 16 19.2 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.6 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.6 0 10.6-1.9 14.5-5.1l-6.7-5.5C29.8 37 27 38 24 38c-5.8 0-10.6-3.9-12.3-9.3l-7 5.4C8.1 41.8 15.5 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.9 2.8-2.8 5.1-5.3 6.7l6.7 5.5C41.5 37.3 45 31.1 45 24c0-1.3-.2-2.7-.5-4z"/></svg>Login';
@@ -172,7 +162,7 @@ async function seLoadPrefs(userId){
     if(data.capital){const el=document.getElementById('calc-capital');if(el)el.value=data.capital;}
     if(data.riesgo){const el=document.getElementById('calc-riesgo');if(el)el.value=data.riesgo;}
     if(typeof calcUpdate==='function')calcUpdate();
-    console.log('SE Sync: Preferències carregades ✓');
+    console.log('SE Sync: Preferencias cargadas ✓');
   }catch(e){console.log('SE Sync loadPrefs error:',e.message);}
 }
 
@@ -190,12 +180,9 @@ async function seLoadTrades(userId){
       notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
     }));
     if(typeof tradeHistory!=='undefined'){
-      // Obtenir ids eliminats localment
       let deletedIds=new Set();
       try{deletedIds=new Set(JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]'));}catch(e){}
-      // Eliminar del servidor els que tenim pendents
       for(const id of deletedIds){await seDeleteTrade(userId,id);}
-      // Filtrar: no afegir trades que ja existeixen o que s'han eliminat
       const localIds=new Set(tradeHistory.map(t=>t.id));
       const newTrades=cloudTrades.filter(t=>!localIds.has(t.id)&&!deletedIds.has(t.id));
       if(newTrades.length>0){
@@ -210,7 +197,7 @@ async function seLoadTrades(userId){
       trade={dir:openTrade.dir,e:openTrade.ep,sl:openTrade.sl,tp1:openTrade.tp1,tp2:openTrade.tp2,lev:openTrade.lev,tf:openTrade.tf,ep:openTrade.ep,sp:openTrade.sp,r1:openTrade.r1,r2:openTrade.r2,source:openTrade.source,et:openTrade.et,partialDone:openTrade.partialDone||false,histId:openTrade.id};
       setTimeout(()=>{if(typeof drawTradeLines==='function'&&trade)drawTradeLines(trade);if(typeof renderHistorial==='function')renderHistorial();},1000);
     }
-    console.log('SE Sync: '+cloudTrades.length+' trades carregats ✓');
+    console.log('SE Sync: '+cloudTrades.length+' trades cargados ✓');
   }catch(e){console.log('SE Sync loadTrades error:',e.message);}
 }
 
@@ -246,11 +233,11 @@ async function seSaveTrade(userId,t){
 }
 
 // ── ELIMINAR TRADE DE SUPABASE ────────────────────────────────
-async function seDeleteTrade(userId, tradeId){
+async function seDeleteTrade(userId,tradeId){
   if(!seDb||!userId||!tradeId)return;
   try{
     await seDb.from('trades').delete().eq('id',tradeId).eq('user_id',userId);
-    console.log('SE Sync: trade eliminat del servidor ✓',tradeId);
+    console.log('SE Sync: trade eliminado del servidor ✓',tradeId);
   }catch(e){console.log('SE Sync delete error:',e.message);}
 }
 
@@ -280,7 +267,7 @@ async function seLoadPinned(userId){
     if(typeof loadPinned==='function')loadPinned();
     if(typeof renderPinnedBanner==='function')renderPinnedBanner();
     setTimeout(()=>{if(typeof lastSigs!=='undefined'&&lastSigs&&typeof renderSigs==='function')renderSigs(lastSigs);},100);
-    console.log('SE Sync: Pinned sigs carregades ✓');
+    console.log('SE Sync: Pinned sigs cargadas ✓');
   }catch(e){console.log('SE Sync loadPinned error:',e.message);}
 }
 
@@ -293,42 +280,29 @@ function seInterceptSave(userId){
 
   setInterval(async()=>{
     if(!seUser)return;
-
-    // Preferències
     const currentPrefs=localStorage.getItem('btc_dashboard_prefs_v1');
     if(currentPrefs!==lastPrefs){lastPrefs=currentPrefs;await seSavePrefs(userId);}
-
-    // Pinned sigs
     const currentPinned=localStorage.getItem('btc_pinned_sigs');
     if(currentPinned!==lastPinned){lastPinned=currentPinned;await seSavePinned(userId,currentPinned);}
-
-    // Trades — detectar canvis i eliminacions
     const currentHistoryStr=localStorage.getItem('btc_trade_history_v1');
     if(currentHistoryStr!==lastHistoryStr){
       const currentMap=seParseTradesMap(currentHistoryStr);
-
-      // ── DETECTAR ELIMINACIONS ──
       for(const id of Object.keys(lastTradesMap)){
         if(!currentMap[id]){
-          // Aquest trade existia abans i ara no — l'han eliminat localment
-          console.log('SE Sync: eliminant trade del servidor',id);
+          console.log('SE Sync: eliminando trade del servidor',id);
           await seDeleteTrade(userId,id);
-          // Afegir a la llista de pendents si no hi és
           try{
             const del=JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]');
             if(!del.includes(id)){del.push(id);localStorage.setItem('btc_deleted_trades',JSON.stringify(del));}
           }catch(e){}
         }
       }
-
-      // ── DETECTAR CANVIS / NOUS ──
       for(const [id,t] of Object.entries(currentMap)){
         const prev=lastTradesMap[id];
         if(!prev||prev.result!==t.result||prev.closePrice!==t.closePrice||prev.pnlPct!==t.pnlPct||prev.partialDone!==t.partialDone){
           await seSaveTrade(userId,t);
         }
       }
-
       lastHistoryStr=currentHistoryStr;
       lastTradesMap=currentMap;
     }
