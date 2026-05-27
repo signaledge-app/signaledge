@@ -203,7 +203,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .bct{font-size:10px;padding:2px 10px;border-radius:4px;border:1px solid #ef5350;color:#ef5350;background:transparent;cursor:pointer;font-family:inherit}
 .sw{background:#fff;border:1px solid #eee;border-radius:8px;padding:.875rem;margin-bottom:.5rem}
 .swt{font-size:10px;font-weight:600;color:#666;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}
-.sc{border:1px solid #eee;border-radius:6px;padding:.625rem;margin-bottom:.4rem;background:#fff}
+.sc{border:1px solid #eee;border-radius:6px;padding:.625rem;margin-bottom:.4rem;background:#fff;transition:opacity .3s,filter .3s}
+.sc-contra-collapsed{padding:.4rem .625rem;cursor:pointer;user-select:none}
+.sc-contra-collapsed:hover{opacity:.7}
+.sc-contra-expand{font-size:9px;color:#f57c00;border:1px solid #f57c00;background:transparent;border-radius:4px;padding:1px 6px;cursor:pointer;font-family:inherit;margin-left:auto}
 .sc.long{border-radius:0 6px 6px 0}.sc.short{border-radius:0 6px 6px 0}
 .rt-info{font-size:10px;padding:5px 8px;border-radius:5px;margin-bottom:.4rem;background:#e0f2f1;color:#004D40;border-left:3px solid #00897B}
 .cn{font-size:10px;padding:4px 7px;border-radius:5px;margin-bottom:.4rem}
@@ -1088,7 +1091,7 @@ function renderHistList(){
   if(!filtered.length){el.innerHTML=`<div class="hist-empty"><div class="hist-empty-icon">📋</div><div style="font-size:13px;font-weight:500;margin-bottom:4px">Sin trades registrados</div><div style="font-size:11px">Marca una entrada en el Dashboard para registrarla aquí</div></div>`;return;}
   const resLabel={tp1:'✓ TP1',tp2:'🎯 TP2',sl:'✗ SL',be:'🔒 BE',open:'● Abierto',manual:'◎ Manual'};
   const resClass={tp1:'tp1',tp2:'tp2',sl:'sl',be:'be',open:'open',manual:'manual'};
-  // Si el trade tenia parcial i va tancar per SL → mostrar com BE
+  // Si el trade tenia parcial i va tancar para SL → mostrar com BE
   const getResult=(t)=>t.result==='sl'&&t.partialDone?'be':t.result;
   const srcI={ob:'📦',fvg:'⚡',rt:'🔁'};
   el.innerHTML=filtered.map(t=>{
@@ -1141,6 +1144,7 @@ let lastConf={k:'wk',l:'--'};
 let actPats=new Set(),actSigs=new Set(),lastSigs=[];
 let pinnedSigs=new Map(); // idx → senyal anclada
 let previewSig=null; // senyal en previsualització al gràfic
+let contraExpanded=new Set(); // índexs de senyals contràries expandides
 let previewIdx=-1; // índex de la senyal previsualitzada
 let prevL=[]; // línies de previsualització
 let useOB=true,useFVG=false,useRT=false;
@@ -1148,6 +1152,18 @@ let lastStruct={trend:'neutral',label:''};
 let mtfCache={};
 const MTF_CACHE_MS=120000,MIN_RR=2.0,LEV_S=0.7;
 const SC=[{h:'#F1C40F',b:'rgba(241,196,15,0.12)'},{h:'#E67E22',b:'rgba(230,126,34,0.12)'},{h:'#9B59B6',b:'rgba(155,89,182,0.12)'},{h:'#00BCD4',b:'rgba(0,188,212,0.12)'},{h:'#E91E63',b:'rgba(233,30,99,0.12)'}];
+function isConsolidating(){
+  // Detectar mercat lateral: rang de les últimes 10 veles < 0.4% del preu
+  if(candles.length<10)return false;
+  const recent=candles.slice(-10);
+  const high=Math.max(...recent.map(c=>c.high));
+  const low=Math.min(...recent.map(c=>c.low));
+  const rangePct=(high-low)/low;
+  const cfg=TFCFG[tf]||{msl:0.002};
+  // Consolidació si el rang és menor que 2x el SL mínim del TF
+  return rangePct<cfg.msl*2;
+}
+
 const TFCFG={'1m':{t:'scalp',msl:.0012,lim:500,vis:120,slb:3,t1:6,t2:12,gap:2},'3m':{t:'scalp',msl:.0018,lim:500,vis:100,slb:3,t1:8,t2:16,gap:2},'5m':{t:'scalp',msl:.0025,lim:1000,vis:80,slb:4,t1:10,t2:20,gap:2},'15m':{t:'intraday',msl:.0060,lim:1000,vis:80,slb:6,t1:20,t2:40,gap:3},'30m':{t:'intraday',msl:.0090,lim:1000,vis:60,slb:7,t1:24,t2:48,gap:3},'1h':{t:'intraday',msl:.0130,lim:1000,vis:60,slb:8,t1:30,t2:60,gap:3},'4h':{t:'swing',msl:.0250,lim:500,vis:60,slb:10,t1:40,t2:80,gap:3},'1d':{t:'swing',msl:.0400,lim:365,vis:60,slb:12,t1:50,t2:100,gap:4},'1w':{t:'swing',msl:.0650,lim:100,vis:40,slb:12,t1:30,t2:60,gap:4}};
 const TF_I={'1m':'SL ~0.12%','3m':'SL ~0.18%','5m':'SL ~0.25%','15m':'SL ~0.6%','30m':'SL ~0.9%','1h':'SL ~1.3%','4h':'SL ~2.5%','1d':'SL ~4%','1w':'SL ~6.5%'};
 const MTFM={'1m':['5m','15m','1h'],'3m':['5m','15m','1h'],'5m':['5m','15m','1h'],'15m':['15m','1h','4h'],'30m':['30m','1h','4h'],'1h':['1h','4h','1d'],'4h':['1h','4h','1d'],'1d':['4h','1d','1w'],'1w':['4h','1d','1w']};
@@ -1320,6 +1336,36 @@ function calcTP(dir){
     return{tp1,tp2,m:tp1src+' / '+tp2src};
   }
 }
+function recLev(sig){
+  // Avalua si el lev ACTUAL és adequat per aquesta senyal
+  const slPct = parseFloat(sig.lvls.sp);
+  const rr = parseFloat(sig.lvls.r1);
+  const sc = calcScore(sig);
+  const curLev = lev; // lev seleccionat ara
+
+  // Calcular lev máximo recomendado
+  let maxRec;
+  if(slPct>=0.5){
+    maxRec = (sc.mtf && rr>=3) ? 5 : 3;
+  } else if(slPct>=0.2){
+    maxRec = (sc.mtf && rr>=3 && sc.wt) ? 10 : (sc.mtf ? 5 : 5);
+  } else {
+    // SL petit (<0.2%)
+    maxRec = (sc.mtf && rr>=3 && sc.wt && !sc.weakCandle) ? 20 : (sc.mtf ? 10 : 5);
+  }
+
+  // Comparar amb el lev actual
+  if(curLev <= maxRec * 0.5){
+    return {lev:maxRec, color:'#26a69a', label:'✅ '+curLev+'x ok', reason:'Lev conservador (máx rec. '+maxRec+'x)'};
+  } else if(curLev <= maxRec){
+    return {lev:maxRec, color:'#26a69a', label:'✅ '+curLev+'x ok', reason:'Lev adecuado para SL '+slPct+'%'};
+  } else if(curLev <= maxRec * 1.5){
+    return {lev:maxRec, color:'#f57c00', label:'⚠️ '+curLev+'x alt', reason:'Reduce a '+maxRec+'x (SL '+slPct+'%)'};
+  } else {
+    return {lev:maxRec, color:'#ef5350', label:'🔴 '+curLev+'x risc', reason:'Máx recomendado: '+maxRec+'x para SL '+slPct+'%'};
+  }
+}
+
 function liq(e,dir,lv){return dir==='long'?e*(1-(1/lv)+.004):e*(1+(1/lv)-.004);}
 function calcLvls(z,dir,isRT=false){const{sl,m:sm}=calcSL(z,dir,isRT),{tp1,tp2,m:tm}=calcTP(dir);const e=isRT?z.level:(z.source==='fvg'?z.mid:(dir==='long'?z.high:z.low));const lq=liq(e,dir,lev),msl=maxSL();if(dir==='long'){const risk=e-sl;if(risk<=0)return null;const sp=(e-sl)/e;if(sp>msl)return null;const r1=(tp1-e)/risk,r2=(tp2-e)/risk;if(r1<MIN_RR&&r2<MIN_RR)return null;return{e,sl,tp1,tp2,lq,sm,tm,r1:r1.toFixed(1),r2:r2.toFixed(1),sp:(sp*100).toFixed(2),lc:sp>msl*.8,msp:(msl*100).toFixed(2)};}const risk=sl-e;if(risk<=0)return null;const sp=(sl-e)/e;if(sp>msl)return null;const r1=(e-tp1)/risk,r2=(e-tp2)/risk;if(r1<MIN_RR&&r2<MIN_RR)return null;return{e,sl,tp1,tp2,lq,sm,tm,r1:r1.toFixed(1),r2:r2.toFixed(1),sp:(sp*100).toFixed(2),lc:sp>msl*.8,msp:(msl*100).toFixed(2)};}
 function calcScore(s){
@@ -1340,8 +1386,9 @@ function calcScore(s){
   };
   const sc=(c.confirmed?2:0)+(c.mtfS?2:c.mtf?1:0)+(c.rrS?2:c.rr?1:0)+(c.conf?1:0)+(c.wt?1:0)+(c.strongCandle?1:0)+(c.highVol?1:0);
 
-  // ENTRA YA: molt estricte — necessita score≥7 + confirmada + MTF + R:R≥3 + vela no feble + amb tendència
-  const now=sc>=7&&c.confirmed&&c.mtf&&c.rrS&&!c.weakCandle&&c.wt;
+  // ENTRA YA: molt estricte — necessita score≥7 + confirmada + MTF + R:R≥3 + vela no feble + amb tendència + NO consolidació
+  const consolidating=isConsolidating();
+  const now=sc>=7&&c.confirmed&&c.mtf&&c.rrS&&!c.weakCandle&&c.wt&&!consolidating;
 
   // ENTRADA FUERTE: estricte — score≥5 + confirmada + vela no feble
   const strong=!now&&sc>=5&&c.confirmed&&!c.weakCandle;
@@ -1349,17 +1396,35 @@ function calcScore(s){
   return{...c,sc,now,strong};
 }
 function genSigs(obs,fvgs,retests,pats,struct){const cands=[];let filtRR=0,filtSL=0;function ti(dir){const tr=struct.trend;let wt=false,ic=false,ich=false;if(tr==='bull'){wt=dir==='long';ic=dir==='short';}else if(tr==='bear'){wt=dir==='short';ic=dir==='long';}else if(tr==='choch-bull'){ich=true;wt=dir==='long';}else if(tr==='choch-bear'){ich=true;wt=dir==='short';}else wt=true;return{withTrend:wt,isContra:ic,isCHoCH:ich};}function tryAdd(zone,dir,st,src,et,extra){const lvls=calcLvls(zone,dir,src==='rt');if(!lvls){const{sl}=calcSL(zone,dir,src==='rt');const e=src==='rt'?zone.level:(zone.source==='fvg'?zone.mid:(dir==='long'?zone.high:zone.low));const risk=dir==='long'?e-sl:sl-e;if(risk<=0||risk/e>maxSL()){filtSL++;return;}filtRR++;return;}const{withTrend,isContra,isCHoCH}=ti(dir);cands.push({dir,zone,lvls,status:st,source:src,et,...extra,withTrend,isContra,isCHoCH});}if(useOB)for(const ob of obs){const dir=ob.type==='bull'?'long':'short';const conf=confirmZ(ob);const prox=TFCFG[tf].msl*1.5;const inZ=ob.type==='bull'?(price>=ob.low&&price<=ob.high*(1+prox)):(price<=ob.high&&price>=ob.low*(1-prox));const near=ob.type==='bull'?(price>=ob.low*(1-prox)&&price<ob.low):(price>ob.high&&price<=ob.high*(1+prox));let st=null;if(conf)st='confirmed';else if(inZ)st='zone';else if(near)st='watch';if(!st)continue;const cfvg=fvgs.find(f=>f.type===ob.type);tryAdd(ob,dir,st,'ob',st==='confirmed'?'Market':'Limit',{confFVG:!!cfvg,confOB:false});}if(useFVG)for(const fvg of fvgs){const dir=fvg.type==='bull'?'long':'short';const conf=confirmZ(fvg);const prox=TFCFG[tf].msl*1.5;const inZ=fvg.type==='bull'?(price>=fvg.low&&price<=fvg.high*(1+prox)):(price<=fvg.high&&price>=fvg.low*(1-prox));const near=fvg.type==='bull'?(price>=fvg.low*(1-prox)&&price<fvg.low):(price>fvg.high&&price<=fvg.high*(1+prox));let st=null;if(conf)st='confirmed';else if(inZ)st='zone';else if(near)st='watch';if(!st)continue;const cob=obs.find(ob=>ob.type===fvg.type);tryAdd(fvg,dir,st,'fvg',st==='confirmed'?'Market':'Limit',{confOB:!!cob,confFVG:false});}if(useRT)for(const rt of retests){tryAdd(rt,rt.dir,rt.status,'rt','Limit',{levelType:rt.levelType,levelPrice:rt.level,confirmNote:rt.confirmNote});}document.getElementById('dbg').textContent=`OBs:${obs.length} FVGs:${fvgs.length} RT:${retests.length} · Candidatos:${cands.length} · filtR:R:${filtRR} filtSL:${filtSL} · OB:${useOB} FVG:${useFVG} RT:${useRT}`;const cfg=TFCFG[tf],ck=lastConf.k;const vs=volumeStrength();
-// Filtrar per distància màxima al preu actual
+// Filtrar por distancia máxima al precio actual
 const maxDist={'scalp':0.015,'intraday':0.025,'swing':0.045};
 const maxD=maxDist[cfg.t]||0.02;
 const filtered=cands.filter(c=>{
   const e=c.lvls.e;
   return Math.abs(e-price)/price<=maxD;
 });
-// Ordenar: primer confirmades, després zone, després watch; dins de cada grup per R:R
+// Ordenar: primer a favor de tendència + confirmades, al final les contràries
 const order={confirmed:0,zone:1,watch:2};
-filtered.sort((a,b)=>(order[a.status]||2)-(order[b.status]||2)||parseFloat(b.lvls.r1)-parseFloat(a.lvls.r1));
-return filtered.map(c=>({...c,candleStr:candleStrength(c.dir),volStr:vs,type:cfg.t,isAct:!!(trade&&Math.abs(trade.e-c.lvls.e)<15),aligned:(c.dir==='long'&&(ck==='sl'||ck==='ml'))||(c.dir==='short'&&(ck==='ss'||ck==='ms')),cstr:ck==='sl'||ck==='ss'?'strong':ck==='ml'||ck==='ms'?'medium':'weak',patNotes:pats.map(p=>({...p,reinforces:(c.dir==='long'&&p.dir==='bull')||(c.dir==='short'&&p.dir==='bear'),weakens:(c.dir==='long'&&p.dir==='bear')||(c.dir==='short'&&p.dir==='bull')})),})).slice(0,3);}
+filtered.sort((a,b)=>{
+  // 1. Senyals a favor de tendència SEMPRE davant de les contràries
+  if(a.withTrend&&!b.withTrend)return -1;
+  if(!a.withTrend&&b.withTrend)return 1;
+  // 2. Dins del mateix grup: primer confirmades, després per R:R
+  const statusDiff=(order[a.status]||2)-(order[b.status]||2);
+  if(statusDiff!==0)return statusDiff;
+  return parseFloat(b.lvls.r1)-parseFloat(a.lvls.r1);
+});
+const mapped=filtered.map(c=>({...c,candleStr:candleStrength(c.dir),volStr:vs,type:cfg.t,isAct:!!(trade&&Math.abs(trade.e-c.lvls.e)<15),aligned:(c.dir==='long'&&(ck==='sl'||ck==='ml'))||(c.dir==='short'&&(ck==='ss'||ck==='ms')),cstr:ck==='sl'||ck==='ss'?'strong':ck==='ml'||ck==='ms'?'medium':'weak',patNotes:pats.map(p=>({...p,reinforces:(c.dir==='long'&&p.dir==='bull')||(c.dir==='short'&&p.dir==='bear'),weakens:(c.dir==='long'&&p.dir==='bear')||(c.dir==='short'&&p.dir==='bull')})),}));
+// Filtrar duplicades: si TP1 i TP2 coincideixen, quedar-nos la millor (R:R més alt)
+const seen=new Map();
+const deduped=mapped.filter(s=>{
+  const key=Math.round(s.lvls.tp1)+'_'+Math.round(s.lvls.tp2)+'_'+s.dir;
+  if(!seen.has(key)){seen.set(key,s);return true;}
+  const prev=seen.get(key);
+  if(parseFloat(s.lvls.r1)>parseFloat(prev.lvls.r1)){seen.set(key,s);return true;}
+  return false;
+});
+return deduped.slice(0,3);}
 function renderTrendMain(a){const el=document.getElementById('trendmain');if(!a||!a.length){el.className='trend-main neutral';el.textContent='📊 Tendencia: calculando...';return;}const allBull=a.every(x=>x.dir==='bull'),allBear=a.every(x=>x.dir==='bear'),majBull=a.filter(x=>x.dir==='bull').length>=2,majBear=a.filter(x=>x.dir==='bear').length>=2;let cls='neutral',msg='';if(allBull){cls='bull';msg=`📈 Tendencia: ALCISTA (${a.map(x=>x.tf).join('+')}) → prioriza LONGS`;}else if(allBear){cls='bear';msg=`📉 Tendencia: BAJISTA (${a.map(x=>x.tf).join('+')}) → prioriza SHORTS`;}else if(majBull){cls='bull';msg='📈 Tendencia: ALCISTA (mayoría) → longs preferidos';}else if(majBear){cls='bear';msg='📉 Tendencia: BAJISTA (mayoría) → shorts preferidos';}else{cls='neutral';msg='⚖️ Tendencia: MIXTA → opera en la dirección del TF activo';}el.className='trend-main '+cls;el.textContent=msg;}
 function renderAlert(sigs){if(!sigs||!Array.isArray(sigs))return;const ga=document.getElementById('galert');const ns=sigs.filter(s=>calcScore(s).now),ss2=sigs.filter(s=>calcScore(s).strong);const ms=document.getElementById('msc');if(ns.length){const s=ns[0],l=s.lvls,isL=s.dir==='long';ga.style.display='flex';ga.className='alb now-'+(isL?'long':'short');const srcL=s.source==='rt'?`🔁 Retest ${s.levelType||''}`:s.source==='fvg'?'⚡ FVG':'📦 OB';ga.innerHTML=`<span style="font-size:22px">${isL?'🚀':'🔻'}</span><div style="flex:1"><div class="al-t" style="color:${isL?'#26a69a':'#ef5350'}">🚀 ENTRA YA — ${srcL} ${s.dir.toUpperCase()} · R:R ${l.r1} · ${tf} · ${s.et}</div><div class="al-s">${s.et==='Limit'?`Orden limit en $${ff(l.e)}`:'Entrada a mercado'} · SL ${l.sp}%</div><div class="al-l"><span style="color:#2962ff">${s.et} $${ff(l.e)}</span><span style="color:#ef5350">SL $${ff(l.sl)} (${l.sp}%)</span><span style="color:#f57c00">TP1 $${ff(l.tp1)} (${l.r1}R)</span><span style="color:#26a69a">TP2 $${ff(l.tp2)} (${l.r2}R)</span></div></div>`;ms.textContent=ns.length+'🚀';ms.style.color=isL?'#26a69a':'#ef5350';sendPushNotification(s,'now');showSigBanner(s,'now');}else if(ss2.length){const s=ss2[0],isL=s.dir==='long';ga.style.display='flex';ga.className='alb str-'+(isL?'long':'short');const srcL=s.source==='rt'?`🔁 Retest ${s.levelType||''}`:s.source==='fvg'?'⚡ FVG':'📦 OB';ga.innerHTML=`<span style="font-size:22px">⚡</span><div style="flex:1"><div class="al-t" style="color:${isL?'#66bb6a':'#ef9a9a'}">⚡ Entrada fuerte — ${srcL} ${s.dir.toUpperCase()} · ${s.et} · R:R ${s.lvls.r1}</div></div>`;ms.textContent=ss2.length+'⚡';ms.style.color='#f57c00';showSigBanner(s,'strong');}else{ga.style.display='none';ms.textContent='0';ms.style.color='';}}
 function drawZones(sigs){sigL.forEach(s=>{try{chart.removeSeries(s);}catch(e){}});sigL=[];fvgL.forEach(s=>{try{chart.removeSeries(s);}catch(e){}});fvgL=[];rtL.forEach(s=>{try{chart.removeSeries(s);}catch(e){}});rtL=[];if(!chart||!candles.length){document.getElementById('obi').textContent='0 zonas';return;}const ms=MSS[tf]||60,lT=Math.floor(candles[candles.length-1].time/1000);let vis=0;if(useFVG){detectFVGs(candles,price).forEach(f=>{const lc=f.type==='bull'?'rgba(38,166,154,0.18)':'rgba(239,83,80,0.18)';const sT=Math.floor(f.time/1000);const pT=candles.filter(c=>Math.floor(c.time/1000)>=sT).map(c=>({time:Math.floor(c.time/1000),value:f.high}));const pB=candles.filter(c=>Math.floor(c.time/1000)>=sT).map(c=>({time:Math.floor(c.time/1000),value:f.low}));for(let k=1;k<=5;k++){pT.push({time:lT+ms*k,value:f.high});pB.push({time:lT+ms*k,value:f.low});}if(!pT.length)return;const t=chart.addLineSeries({color:lc,lineWidth:1,lineStyle:1,lastValueVisible:false,priceLineVisible:false,crosshairMarkerVisible:false});const b=chart.addLineSeries({color:lc,lineWidth:1,lineStyle:1,lastValueVisible:false,priceLineVisible:false,crosshairMarkerVisible:false});try{t.setData(pT);b.setData(pB);fvgL.push(t,b);}catch(e){}});}if(sigs&&sigs.length)sigs.forEach((sig,i)=>{if(!actSigs.has(i))return;vis++;const col=SC[i]||SC[0],z=sig.zone,sc2=calcScore(sig),lw=sc2.now?3:sc2.strong?2:1;if(sig.source==='rt'){const cfg=TFCFG[tf],pr=z.level,prox=pr*cfg.msl*2;const pts=candles.slice(-15).map(c=>({time:Math.floor(c.time/1000),value:pr}));for(let k=1;k<=8;k++)pts.push({time:lT+ms*k,value:pr});const pT=candles.slice(-15).map(c=>({time:Math.floor(c.time/1000),value:pr+prox}));const pB=candles.slice(-15).map(c=>({time:Math.floor(c.time/1000),value:pr-prox}));for(let k=1;k<=8;k++){pT.push({time:lT+ms*k,value:pr+prox});pB.push({time:lT+ms*k,value:pr-prox});}const s1=chart.addLineSeries({color:col.h,lineWidth:lw,lineStyle:0,lastValueVisible:true,priceLineVisible:false,crosshairMarkerVisible:false,title:`🔁 S${i+1}`});const s2=chart.addLineSeries({color:col.h+'66',lineWidth:1,lineStyle:2,lastValueVisible:false,priceLineVisible:false,crosshairMarkerVisible:false});const s3=chart.addLineSeries({color:col.h+'66',lineWidth:1,lineStyle:2,lastValueVisible:false,priceLineVisible:false,crosshairMarkerVisible:false});try{s1.setData(pts);s2.setData(pT);s3.setData(pB);rtL.push(s1,s2,s3);}catch(e){}return;}const sT=Math.floor(z.time/1000);const pT=candles.filter(c=>Math.floor(c.time/1000)>=sT).map(c=>({time:Math.floor(c.time/1000),value:z.high}));const pB=candles.filter(c=>Math.floor(c.time/1000)>=sT).map(c=>({time:Math.floor(c.time/1000),value:z.low}));for(let k=1;k<=7;k++){pT.push({time:lT+ms*k,value:z.high});pB.push({time:lT+ms*k,value:z.low});}if(!pT.length)return;const ls=sig.isContra?2:0;const t=chart.addLineSeries({color:col.h,lineWidth:lw,lineStyle:ls,lastValueVisible:true,priceLineVisible:false,crosshairMarkerVisible:false,title:`${sig.source==='fvg'?'FVG':'OB'} S${i+1}`});const b=chart.addLineSeries({color:col.h,lineWidth:1,lineStyle:2,lastValueVisible:false,priceLineVisible:false,crosshairMarkerVisible:false});if(sig.source==='fvg'){const pM=candles.filter(c=>Math.floor(c.time/1000)>=sT).map(c=>({time:Math.floor(c.time/1000),value:z.mid}));for(let k=1;k<=7;k++)pM.push({time:lT+ms*k,value:z.mid});const m=chart.addLineSeries({color:col.h,lineWidth:lw,lineStyle:ls,lastValueVisible:false,priceLineVisible:false,crosshairMarkerVisible:false});try{m.setData(pM);sigL.push(m);}catch(e){}}try{t.setData(pT);b.setData(pB);sigL.push(t,b);}catch(e){}});document.getElementById('obi').textContent=vis+' zonas';}
@@ -1408,6 +1473,12 @@ function drawExtLevelsOnChart(){
     });
     try{s.setData(pts);extChartLines.push(s);}catch(e){}
   });
+}
+
+function toggleContraExpand(idx){
+  if(contraExpanded.has(idx))contraExpanded.delete(idx);
+  else contraExpanded.add(idx);
+  if(typeof lastSigs!=='undefined'&&lastSigs)renderSigs(lastSigs,[]);
 }
 
 function clearPreview(){prevL.forEach(s=>{try{chart.removeSeries(s);}catch(e){}});prevL=[];previewSig=null;previewIdx=-1;}
@@ -1503,8 +1574,42 @@ function renderSigs(sigs,pats){const el=document.getElementById('sel');document.
     if(sigs.length){const best=sigs.find(s=>calcScore(s).now)||sigs.find(s=>calcScore(s).strong)||sigs[0];if(best){calcActiveSig=best;calcUpdate();}}
     else{calcActiveSig=null;calcUpdate();}
   }
-  if(!sigs.length){el.innerHTML=`<div class="empty">Sin señales · ${TF_I[tf]||''}</div>`;return;}window._S=sigs;el.innerHTML=sigs.map((s,i)=>{const col=SC[i]||SC[0],l=s.lvls,dc=s.dir==='long'?'#26a69a':'#ef5350';const sc2=calcScore(s),isRT=s.source==='rt',isFVG=s.source==='fvg';const stag=s.status==='confirmed'?'<span class="tag tc">✓ Confirmada</span>':s.status==='zone'?'<span class="tag tz">◎ En zona</span>':'<span class="tag tw">~ Vigilar</span>';const srcTag=isRT?`<span class="tag trt">🔁 Retest</span>`:isFVG?'<span class="tag tfvg">⚡ FVG</span>':'<span class="tag tob">📦 OB</span>';const ttag=s.type==='scalp'?'<span class="tag tsc">Scalp</span>':s.type==='intraday'?'<span class="tag tid">Intraday</span>':'<span class="tag tsw">Swing</span>';const ctag=s.aligned?(s.cstr==='strong'?'<span class="tag tms">MTF✓</span>':s.cstr==='medium'?'<span class="tag tmm">MTF~</span>':''):'<span class="tag tmn">⚠MTF</span>';const rrTag=`<span class="${parseFloat(l.r1)>=3?'rg':'ro'}">R:R${l.r1}</span>`;const trendTag=s.isContra?'<span class="tag twt">⚠ Contra</span>':s.isCHoCH?'<span class="tag tchoch">🔄 CHoCH</span>':s.withTrend?'<span class="tag tms">↑ Tend.</span>':'';const cs2=s.candleStr||{level:'normal',label:'Vela normal',note:''};const vs2=s.volStr||{level:'normal',label:'',note:''};const velaTag=cs2.level==='strong'?'<span class="tag tc">💪 '+cs2.label+'</span>':cs2.level==='weak'?'<span class="tag" style="background:#fce4ec;color:#880e4f">⚠ '+cs2.label+'</span>':'';const volTag=vs2.level==='high'?'<span class="tag" style="background:#e3f2fd;color:#0d47a1">📊 Vol. alto</span>':vs2.level==='above'?'<span class="tag" style="background:#e8f4fd;color:#1565c0">📊 Vol. elevado</span>':vs2.level==='low'?'<span class="tag" style="background:#fff3e0;color:#e65100">📊 Vol. bajo</span>':'';const velaWarn=cs2.level==='weak'?'<div class="cn contra" style="border-left-color:#e91e63">⚠️ <strong>Vela débil</strong> — '+cs2.note+'</div>':'';const etTag=s.et==='Limit'?'<span class="tag tlim">🔵 Limit</span>':'<span class="tag tmkt">🟢 Market</span>';let encHtml='';if(sc2.now){encHtml=`<div class="enc ${s.dir==='long'?'nl':'ns'}"><span class="ei">${s.dir==='long'?'🚀':'🔻'}</span><div><div class="et2" style="color:${dc}">ENTRA YA${s.et==='Limit'?' (Limit)':''}</div><div class="eck"><span class="ck ok">✓ Confirmada</span><span class="ck ${sc2.mtf?'ok':'no'}">${sc2.mtf?'✓':'✗'} MTF</span><span class="ck ${sc2.rr?'ok':'no'}">${sc2.rr?'✓':'✗'} R:R</span><span class="ck ${s.withTrend?'ok':'no'}">${s.withTrend?'✓':'⚠'} Tend.</span><span class="ck ${sc2.strongCandle?'ok':sc2.weakCandle?'no':'ok'}">${sc2.strongCandle?'💪':sc2.weakCandle?'⚠':'✓'} Vela</span></div></div></div>`;}else if(sc2.strong){encHtml=`<div class="enc ${s.dir==='long'?'sl2':'ss2'}"><span class="ei">⚡</span><div><div class="et2" style="color:${s.dir==='long'?'#66bb6a':'#ef9a9a'}">ENTRADA FUERTE</div><div class="eck"><span class="ck ok">✓</span><span class="ck ${sc2.mtf?'ok':'no'}">${sc2.mtf?'✓':'✗'} MTF</span><span class="ck ${sc2.rr?'ok':'no'}">${sc2.rr?'✓':'✗'} R:R</span><span class="ck ${sc2.strongCandle?'ok':sc2.weakCandle?'no':'ok'}">${sc2.strongCandle?'💪':sc2.weakCandle?'⚠':'✓'} Vela</span></div></div></div>`;}const rtNote=isRT?`<div class="rt-info">🔁 <strong>Retest ${s.levelType} $${ff(s.levelPrice,0)}</strong> · ${s.confirmNote} · Orden Limit en $${ff(l.e)}</div>`:'';const tnote=!isRT&&s.isContra?`<div class="cn contra">⚠️ Contratendencia — ${lastStruct.label}</div>`:!isRT&&s.isCHoCH?`<div class="cn choch">🔄 CHoCH — Primera entrada en nueva dirección</div>`:'';const isPinned=pinnedSigs.has(i);const eb=s.isAct?`<button class="btn cx" onclick="closeTrade_dashboard()">Cerrar</button>`:`<button class="btn" style="background:${col.h};color:#fff;border:none;font-weight:600;font-size:11px;padding:5px 12px;border-radius:6px;box-shadow:0 2px 6px ${col.h}88" onclick="enterTrade(window._S[${i}])">▶ Marcar ${s.et}</button><button class="btn" onclick="copyOrder(window._S[${i}])" title="Copiar orden" style="font-size:11px;padding:2px 8px">📋</button><button class="btn" onclick="loadSigToCalc(window._S[${i}])" title="Cargar en calculadora" style="font-size:11px;padding:2px 8px" id="calc-sig-btn-${i}">📊</button><button class="btn btn-preview ${previewIdx===i?'active':''}" onclick="drawPreviewLines(window._S[${i}],this)" title="Ver niveles en gráfico" style="font-size:11px;padding:2px 8px">${previewIdx===i?'👁✓':'👁'}</button><button class="btn pin-btn ${isPinned?'pinned':''}" onclick="pinSig(${i})" title="${isPinned?'Desanclar':'Anclar señal'}">📌</button>`;const isCalcActive=calcManualSig&&calcActiveSig&&calcActiveSig.source===s.source&&calcActiveSig.dir===s.dir&&Math.abs((calcActiveSig.lvls.e-l.e)/l.e)<0.001;
-return`<div class="sc ${s.dir}" id="sig-card-${i}" style="border-left:4px solid ${col.h};${isCalcActive?'outline:2px solid #2962ff;outline-offset:-2px;background:rgba(41,98,255,0.04)':''}"><div class="sh"><span class="sn" style="background:${col.h}">${i+1}</span><span class="st2" style="color:${dc}">${s.dir==='long'?'▲ LONG':'▼ SHORT'}</span>${srcTag}${etTag}${stag}${ttag}${ctag}${rrTag}${trendTag}${velaTag}${volTag}<span class="tag" style="background:#f5f5f5">${lev}x</span><span style="font-size:9px;color:#999;margin-left:auto">${tf}</span></div>${encHtml}${rtNote}${tnote}${velaWarn}<div class="sm2">${isRT?`Retest $${ff(s.levelPrice,0)} (${s.levelType})`:isFVG?`FVG $${ff(s.zone.low)}–$${ff(s.zone.high)}`:`OB $${ff(s.zone.low)}–$${ff(s.zone.high)}`} · SL ${l.sp}% (${l.sm})</div><div class="lvls"><div class="lb" style="border-left:2px solid ${col.h};border-radius:0 4px 4px 0"><div class="ln">${s.et} ${s.et==='Limit'?'🔵':'🟢'}</div><div class="lp" style="color:${col.h}">$${ff(l.e)}</div><div class="ls">${isRT?`Nivel ${s.levelType}`:isFVG?'50% FVG':s.dir==='long'?'Techo OB':'Suelo OB'}</div></div><div class="lb" style="border-left:2px solid #ef5350;border-radius:0 4px 4px 0"><div class="ln">SL · ${l.sp}%</div><div class="lp" style="color:#ef5350">$${ff(l.sl)}</div><div class="ls">${l.sm}</div></div><div class="lb" style="border-left:2px solid #f57c00;border-radius:0 4px 4px 0"><div class="ln">TP1 · <strong>${l.r1}R</strong></div><div class="lp" style="color:#f57c00">$${ff(l.tp1)}</div></div><div class="lb" style="border-left:2px solid #26a69a;border-radius:0 4px 4px 0"><div class="ln">TP2 · <strong>${l.r2}R</strong></div><div class="lp" style="color:#26a69a">$${ff(l.tp2)}</div></div></div><div class="ld"><div class="di"><div class="dl">Liquidación</div><div class="dliq">$${ff(liq(l.e,s.dir,lev))}</div></div><div class="di"><div class="dl">Margen/1000</div><div class="dv">$${ff(1000/lev,0)}</div></div><div class="di"><div class="dl">Pérdida máx.</div><div class="dv" style="color:#ef5350">-$${ff(1000*(parseFloat(l.sp)/100)*lev,1)}</div></div><div class="di"><div class="dl">Ganancia TP1</div><div class="dv" style="color:#26a69a">+$${ff(1000*parseFloat(l.r1)*(parseFloat(l.sp)/100)*lev,1)}</div></div></div><div class="sa">${eb}<button class="btn p" onclick="alert('📊 Señal S'+(${i}+1)+'\\n──────────────────\\n${s.source.toUpperCase()} ${s.dir.toUpperCase()} · ${tf} · ${lev}x\\nR:R: ${l.r1}R/${l.r2}R · SL: ${l.sp}%\\n──────────────────\\n🔵 Entrada:    $${ff(l.e)}\\n🔴 Stop Loss:  $${ff(l.sl)}\\n🟠 TP1(${l.r1}R): $${ff(l.tp1)}\\n🟢 TP2(${l.r2}R): $${ff(l.tp2)}\\n──────────────────\\n⚡ Liquidación: $${ff(liq(l.e,s.dir,lev))}')">Info</button></div></div>`;}).join('');}
+  if(!sigs.length){el.innerHTML=`<div class="empty">Sin señales · ${TF_I[tf]||''}</div>`;return;}window._S=sigs;el.innerHTML=sigs.map((s,i)=>{const col=SC[i]||SC[0],l=s.lvls,dc=s.dir==='long'?'#26a69a':'#ef5350';const sc2=calcScore(s),isRT=s.source==='rt',isFVG=s.source==='fvg';const stag=s.status==='confirmed'?'<span class="tag tc" title="Confirmada: el precio ha tocado la zona y ya muestra reacción en la dirección esperada">✓ Confirmada</span>':s.status==='zone'?'<span class="tag tz" title="En zona: el precio está dentro del OB/FVG pero aún no hay confirmación de reacción">◎ En zona</span>':'<span class="tag tw" title="Vigilar: el precio se acerca a la zona — espera confirmación antes de entrar">~ Vigilar</span>';const srcTag=isRT?`<span class="tag trt" title="Retest: el precio vuelve a testear un nivel clave (BOS/CHoCH/Swing) — alta probabilidad de rebote">🔁 Retest</span>`:isFVG?'<span class="tag tfvg" title="FVG (Fair Value Gap): desequilibrio de precio entre 3 velas — el precio tiende a rellenarlo">⚡ FVG</span>':'<span class="tag tob" title="OB (Order Block): última vela opuesta antes de un movimiento impulsivo — zona de órdenes institucionales">📦 OB</span>';const ttag=s.type==='scalp'?'<span class="tag tsc" title="Scalp: entradas rápidas en 1m-5m, SL ajustado, opera en la dirección del movimiento inmediato">Scalp</span>':s.type==='intraday'?'<span class="tag tid" title="Intraday: operaciones de 15m-1h, SL moderado, busca movimientos del día">Intraday</span>':'<span class="tag tsw" title="Swing: operaciones de 4h-1S, SL amplio, sigue tendencias de varios días">Swing</span>';// Tooltips descriptius per badges
+const mtfTfs=(typeof MTFM!=='undefined'&&MTFM[tf])?MTFM[tf].join('+'):'';
+const ctag=s.aligned?(s.cstr==='strong'?`<span class="tag tms" title="MTF fuerte: ${mtfTfs} — todos los TF alineados">MTF✓</span>`:s.cstr==='medium'?`<span class="tag tmm" title="MTF parcial: ${mtfTfs} — mayoría alineados">MTF~</span>`:''):`<span class="tag tmn" title="Sin confluencia MTF: ${mtfTfs} — TFs contradictorios, señal de menor calidad">⚠MTF</span>`;const rrTag=`<span class="${parseFloat(l.r1)>=3?'rg':'ro'}" title="Ratio Riesgo:Recompensa — TP1=${l.r1}R (${l.tm?.split('/')[0]||''}) · TP2=${l.r2}R">R:R${l.r1}</span>`;
+  // Badge apalancamiento recomendado
+  const rl=recLev(s);
+  const levRecTag=`<span class="tag" style="background:${rl.color}22;color:${rl.color};border:1px solid ${rl.color}55;font-size:9px" title="${rl.reason}">${rl.label}</span>`;const trendTag=s.isContra?`<span class="tag twt" title="Contratendencia — ${lastStruct.label}">⚠ Contra</span>`:s.isCHoCH?'<span class="tag tchoch" title="Change of Character — posible cambio de tendencia">🔄 CHoCH</span>':s.withTrend?'<span class="tag tms" title="Señal a favor de la tendencia principal">↑ Tend.</span>':'';const cs2=s.candleStr||{level:'normal',label:'Vela normal',note:''};const vs2=s.volStr||{level:'normal',label:'',note:''};const velaTag=cs2.level==='strong'?`<span class="tag tc" title="${cs2.note}">💪 ${cs2.label}</span>`:cs2.level==='weak'?`<span class="tag" style="background:#fce4ec;color:#880e4f" title="${cs2.note}">⚠ ${cs2.label}</span>`:'';const volTag=vs2.level==='high'?`<span class="tag" style="background:#e3f2fd;color:#0d47a1" title="${vs2.note}">📊 Vol. alto</span>`:vs2.level==='above'?`<span class="tag" style="background:#e8f4fd;color:#1565c0" title="${vs2.note}">📊 Vol. elevado</span>`:vs2.level==='low'?`<span class="tag" style="background:#fff3e0;color:#e65100" title="${vs2.note}">📊 Vol. bajo</span>`:'';const velaWarn=cs2.level==='weak'?'<div class="cn contra" style="border-left-color:#e91e63">⚠️ <strong>Vela débil</strong> — '+cs2.note+'</div>':'';const etTag=s.et==='Limit'?'<span class="tag tlim" title="Orden Limit: entrada al precio exacto de la zona — mejor precio, puede no ejecutarse">🔵 Limit</span>':'<span class="tag tmkt" title="Orden Market: entrada inmediata al precio actual — ejecución garantizada, puede haber slippage">🟢 Market</span>';let encHtml='';if(sc2.now){encHtml=`<div class="enc ${s.dir==='long'?'nl':'ns'}"><span class="ei">${s.dir==='long'?'🚀':'🔻'}</span><div><div class="et2" style="color:${dc}">ENTRA YA${s.et==='Limit'?' (Limit)':''}</div><div class="eck"><span class="ck ok">✓ Confirmada</span><span class="ck ${sc2.mtf?'ok':'no'}">${sc2.mtf?'✓':'✗'} MTF</span><span class="ck ${sc2.rr?'ok':'no'}">${sc2.rr?'✓':'✗'} R:R</span><span class="ck ${s.withTrend?'ok':'no'}">${s.withTrend?'✓':'⚠'} Tend.</span><span class="ck ${sc2.strongCandle?'ok':sc2.weakCandle?'no':'ok'}">${sc2.strongCandle?'💪':sc2.weakCandle?'⚠':'✓'} Vela</span></div></div></div>`;}else if(sc2.strong){encHtml=`<div class="enc ${s.dir==='long'?'sl2':'ss2'}"><span class="ei">⚡</span><div><div class="et2" style="color:${s.dir==='long'?'#66bb6a':'#ef9a9a'}">ENTRADA FUERTE</div><div class="eck"><span class="ck ok">✓</span><span class="ck ${sc2.mtf?'ok':'no'}">${sc2.mtf?'✓':'✗'} MTF</span><span class="ck ${sc2.rr?'ok':'no'}">${sc2.rr?'✓':'✗'} R:R</span><span class="ck ${sc2.strongCandle?'ok':sc2.weakCandle?'no':'ok'}">${sc2.strongCandle?'💪':sc2.weakCandle?'⚠':'✓'} Vela</span></div></div></div>`;}const rtNote=isRT?`<div class="rt-info">🔁 <strong>Retest ${s.levelType} $${ff(s.levelPrice,0)}</strong> · ${s.confirmNote} · Orden Limit en $${ff(l.e)}</div>`:'';const tnote=!isRT&&s.isContra?`<div class="cn contra">⚠️ Contratendencia — ${lastStruct.label}</div>`:!isRT&&s.isCHoCH?`<div class="cn choch">🔄 CHoCH — Primera entrada en nueva dirección</div>`:'';const isPinned=pinnedSigs.has(i);const eb=s.isAct?`<button class="btn cx" onclick="closeTrade_dashboard()">Cerrar</button>`:`<button class="btn" style="background:${col.h};color:#fff;border:none;font-weight:600;font-size:11px;padding:5px 12px;border-radius:6px;box-shadow:0 2px 6px ${col.h}88" onclick="enterTrade(window._S[${i}])">▶ Marcar ${s.et}</button><button class="btn" onclick="copyOrder(window._S[${i}])" title="Copiar orden" style="font-size:11px;padding:2px 8px">📋</button><button class="btn" onclick="loadSigToCalc(window._S[${i}])" title="Cargar en calculadora" style="font-size:11px;padding:2px 8px" id="calc-sig-btn-${i}">📊</button><button class="btn btn-preview ${previewIdx===i?'active':''}" onclick="drawPreviewLines(window._S[${i}],this)" title="Ver niveles en gráfico" style="font-size:11px;padding:2px 8px">${previewIdx===i?'👁✓':'👁'}</button><button class="btn pin-btn ${isPinned?'pinned':''}" onclick="pinSig(${i})" title="${isPinned?'Desanclar':'Anclar señal'}">📌</button>`;const isCalcActive=calcManualSig&&calcActiveSig&&calcActiveSig.source===s.source&&calcActiveSig.dir===s.dir&&Math.abs((calcActiveSig.lvls.e-l.e)/l.e)<0.001;
+// Colapsar según el MTF global (lastConf), no en l'estructura local
+// BAJISTA (ss/ms): colapsar LONGs. ALCISTA (sl/ml): colapsar SHORTs. WK: colapsar todo.
+const isContraMTF = 
+  (lastConf.k==='ss'||lastConf.k==='ms') && s.dir==='long' ||  // MTF bajista → long en contra
+  (lastConf.k==='sl'||lastConf.k==='ml') && s.dir==='short' || // MTF alcista → short en contra
+  lastConf.k==='wk'; // Sin confluencia → todo colapsado
+if(isContraMTF){
+  // Mostrar col·lapsada amb opció d'expandir
+  const srcTagC=isRT?'🔁 Retest':isFVG?'⚡ FVG':'📦 OB';
+  const dirC=s.dir==='long'?'▲ LONG':'▼ SHORT';
+  const dc2=s.dir==='long'?'#26a69a':'#ef5350';
+  const isExpanded=contraExpanded.has(i);
+return`<div class="sc ${s.dir} sc-contra-collapsed" id="sig-card-${i}" style="border-left:4px solid ${col.h};display:flex;align-items:center;gap:6px;opacity:${isExpanded?'1':'0.55'}" onclick="toggleContraExpand(${i})">
+    <span style="font-size:11px;color:#f57c00">⚠️</span>
+    <span style="font-size:10px;font-weight:600;color:${dc2}">${dirC}</span>
+    <span style="font-size:9px;color:#999">${srcTagC} · R:R ${l.r1} · SL ${l.sp}%</span>
+    <span style="font-size:9px;color:#f57c00">Contratendencia</span>
+    <span class="sc-contra-arr" style="font-size:9px;color:#aaa;margin-left:auto">${isExpanded?'▲':'▼'}</span>
+    <div class="sc-contra-body" style="display:${isExpanded?'block':'none'};width:100%;margin-top:6px" onclick="event.stopPropagation()">
+      <div style="border-left:4px solid ${col.h};padding:.625rem;background:var(--card)">
+        <div class="sh"><span class="sn" style="background:${col.h}">${i+1}</span><span class="st2" style="color:${dc2}">${s.dir==='long'?'▲ LONG':'▼ SHORT'}</span>${srcTag}${etTag}${stag}${ttag}${ctag}${rrTag}${levRecTag}${trendTag}${velaTag}${volTag}<span class="tag" style="background:#f5f5f5">${lev}x</span></div>
+        ${encHtml}${rtNote}${tnote}${velaWarn}
+        <div class="sm2">${isRT?`Retest $${ff(s.levelPrice,0)} (${s.levelType})`:isFVG?`FVG $${ff(s.zone.low)}–$${ff(s.zone.high)}`:`OB $${ff(s.zone.low)}–$${ff(s.zone.high)}`} · SL ${l.sp}% (${l.sm})</div>
+        <div class="lvls"><div class="lb" style="border-left:2px solid ${col.h};border-radius:0 4px 4px 0"><div class="ln">${s.et}</div><div class="lp" style="color:${col.h}">$${ff(l.e)}</div></div><div class="lb" style="border-left:2px solid #ef5350;border-radius:0 4px 4px 0"><div class="ln">SL · ${l.sp}%</div><div class="lp" style="color:#ef5350">$${ff(l.sl)}</div></div><div class="lb" style="border-left:2px solid #f57c00;border-radius:0 4px 4px 0"><div class="ln">TP1 · ${l.r1}R</div><div class="lp" style="color:#f57c00">$${ff(l.tp1)}</div></div><div class="lb" style="border-left:2px solid #26a69a;border-radius:0 4px 4px 0"><div class="ln">TP2 · ${l.r2}R</div><div class="lp" style="color:#26a69a">$${ff(l.tp2)}</div></div></div>
+        <div class="sa">${eb}</div>
+      </div>
+    </div>
+  </div>`;
+}
+return`<div class="sc ${s.dir}" id="sig-card-${i}" style="border-left:4px solid ${col.h};${isCalcActive?'outline:2px solid #2962ff;outline-offset:-2px;background:rgba(41,98,255,0.04)':''}"><div class="sh"><span class="sn" style="background:${col.h}">${i+1}</span><span class="st2" style="color:${dc}">${s.dir==='long'?'▲ LONG':'▼ SHORT'}</span>${srcTag}${etTag}${stag}${ttag}${ctag}${rrTag}${levRecTag}${trendTag}${velaTag}${volTag}<span class="tag" style="background:#f5f5f5">${lev}x</span><span style="font-size:9px;color:#999;margin-left:auto">${tf}</span></div>${encHtml}${rtNote}${tnote}${velaWarn}<div class="sm2">${isRT?`Retest $${ff(s.levelPrice,0)} (${s.levelType})`:isFVG?`FVG $${ff(s.zone.low)}–$${ff(s.zone.high)}`:`OB $${ff(s.zone.low)}–$${ff(s.zone.high)}`} · SL ${l.sp}% (${l.sm})</div><div class="lvls"><div class="lb" style="border-left:2px solid ${col.h};border-radius:0 4px 4px 0"><div class="ln">${s.et} ${s.et==='Limit'?'🔵':'🟢'}</div><div class="lp" style="color:${col.h}">$${ff(l.e)}</div><div class="ls">${isRT?`Nivel ${s.levelType}`:isFVG?'50% FVG':s.dir==='long'?'Techo OB':'Suelo OB'}</div></div><div class="lb" style="border-left:2px solid #ef5350;border-radius:0 4px 4px 0"><div class="ln">SL · ${l.sp}%</div><div class="lp" style="color:#ef5350">$${ff(l.sl)}</div><div class="ls">${l.sm}</div></div><div class="lb" style="border-left:2px solid #f57c00;border-radius:0 4px 4px 0"><div class="ln">TP1 · <strong>${l.r1}R</strong></div><div class="lp" style="color:#f57c00">$${ff(l.tp1)}</div></div><div class="lb" style="border-left:2px solid #26a69a;border-radius:0 4px 4px 0"><div class="ln">TP2 · <strong>${l.r2}R</strong></div><div class="lp" style="color:#26a69a">$${ff(l.tp2)}</div></div></div><div class="ld"><div class="di"><div class="dl">Liquidación</div><div class="dliq">$${ff(liq(l.e,s.dir,lev))}</div></div><div class="di"><div class="dl">Margen/1000</div><div class="dv">$${ff(1000/lev,0)}</div></div><div class="di"><div class="dl">Pérdida máx.</div><div class="dv" style="color:#ef5350">-$${ff(1000*(parseFloat(l.sp)/100)*lev,1)}</div></div><div class="di"><div class="dl">Ganancia TP1</div><div class="dv" style="color:#26a69a">+$${ff(1000*parseFloat(l.r1)*(parseFloat(l.sp)/100)*lev,1)}</div></div></div><div class="sa">${eb}<button class="btn p" onclick="alert('📊 Señal S'+(${i}+1)+'\\n──────────────────\\n${s.source.toUpperCase()} ${s.dir.toUpperCase()} · ${tf} · ${lev}x\\nR:R: ${l.r1}R/${l.r2}R · SL: ${l.sp}%\\n──────────────────\\n🔵 Entrada:    $${ff(l.e)}\\n🔴 Stop Loss:  $${ff(l.sl)}\\n🟠 TP1(${l.r1}R): $${ff(l.tp1)}\\n🟢 TP2(${l.r2}R): $${ff(l.tp2)}\\n──────────────────\\n⚡ Liquidación: $${ff(liq(l.e,s.dir,lev))}')">Info</button></div></div>`;}).join('');}
 function getChartColors(){const dark=document.body.classList.contains('dark');return{bg:dark?'#1a1d27':'#fff',text:dark?'#9294a0':'#555',grid:dark?'#252836':'#f0f0f0',border:dark?'#2a2d3e':'#e0e0e0'};}
 
 function initChart(){
@@ -1807,7 +1912,27 @@ function drawExtLevels(levels,extTf){
   const infoEl=document.getElementById('ext-levels-info');
   const infoHtml=[];
 
-  levels.forEach(lv=>{
+  // B: Filtrar per proximitat — només nivells dins del ±3% del preu actual
+  const proximity=0.03;
+  let filtered=levels.filter(lv=>Math.abs(lv.price-price)/price<=proximity);
+
+  // Si no n'hi ha cap prop, mostrar els 2 més propers (1 per sobre, 1 per sota)
+  if(!filtered.length){
+    const above=levels.filter(l=>l.price>price).sort((a,b)=>a.price-b.price).slice(0,1);
+    const below=levels.filter(l=>l.price<=price).sort((a,b)=>b.price-a.price).slice(0,1);
+    filtered=[...above,...below];
+  }
+
+  // C: Eliminar duplicats propers — si dos nivells estan a menys del 0.15%, quedar-se el més important
+  const typePriority={'BOS':0,'CHoCH':1,'Res.':2,'Sop.':2,'Res.2':3,'Sop.2':3};
+  filtered.sort((a,b)=>(typePriority[a.type]||4)-(typePriority[b.type]||4));
+  const deduped=[];
+  filtered.forEach(lv=>{
+    const tooClose=deduped.some(existing=>Math.abs(existing.price-lv.price)/lv.price<0.0015);
+    if(!tooClose)deduped.push(lv);
+  });
+
+  deduped.forEach(lv=>{
     const startT=lv.formTime?Math.max(Math.floor(lv.formTime/1000),firstT):firstT;
     const isBull=lv.dir==='bull';
     const isNeutral=lv.dir==='neutral';
@@ -2063,7 +2188,7 @@ function setLev(v,btn){
   const li=document.getElementById('lci');if(li)li.value='';
   updLev();update();savePrefs();
 }
-function setTF(t){clearPreview();
+function setTF(t){clearPreview();contraExpanded.clear();
   tf=t;
   document.querySelectorAll('.tf').forEach(b=>b.classList.toggle('active',b.dataset.tf===t));
   updTFinfo();
@@ -2518,7 +2643,8 @@ function openBitunixModal(){
   if(!openT){ alert('No hi ha cap trade obert!'); return; }
 
   const isLong = openT.dir === 'long';
-  const entry  = openT.ep || openT.e;
+  // Limit: usar preu de la senyal (openT.e). Market: usar preu execució (openT.ep)
+  const entry  = openT.et==='Limit' ? (openT.e || openT.ep) : (openT.ep || openT.e);
   const sl     = openT.partialDone ? (openT.breakevenSL || openT.sl) : openT.sl;
   const tp1    = openT.tp1;
   const tp2    = openT.tp2;
