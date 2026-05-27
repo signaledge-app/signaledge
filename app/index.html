@@ -2666,7 +2666,8 @@ function openBitunixModal(){
   badge.textContent = isLong ? '▲ LONG' : '▼ SHORT';
   badge.className = 'bm-dir-badge ' + (isLong ? 'long' : 'short');
 
-  document.getElementById('bm-pair').textContent   = 'BTCUSDT · LÍMIT · ' + levVal + 'x';
+  const orderType = openT.et==='Limit' ? 'LÍMIT' : 'MARKET';
+  document.getElementById('bm-pair').textContent   = 'BTCUSDT · ' + orderType + ' · ' + levVal + 'x';
   document.getElementById('bm-entry').textContent  = ff(entry);
   document.getElementById('bm-sl').textContent     = ff(sl)   + '  (−' + slPct  + '%)';
   document.getElementById('bm-tp1').textContent    = ff(tp1)  + '  (+' + tp1Pct + '%)';
