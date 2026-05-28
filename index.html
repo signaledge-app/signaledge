@@ -1,14 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-HDDSLP9JW0"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-HDDSLP9JW0');
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SignalEdge — Señales BTC en tiempo real</title>
@@ -179,6 +171,52 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease;}
 .reveal.visible{opacity:1;transform:none;}
 
+/* ── PERFIL NAV (estil TradingView) ── */
+.nav-profile-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;flex-shrink:0;padding:0;}
+.nav-profile-btn:hover{border-color:var(--accent);background:rgba(0,212,255,.08);}
+.nav-profile-btn img{width:28px;height:28px;border-radius:50%;object-fit:cover;}
+.nav-profile-btn.logged{border-color:var(--green);background:rgba(0,230,118,.08);}
+
+/* Dropdown menú */
+#nav-profile-menu{
+  position:fixed;top:72px;right:calc(5vw);z-index:999;
+  background:#0d1420;border:1px solid var(--border);
+  border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.6);
+  min-width:240px;overflow:hidden;display:none;
+  animation:menuIn .15s ease;
+}
+#nav-profile-menu.open{display:block;}
+@keyframes menuIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+
+.npm-header{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.npm-avatar{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden;}
+.npm-avatar img{width:100%;height:100%;object-fit:cover;}
+.npm-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
+.npm-email{font-size:10px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
+
+.npm-section{padding:6px 0;}
+.npm-item{display:flex;align-items:center;gap:12px;padding:10px 18px;cursor:pointer;font-size:13px;color:var(--text2);background:transparent;width:100%;text-align:left;font-family:'DM Sans',sans-serif;border:none;transition:background .15s;}
+.npm-item:hover{background:rgba(255,255,255,.04);color:var(--text);}
+.npm-item .npm-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.npm-item.danger{color:#ef5350;}
+.npm-item.danger:hover{background:rgba(239,83,80,.08);color:#ef5350;}
+.npm-divider{height:1px;background:var(--border);margin:2px 0;}
+
+/* Toggle dark mode dins del menú */
+.npm-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;cursor:pointer;}
+.npm-toggle-row:hover{background:rgba(255,255,255,.04);}
+.npm-toggle-left{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text2);}
+.npm-switch{width:36px;height:20px;background:#2a2d3e;border-radius:20px;position:relative;transition:background .2s;flex-shrink:0;}
+.npm-switch.on{background:var(--accent);}
+.npm-switch-thumb{position:absolute;top:3px;left:3px;width:14px;height:14px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.npm-switch.on .npm-switch-thumb{transform:translateX(16px);}
+
+/* Estat no logejat */
+.npm-login-section{padding:16px 18px;}
+.npm-login-btn{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;}
+.npm-login-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.06);}
+.npm-login-desc{font-size:10px;color:var(--text3);text-align:center;margin-top:8px;line-height:1.5;}
+
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
   .stats-grid{grid-template-columns:repeat(2,1fr);gap:24px;}
@@ -206,9 +244,49 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
       <button class="lang-btn active" onclick="setLang('es')" id="btn-es">ES</button>
       <button class="lang-btn" onclick="setLang('en')" id="btn-en">EN</button>
     </div>
-    <a href="https://signaledge-app.github.io/signaledge/app" class="btn-nav" data-es="Entrar a la app" data-en="Open app">Entrar a la app</a>
+    <button class="nav-profile-btn" id="nav-profile-btn" onclick="toggleProfileMenu()" title="Perfil">👤</button>
+    <a href="https://signaledge-app.github.io/signaledge/app" class="btn-nav" id="btn-entrar" data-es="Entrar a la app" data-en="Open app">Entrar a la app</a>
   </div>
 </nav>
+
+<!-- MENÚ PERFIL DROPDOWN -->
+<div id="nav-profile-menu">
+  <!-- No logejat -->
+  <div id="npm-guest">
+    <div class="npm-login-section">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:12px;text-align:center;line-height:1.5" data-es="Inicia sesión para sincronizar tus trades en todos tus dispositivos" data-en="Sign in to sync your trades across all devices">Inicia sesión para sincronizar tus trades en todos tus dispositivos</div>
+      <button class="npm-login-btn" onclick="landingLoginGoogle()">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        <span data-es="Continuar con Google" data-en="Continue with Google">Continuar con Google</span>
+      </button>
+      <div class="npm-login-desc" data-es="Gratis · Sync PC + móvil · Historial de trades" data-en="Free · PC + mobile sync · Trade history">Gratis · Sync PC + móvil · Historial de trades</div>
+    </div>
+  </div>
+  <!-- Logejat -->
+  <div id="npm-user" style="display:none">
+    <div class="npm-header">
+      <div class="npm-avatar" id="npm-avatar">👤</div>
+      <div style="min-width:0">
+        <div class="npm-name" id="npm-name">--</div>
+        <div class="npm-email" id="npm-email">--</div>
+      </div>
+    </div>
+    <div class="npm-section">
+      <a href="https://signaledge-app.github.io/signaledge/app" class="npm-item" style="text-decoration:none">
+        <span class="npm-icon">📊</span>
+        <span data-es="Ir al dashboard" data-en="Go to dashboard">Ir al dashboard</span>
+      </a>
+    </div>
+    <div class="npm-divider"></div>
+    <div class="npm-divider"></div>
+    <div class="npm-section">
+      <button class="npm-item danger" onclick="landingLogout()">
+        <span class="npm-icon" style="font-size:14px">→</span>
+        <span data-es="Cerrar sesión" data-en="Sign out">Cerrar sesión</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- HERO -->
 <section class="hero">
@@ -230,7 +308,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
   </p>
 
   <div class="hero-cta">
-    <a href="https://signaledge-app.github.io/signaledge/app" class="btn-primary">
+    <a href="https://signaledge-app.github.io/signaledge" class="btn-primary">
       ⚡ <span data-es="Empezar gratis" data-en="Start for free">Empezar gratis</span>
     </a>
     <a href="#features" class="btn-secondary">
@@ -398,7 +476,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
   <div class="cta-box reveal">
     <h2 class="cta-title" data-es="Empieza a operar con ventaja." data-en="Start trading with an edge.">Empieza a operar<br>con ventaja.</h2>
     <p class="cta-sub" data-es="Gratuito. Sin tarjeta de crédito. Sin instalación." data-en="Free. No credit card. No installation.">Gratuito. Sin tarjeta de crédito. Sin instalación.</p>
-    <a href="https://signaledge-app.github.io/signaledge/app" class="btn-primary" style="display:inline-flex;font-size:16px;padding:16px 48px;">
+    <a href="https://signaledge-app.github.io/signaledge" class="btn-primary" style="display:inline-flex;font-size:16px;padding:16px 48px;">
       ⚡ <span data-es="Abrir SignalEdge" data-en="Open SignalEdge">Abrir SignalEdge</span>
     </a>
   </div>
@@ -422,6 +500,83 @@ function setLang(lang){
   });
   document.documentElement.lang=lang;
 }
+
+// ── MENÚ PERFIL ───────────────────────────────────────────────
+function toggleProfileMenu(){
+  const menu=document.getElementById('nav-profile-menu');
+  menu.classList.toggle('open');
+  if(menu.classList.contains('open')){
+    setTimeout(()=>document.addEventListener('click',function h(e){
+      const btn=document.getElementById('nav-profile-btn');
+      if(!menu.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)){
+        menu.classList.remove('open');
+      }
+      document.removeEventListener('click',h);
+    }),50);
+  }
+}
+function updateProfileUI(user){
+  const btn=document.getElementById('nav-profile-btn');
+  const guest=document.getElementById('npm-guest');
+  const userDiv=document.getElementById('npm-user');
+  if(user){
+    // Logejat
+    btn.classList.add('logged');
+    const avatar=user.user_metadata?.avatar_url;
+    const name=user.user_metadata?.full_name||user.user_metadata?.name||user.email.split('@')[0];
+    if(avatar){btn.innerHTML=`<img src="${avatar}" alt="avatar">`;}
+    else{btn.textContent='👤';}
+    const avatarEl=document.getElementById('npm-avatar');
+    if(avatar)avatarEl.innerHTML=`<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    document.getElementById('npm-name').textContent=name;
+    document.getElementById('npm-email').textContent=user.email;
+    if(guest)guest.style.display='none';
+    if(userDiv)userDiv.style.display='block';
+  }else{
+    // No logejat
+    btn.classList.remove('logged');
+    btn.innerHTML='👤';
+    if(guest)guest.style.display='block';
+    if(userDiv)userDiv.style.display='none';
+  }
+}
+
+// ── SUPABASE AUTH ─────────────────────────────────────────────
+const SE_URL='https://aivhwxixdjfyckvplimt.supabase.co';
+const SE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdmh3eGl4ZGpmeWNrdnBsaW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzgzOTYsImV4cCI6MjA5NDgxNDM5Nn0.6JeBBItEGNaVP7l7F-90e-QE1INr_FTJV00aUl4WGrc';
+let landingDb=null;
+
+async function initLandingAuth(){
+  try{
+    if(typeof supabase==='undefined')return;
+    landingDb=supabase.createClient(SE_URL,SE_KEY);
+    const{data:{session}}=await landingDb.auth.getSession();
+    if(session?.user)updateProfileUI(session.user);
+    landingDb.auth.onAuthStateChange((event,session)=>{
+      if(event==='SIGNED_IN'&&session?.user)updateProfileUI(session.user);
+      else if(event==='SIGNED_OUT')updateProfileUI(null);
+    });
+  }catch(e){console.log('Landing auth error:',e.message);}
+}
+async function landingLoginGoogle(){
+  if(!landingDb)return;
+  document.getElementById('nav-profile-menu').classList.remove('open');
+  try{
+    await landingDb.auth.signInWithOAuth({
+      provider:'google',
+      options:{redirectTo:'https://signaledge-app.github.io/signaledge/app'}
+    });
+  }catch(e){console.log('Login error:',e.message);}
+}
+async function landingLogout(){
+  if(!landingDb)return;
+  document.getElementById('nav-profile-menu').classList.remove('open');
+  try{await landingDb.auth.signOut();}catch(e){}
+  updateProfileUI(null);
+}
+
+// Inicialitzar auth quan Supabase estigui llest
+window.addEventListener('load',()=>setTimeout(initLandingAuth,500));
 
 // ── PREU BTC EN VIU ───────────────────────────────────────────
 let lastPrice=0;
@@ -472,5 +627,7 @@ const observer=new IntersectionObserver(entries=>{
 },{threshold:.1});
 document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 </script>
+<!-- Supabase per auth -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </body>
 </html>
