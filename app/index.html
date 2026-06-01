@@ -384,8 +384,11 @@ body.dark input[type=date]{color-scheme:dark}
 .date-quick{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
 .dq-btn{font-size:9px;padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text3);cursor:pointer;font-family:inherit}
 .dq-btn.active{background:#2962ff;color:#fff;border-color:#2962ff}
-#se-login-btn{display:none!important}
-#se-dark-btn{display:none!important}
+.spark-btn{font-size:9px;padding:2px 7px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text4);cursor:pointer;font-family:inherit;transition:all .15s}
+.spark-btn.active{background:#2962ff;color:#fff;border-color:#2962ff}
+#tab-mercado .hist-page{padding:.75rem 0}
+#tab-mercado{padding:.75rem;padding-top:.5rem}
+#mercado-content{padding-top:0!important;margin-top:0!important}
 #se-profile-btn.logged{border-color:#26a69a!important;background:#e8f5e9!important}
 body.dark #se-profile-btn.logged{background:#1a2820!important;border-color:#26a69a!important}
 @media(max-width:700px){#se-profile-btn{top:6px!important;left:6px!important;width:30px!important;height:30px!important;font-size:14px!important}#se-profile-menu{top:44px!important;left:6px!important;min-width:200px!important}}
@@ -515,6 +518,7 @@ body.dark .bm-hint{color:#666}
 <div class="tabs">
   <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
   <button class="tab-btn" data-tab="historial">📈 Historial <span id="hist-count" style="font-size:10px;background:#e8f0ff;color:#2962ff;padding:1px 6px;border-radius:8px;margin-left:3px">0</span></button>
+  <button class="tab-btn" data-tab="mercado">🌍 Mercado</button>
 </div>
 <div class="tab-pane active" id="tab-dashboard">
 <div class="dash">
@@ -711,6 +715,135 @@ body.dark .bm-hint{color:#666}
   </div>
   <div id="hist-list"></div>
 </div>
+</div>
+</div>
+</div>
+
+<!-- PESTANYA MERCADO (overlay independent) -->
+<div id="tab-mercado" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;background:var(--bg);overflow-y:auto">
+  <div style="max-width:1280px;margin:0 auto;padding:8px 12px 12px">
+  <!-- Barra superior amb botó tornar -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <button onclick="document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelector('[data-tab=dashboard]').classList.add('active');document.getElementById('tab-mercado').style.display='none';document.getElementById('tab-dashboard').classList.add('active');" style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text3);cursor:pointer;font-family:inherit;font-size:11px;font-weight:500">← Volver</button>
+    <span style="font-size:13px;font-weight:600;color:var(--text)">🌍 Mercado</span>
+  </div>
+<div style="padding:.5rem 0" id="mercado-content">
+
+  <!-- Header: selector moneda + hora -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;flex-wrap:wrap;gap:6px">
+    <div style="display:flex;gap:5px">
+      <button class="mkt-coin-btn active" data-coin="BTC" onclick="setMktCoin('BTC',this)">₿ BTC</button>
+      <button class="mkt-coin-btn" data-coin="ETH" onclick="setMktCoin('ETH',this)">Ξ ETH</button>
+      <button class="mkt-coin-btn" data-coin="SOL" onclick="setMktCoin('SOL',this)">◎ SOL</button>
+    </div>
+    <span style="font-size:9px;color:var(--text4)" id="mkt-updated">--</span>
+  </div>
+
+  <!-- Fila compacta de mètriques -->
+  <div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr auto auto;gap:6px;align-items:center;background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:.625rem .875rem;margin-bottom:.625rem">
+    <div style="padding-right:12px;border-right:1px solid var(--border2)">
+      <div style="font-size:18px;font-weight:700" id="mkt-price">--</div>
+      <div style="font-size:9px;color:var(--text4)">Precio</div>
+    </div>
+    <div style="text-align:center;padding:0 8px;border-right:1px solid var(--border2)">
+      <div style="font-size:14px;font-weight:700" id="mkt-change7">--</div>
+      <div style="font-size:9px;color:var(--text4)">7 días</div>
+    </div>
+    <div style="text-align:center;padding:0 8px;border-right:1px solid var(--border2)">
+      <div style="font-size:14px;font-weight:700" id="mkt-change30">--</div>
+      <div style="font-size:9px;color:var(--text4)">30 días</div>
+    </div>
+    <div style="text-align:center;padding:0 8px;border-right:1px solid var(--border2)">
+      <div style="font-size:14px;font-weight:700;color:#2962ff" id="mkt-vol">--</div>
+      <div style="font-size:9px;color:var(--text4)">Vol. 30d</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 8px;border-right:1px solid var(--border2)">
+      <div style="position:relative;width:40px;height:40px;flex-shrink:0">
+        <svg viewBox="0 0 64 64" style="width:40px;height:40px;transform:rotate(-90deg)">
+          <circle cx="32" cy="32" r="26" fill="none" stroke="var(--border2)" stroke-width="10"/>
+          <circle id="fg-arc" cx="32" cy="32" r="26" fill="none" stroke="#aaa" stroke-width="10" stroke-dasharray="163.4" stroke-dashoffset="163.4" stroke-linecap="round"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700" id="fg-val">--</div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700" id="fg-label">--</div>
+        <div style="font-size:9px;color:var(--text4)">Fear & Greed</div>
+      </div>
+    </div>
+    <div style="padding-left:8px">
+      <div style="font-size:12px;font-weight:700" id="mkt-trend">--</div>
+      <div style="font-size:9px;color:var(--text4)" id="mkt-mas">--</div>
+    </div>
+  </div>
+
+  <!-- SEMÀFOR D'INVERSIÓ -->
+  <div id="mkt-semaforo" style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:.75rem .875rem;margin-bottom:.625rem;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div style="font-size:36px" id="sem-emoji">⏳</div>
+    <div style="flex:1">
+      <div style="font-size:15px;font-weight:700;margin-bottom:3px" id="sem-title">Analizando...</div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.5" id="sem-desc">Cargando datos del mercado...</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0" id="sem-indicators"></div>
+  </div>
+
+  <!-- GRÀFIC SPARKLINE + CICLE -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.625rem;margin-bottom:.625rem">
+    <!-- Sparkline amb selector de període -->
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:.75rem .875rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:.05em">📈 Evolución</div>
+        <div style="display:flex;gap:3px" id="spark-period-btns">
+          <button class="spark-btn active" data-days="7" onclick="setSparkPeriod(7,this)">1S</button>
+          <button class="spark-btn" data-days="30" onclick="setSparkPeriod(30,this)">1M</button>
+          <button class="spark-btn" data-days="90" onclick="setSparkPeriod(90,this)">3M</button>
+          <button class="spark-btn" data-days="365" onclick="setSparkPeriod(365,this)">1A</button>
+        </div>
+      </div>
+      <canvas id="mkt-sparkline" style="width:100%;height:70px;display:block"></canvas>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text4);margin-top:3px">
+        <span id="spark-start-price">--</span>
+        <span id="spark-change-pct" style="font-weight:600">--</span>
+        <span id="spark-end-price">--</span>
+      </div>
+    </div>
+    <!-- Cicle de mercat -->
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:.75rem .875rem">
+      <div style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">🔄 Ciclo de mercado</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px" id="mkt-cycle">--</div>
+      <div style="font-size:10px;color:var(--text3);line-height:1.5" id="mkt-cycle-desc">--</div>
+      <!-- Barra de cicle -->
+      <div style="margin-top:8px;height:6px;background:linear-gradient(90deg,#26a69a,#66bb6a,#ffc107,#f57c00,#ef5350);border-radius:3px;position:relative">
+        <div id="mkt-cycle-marker" style="position:absolute;top:-3px;width:12px;height:12px;background:#fff;border:2px solid #333;border-radius:50%;transform:translateX(-50%);transition:left .5s;left:50%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--text4);margin-top:2px">
+        <span>Acum.</span><span>Subida</span><span>Distrib.</span><span>Bajada</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- NIVELLS CLAU + COMPARATIVA -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.625rem;margin-bottom:.625rem">
+    <!-- Nivells clau -->
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:.75rem .875rem">
+      <div style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">🎯 Niveles clave</div>
+      <div id="mkt-levels" style="font-size:10px;line-height:2;color:var(--text)">--</div>
+    </div>
+    <!-- Comparativa monedes -->
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:.75rem .875rem">
+      <div style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">📊 Comparativa 30d</div>
+      <div id="mkt-compare" style="font-size:10px;line-height:2;color:var(--text)">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- RESUM EN UNA FRASE -->
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:.75rem .875rem;margin-bottom:.5rem">
+    <div style="font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">📋 Resumen</div>
+    <div id="mkt-summary" style="font-size:11px;line-height:1.7;color:var(--text)">--</div>
+  </div>
+
+  <div style="font-size:9px;color:var(--text4);text-align:center;padding:.4rem;border-radius:6px;background:var(--bg3);border:1px solid var(--border2)">
+    ⚠️ <strong>No es asesoramiento financiero.</strong> Datos informativos — consulta fuentes oficiales.
+  </div>
 </div>
 </div>
 </div>
@@ -1358,7 +1491,24 @@ document.getElementById('cob').addEventListener('change',function(){useOB=this.c
 document.getElementById('cfvg').addEventListener('change',function(){useFVG=this.checked;document.getElementById('lfvg').className='ecb'+(useFVG?' fvg-on':'');update();});
 document.getElementById('crt').addEventListener('change',function(){useRT=this.checked;document.getElementById('lrt').className='ecb'+(useRT?' rt-on':'');update();});
 document.querySelectorAll('.pcb input').forEach(cb=>{cb.addEventListener('change',()=>{const p=cb.dataset.pat;if(cb.checked){actPats.add(p);cb.closest('label').classList.add('on');}else{actPats.delete(p);cb.closest('label').classList.remove('on');}drawPats(detectPats());});});
-document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('tab-'+btn.dataset.tab).classList.add('active');if(btn.dataset.tab==='historial'){renderHistorial();setTimeout(()=>{if(typeof renderPnlChart==='function')renderPnlChart();},50);}});});
+document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{
+  const tab=btn.dataset.tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const mercadoOverlay=document.getElementById('tab-mercado');
+  if(tab==='mercado'){
+    document.querySelectorAll('.tab-pane').forEach(p=>{if(p.id!=='tab-mercado')p.classList.remove('active');});
+    if(mercadoOverlay)mercadoOverlay.style.display='block';
+    setTimeout(()=>loadMercado(),50); // esperar que l'overlay sigui visible
+  }else{
+    if(mercadoOverlay)mercadoOverlay.style.display='none';
+    document.querySelectorAll('.tab-pane').forEach(p=>{if(p.id!=='tab-mercado')p.classList.remove('active');});
+    const pane=document.getElementById('tab-'+tab);
+    if(pane)pane.classList.add('active');
+    if(tab==='historial'){renderHistorial();setTimeout(()=>{if(typeof renderPnlChart==='function')renderPnlChart();},50);}
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+});});
 document.querySelectorAll('.filt-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.filt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentFilt=btn.dataset.filt;renderHistList();});});
 
 // ── CALCULADORA ───────────────────────────────────────────────
@@ -1967,6 +2117,304 @@ function confirmAutoTP1(pct,tp1Price){
   lg(`🎯 Auto-parcial ${pct}% en TP1 $${ff(tp1Price)}`);
 }
 function checkSLAlert(){if(!trade||!price)return;autoCheckLevels();}
+</script>
+
+<script>
+// ── PESTANYA MERCADO ──────────────────────────────────────────
+let mktCoin='BTC';
+let mktCache={};
+
+let sparkDays=7;
+
+function setSparkPeriod(days,btn){
+  sparkDays=days;
+  document.querySelectorAll('.spark-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const coinIds={BTC:'bitcoin',ETH:'ethereum',SOL:'solana'};
+  const id=coinIds[mktCoin]||'bitcoin';
+  // Petit delay per evitar rate limit si es canvia ràpid
+  clearTimeout(window._sparkTimer);
+  window._sparkTimer=setTimeout(()=>loadSparkline(id,days),300);
+}
+
+let sparkCache={};
+
+async function loadSparkline(id,days){
+  const canvas=document.getElementById('mkt-sparkline');
+  if(!canvas)return;
+
+  const cacheKey=`${id}-${days}`;
+  const now=Date.now();
+
+  // Usar cache si és recent (10 min)
+  if(sparkCache[cacheKey]&&(now-sparkCache[cacheKey].ts)<600000){
+    drawSparkline(sparkCache[cacheKey].prices);
+    return;
+  }
+
+  try{
+    const url=`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
+    const r=await fetch(url);
+    if(!r.ok){console.log('Sparkline HTTP error:',r.status);return;}
+    const data=await r.json();
+    if(!data?.prices?.length){console.log('Sparkline: no prices returned');return;}
+    const prices=data.prices.map(p=>p[1]);
+    sparkCache[cacheKey]={prices,ts:now};
+    drawSparkline(prices);
+    console.log(`Sparkline ${id} ${days}d: ${prices.length} punts, ${prices[0].toFixed(0)} → ${prices[prices.length-1].toFixed(0)}`);
+  }catch(e){console.log('Sparkline error:',e.message);}
+}
+
+function drawSparkline(prices){
+  const canvas=document.getElementById('mkt-sparkline');
+  if(!canvas||!prices?.length)return;
+  const ctx=canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.offsetWidth-32,H=70;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  const dark=document.body.classList.contains('dark');
+  ctx.clearRect(0,0,W,H);
+  const min=Math.min(...prices),max=Math.max(...prices),range=max-min||1;
+  const toX=i=>i/(prices.length-1)*W;
+  const toY=v=>H-4-(v-min)/range*(H-8);
+  const isUp=prices[prices.length-1]>=prices[0];
+  const color=isUp?'#26a69a':'#ef5350';
+  // Gradient
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,isUp?'rgba(38,166,154,0.3)':'rgba(239,83,80,0.3)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();ctx.moveTo(toX(0),toY(prices[0]));
+  prices.forEach((v,i)=>{if(i>0)ctx.lineTo(toX(i),toY(v));});
+  ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
+  ctx.fillStyle=g;ctx.fill();
+  // Línia
+  ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';
+  ctx.moveTo(toX(0),toY(prices[0]));
+  prices.forEach((v,i)=>{if(i>0)ctx.lineTo(toX(i),toY(v));});
+  ctx.stroke();
+  // Labels
+  const chgPct=((prices[prices.length-1]-prices[0])/prices[0]*100);
+  const fmt=n=>n>=1000?'$'+n.toLocaleString('en-US',{maximumFractionDigits:0}):'$'+n.toFixed(2);
+  const s=document.getElementById('spark-start-price');if(s)s.textContent=fmt(prices[0]);
+  const e=document.getElementById('spark-end-price');if(e)e.textContent=fmt(prices[prices.length-1]);
+  const c=document.getElementById('spark-change-pct');
+  if(c){c.textContent=(chgPct>=0?'+':'')+chgPct.toFixed(2)+'%';c.style.color=color;}
+}
+
+function setMktCoin(coin,btn){
+  mktCoin=coin;
+  document.querySelectorAll('.mkt-coin-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const coinIds={BTC:'bitcoin',ETH:'ethereum',SOL:'solana'};
+  delete mktCache[coinIds[coin]||coin];
+  setTimeout(()=>loadMercado(),50);
+}
+
+async function loadMercado(){
+  const coinIds={BTC:'bitcoin',ETH:'ethereum',SOL:'solana'};
+  const id=coinIds[mktCoin]||'bitcoin';
+  const now=Date.now();
+
+  if(mktCache[id]&&(now-mktCache[id].ts)<300000){
+    renderMercado(mktCache[id].data);
+    loadSparkline(id,sparkDays);
+    renderMktCompare();
+    return;
+  }
+
+  document.getElementById('mkt-updated').textContent='Cargando...';
+
+  try{
+    const [mktRes,fgRes]=await Promise.all([
+      fetch(`https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&community_data=false&developer_data=false`),
+      fetch('https://api.alternative.me/fng/?limit=1')
+    ]);
+    const mktData=await mktRes.json();
+    const fgData=await fgRes.json();
+
+    const data={
+      price:mktData.market_data?.current_price?.usd||0,
+      change7:mktData.market_data?.price_change_percentage_7d||0,
+      change30:mktData.market_data?.price_change_percentage_30d||0,
+      vol30:mktData.market_data?.total_volume?.usd||0,
+      fg:fgData.data?.[0]?.value||50,
+      fgLabel:fgData.data?.[0]?.value_classification||'--',
+      ath:mktData.market_data?.ath?.usd||0,
+      athChange:mktData.market_data?.ath_change_percentage?.usd||0,
+      marketCap:mktData.market_data?.market_cap?.usd||0,
+      ma20:null,ma50:null,ma200:null,prices30:null
+    };
+
+    // Preus historials per MAs i sparkline
+    try{
+      const chartRes=await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=200&interval=daily`);
+      const chartData=await chartRes.json();
+      if(chartData?.prices?.length>=20){
+        const closes=chartData.prices.map(c=>c[1]);
+        const avg=arr=>arr.reduce((a,b)=>a+b,0)/arr.length;
+        data.ma20=avg(closes.slice(-20));
+        data.ma50=closes.length>=50?avg(closes.slice(-50)):null;
+        data.ma200=closes.length>=200?avg(closes.slice(-200)):null;
+        data.prices30=closes.slice(-30); // sparkline 30d
+      }
+    }catch(e){console.log('MA error:',e.message);}
+
+    mktCache[id]={data,ts:now};
+    renderMercado(data);
+    loadSparkline(id,sparkDays);
+    renderMktCompare();
+
+  }catch(e){
+    document.getElementById('mkt-updated').textContent='Error al cargar datos';
+    console.log('Mercado error:',e.message);
+  }
+}
+
+// Comparativa BTC/ETH/SOL 30d
+async function renderMktCompare(){
+  const el=document.getElementById('mkt-compare');
+  if(!el)return;
+  const coins=[
+    {id:'bitcoin',symbol:'₿ BTC'},
+    {id:'ethereum',symbol:'Ξ ETH'},
+    {id:'solana',symbol:'◎ SOL'}
+  ];
+  const results=[];
+  for(const c of coins){
+    if(mktCache[c.id]){
+      results.push({symbol:c.symbol,change30:mktCache[c.id].data.change30});
+    }else{
+      try{
+        const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${c.id}&vs_currencies=usd&include_24hr_change=true&include_30d_change=true`);
+        // Simple price no té 30d, usar cache si existeix o skip
+        results.push({symbol:c.symbol,change30:null});
+      }catch(e){results.push({symbol:c.symbol,change30:null});}
+    }
+  }
+  if(results.every(r=>r.change30===null)){el.innerHTML='<span style="font-size:10px;color:var(--text4)">Selecciona cada moneda para cargar su comparativa</span>';return;}
+  const sorted=[...results].filter(r=>r.change30!==null).sort((a,b)=>b.change30-a.change30);
+  el.innerHTML=sorted.map((r,i)=>{
+    const medal=i===0?'🥇':i===1?'🥈':'🥉';
+    const color=r.change30>=0?'#26a69a':'#ef5350';
+    return`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">${medal} <span style="font-weight:500">${r.symbol}</span> <strong style="color:${color}">${r.change30>=0?'+':''}${r.change30.toFixed(2)}%</strong></div>`;
+  }).join('')+`<div style="font-size:9px;color:var(--text4);margin-top:4px">Selecciona ETH y SOL para ver la comparativa completa</div>`;
+}
+
+function renderMercado(d){
+  const ff2=(n,dec=0)=>n>=1e9?'$'+(n/1e9).toFixed(1)+'B':n>=1e6?'$'+(n/1e6).toFixed(1)+'M':'$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:dec});
+  const pct=(n)=>(n>=0?'+':'')+n.toFixed(2)+'%';
+  const pctColor=(n)=>n>=0?'#26a69a':'#ef5350';
+
+  // Preu i canvis
+  const priceEl=document.getElementById('mkt-price');
+  if(priceEl){priceEl.textContent='$'+Number(d.price).toLocaleString('en-US',{minimumFractionDigits:d.price>100?1:4,maximumFractionDigits:d.price>100?1:4});priceEl.style.color=d.change7>=0?'#26a69a':'#ef5350';}
+  const c7=document.getElementById('mkt-change7');if(c7){c7.textContent=pct(d.change7);c7.style.color=pctColor(d.change7);}
+  const c30=document.getElementById('mkt-change30');if(c30){c30.textContent=pct(d.change30);c30.style.color=pctColor(d.change30);}
+  const vol=document.getElementById('mkt-vol');if(vol)vol.textContent=ff2(d.vol30);
+
+  // Fear & Greed
+  const fgVal=parseInt(d.fg);
+  const fgColor=fgVal<=25?'#ef5350':fgVal<=45?'#ff9800':fgVal<=55?'#ffc107':fgVal<=75?'#8bc34a':'#26a69a';
+  const fgArc=document.getElementById('fg-arc');
+  if(fgArc){const circ=2*Math.PI*26;fgArc.style.stroke=fgColor;fgArc.style.strokeDashoffset=circ-(fgVal/100)*circ;}
+  const fgValEl=document.getElementById('fg-val');if(fgValEl){fgValEl.textContent=fgVal;fgValEl.style.color=fgColor;}
+  const fgLbl=document.getElementById('fg-label');if(fgLbl){fgLbl.textContent=d.fgLabel;fgLbl.style.color=fgColor;}
+
+  // Tendència MAs
+  const trendEl=document.getElementById('mkt-trend');
+  const masEl=document.getElementById('mkt-mas');
+  let bullCount=0;
+  let aboveMA20=false,aboveMA50=false,aboveMA200=false;
+  if(d.ma20){
+    aboveMA20=d.price>d.ma20;aboveMA50=d.price>(d.ma50||0);aboveMA200=d.price>(d.ma200||0);
+    bullCount=[aboveMA20,aboveMA50,aboveMA200].filter(Boolean).length;
+    const trendLabel=bullCount===3?'📈 ALCISTA FUERTE':bullCount===2?'📈 ALCISTA':bullCount===1?'📉 BAJISTA':'📉 BAJISTA FUERTE';
+    const trendColor=bullCount>=2?'#26a69a':'#ef5350';
+    if(trendEl){trendEl.textContent=trendLabel;trendEl.style.color=trendColor;}
+    const maLine=(label,val,above)=>val?`<span style="color:${above?'#26a69a':'#ef5350'}">${above?'↑':'↓'}</span> ${label}: $${Math.round(val).toLocaleString('en-US')} `:'';
+    if(masEl)masEl.innerHTML=maLine('MA20',d.ma20,aboveMA20)+maLine('MA50',d.ma50,aboveMA50)+maLine('MA200',d.ma200,aboveMA200);
+  }else if(trendEl){trendEl.textContent='Calculando...';if(masEl)masEl.textContent='';}
+
+  // ── SEMÀFOR D'INVERSIÓ ────────────────────────────────────
+  let score=0; // -6 a +6
+  const indicators=[];
+
+  // Indicators en castellà
+  if(fgVal<=25){score-=2;indicators.push({label:'F&G: Miedo extremo',color:'#ef5350',icon:'🔴'});}
+  else if(fgVal<=45){score-=1;indicators.push({label:'F&G: Miedo',color:'#ff9800',icon:'🟠'});}
+  else if(fgVal<=55){indicators.push({label:'F&G: Neutral',color:'#ffc107',icon:'🟡'});}
+  else if(fgVal<=75){score+=1;indicators.push({label:'F&G: Codicia',color:'#8bc34a',icon:'🟢'});}
+  else{score+=2;indicators.push({label:'F&G: Codicia extrema',color:'#26a69a',icon:'🟢'});}
+
+  if(d.ma20){
+    if(bullCount===3){score+=2;indicators.push({label:'MAs: Todas alcistas',color:'#26a69a',icon:'🟢'});}
+    else if(bullCount===2){score+=1;indicators.push({label:'MAs: Mayoría alcistas',color:'#8bc34a',icon:'🟡'});}
+    else if(bullCount===1){score-=1;indicators.push({label:'MAs: Mayoría bajistas',color:'#ff9800',icon:'🟠'});}
+    else{score-=2;indicators.push({label:'MAs: Todas bajistas',color:'#ef5350',icon:'🔴'});}
+  }
+
+  if(d.change30>15){score+=2;indicators.push({label:'30d: +'+d.change30.toFixed(0)+'% muy positivo',color:'#26a69a',icon:'🟢'});}
+  else if(d.change30>0){score+=1;indicators.push({label:'30d: +'+d.change30.toFixed(0)+'% positivo',color:'#8bc34a',icon:'🟡'});}
+  else if(d.change30>-15){score-=1;indicators.push({label:'30d: '+d.change30.toFixed(0)+'% negativo',color:'#ff9800',icon:'🟠'});}
+  else{score-=2;indicators.push({label:'30d: '+d.change30.toFixed(0)+'% muy negativo',color:'#ef5350',icon:'🔴'});}
+
+  // Semàfor final
+  let semEmoji,semTitle,semDesc,semBg,semBorder;
+  if(score>=4){semEmoji='🟢';semTitle='Buen momento para invertir';semDesc='El mercado muestra señales alcistas. Fear & Greed positivo, precio por encima de las MAs y tendencia favorable. Considera entradas graduales (DCA).';semBg='rgba(38,166,154,0.08)';semBorder='#a5d6a7';}
+  else if(score>=2){semEmoji='🟡';semTitle='Momento aceptable — con cautela';semDesc='El mercado tiene señales mixtas. Algunos indicadores positivos pero no todos alineados. Si inviertes, hazlo en pequeñas porciones.';semBg='rgba(255,193,7,0.08)';semBorder='#ffe082';}
+  else if(score>=0){semEmoji='🟠';semTitle='Espera — mercado incierto';semDesc='No es el mejor momento. El mercado no tiene una dirección clara. Mejor esperar confirmación de una tendencia alcista antes de entrar.';semBg='rgba(255,152,0,0.08)';semBorder='#ffcc80';}
+  else{semEmoji='🔴';semTitle='No es buen momento para invertir';semDesc=`BTC está por debajo de las MAs (MA20, MA50, MA200), el sentimiento es de miedo (${fgVal}/100) y la tendencia mensual es negativa (${d.change30.toFixed(1)}%). Espera recuperación de la MA20 ($${d.ma20?Math.round(d.ma20).toLocaleString('en-US'):'--'}) antes de considerar entrada.`;semBg='rgba(239,83,80,0.08)';semBorder='#f48fb1';}
+
+  const semDiv=document.getElementById('mkt-semaforo');
+  if(semDiv)semDiv.style.cssText=`background:${semBg};border:2px solid ${semBorder};border-radius:10px;padding:.75rem .875rem;margin-bottom:.625rem;display:flex;align-items:center;gap:16px;flex-wrap:wrap`;
+  const semEmojiEl=document.getElementById('sem-emoji');if(semEmojiEl)semEmojiEl.textContent=semEmoji;
+  const semTitleEl=document.getElementById('sem-title');if(semTitleEl)semTitleEl.textContent=semTitle;
+  const semDescEl=document.getElementById('sem-desc');if(semDescEl)semDescEl.textContent=semDesc;
+  const semInd=document.getElementById('sem-indicators');
+  if(semInd)semInd.innerHTML=indicators.map(i=>`<div style="font-size:10px;display:flex;align-items:center;gap:4px">${i.icon} <span style="color:${i.color}">${i.label}</span></div>`).join('');
+
+  // ── CICLE DE MERCAT ───────────────────────────────────────
+  let cycleLabel,cycleDesc,cyclePos;
+  if(bullCount===3&&d.change30>10){cycleLabel='🚀 Subida fuerte';cycleDesc='Precio por encima de todas las MAs con momentum positivo. Mercado en tendencia alcista confirmada.';cyclePos=62;}
+  else if(bullCount>=2&&d.change30>0){cycleLabel='📈 Subida inicial';cycleDesc='El mercado empieza a subir. Buen momento para acumular posiciones progresivamente.';cyclePos=45;}
+  else if(bullCount>=2&&d.change30<=0){cycleLabel='📦 Acumulación';cycleDesc='El precio se estabiliza. Los inversores a largo plazo empiezan a acumular. Puede ser oportunidad.';cyclePos=18;}
+  else if(bullCount===0&&d.change30<-10){cycleLabel='📉 Bajada';cycleDesc='Mercado en tendencia bajista. Precio por debajo de todas las MAs. Alta precaución.';cyclePos=85;}
+  else{cycleLabel='🔄 Distribución';cycleDesc='El mercado pierde fuerza. Posible cambio de tendencia próximo. Reducción gradual de exposición recomendada.';cyclePos=72;}
+
+  const cycleEl=document.getElementById('mkt-cycle');if(cycleEl){cycleEl.textContent=cycleLabel;}
+  const cycleDescEl=document.getElementById('mkt-cycle-desc');if(cycleDescEl)cycleDescEl.textContent=cycleDesc;
+  const marker=document.getElementById('mkt-cycle-marker');if(marker)marker.style.left=cyclePos+'%';
+
+  // ── NIVELLS CLAU ──────────────────────────────────────────
+  const levelsEl=document.getElementById('mkt-levels');
+  if(levelsEl&&d.price){
+    const athDist=d.ath?((d.price-d.ath)/d.ath*100).toFixed(1):null;
+    const psych=Math.round(d.price/10000)*10000;
+    const psychAbove=psych>d.price?psych:psych+10000;
+    const psychBelow=psych<=d.price?psych:psych-10000;
+    let html='';
+    if(d.ath)html+=`<div>🏆 ATH: <strong>$${Number(d.ath).toLocaleString('en-US',{maximumFractionDigits:0})}</strong> <span style="color:#ef5350">(${athDist}%)</span></div>`;
+    if(d.ma200)html+=`<div style="color:${aboveMA200?'#26a69a':'#ef5350'}">📊 MA200: <strong>$${Math.round(d.ma200).toLocaleString('en-US')}</strong> ${aboveMA200?'↑ soporte fuerte':'↓ resistencia'}</div>`;
+    if(d.ma50)html+=`<div style="color:${aboveMA50?'#26a69a':'#ef5350'}">📊 MA50: <strong>$${Math.round(d.ma50).toLocaleString('en-US')}</strong> ${aboveMA50?'↑ soporte':'↓ resistencia'}</div>`;
+    html+=`<div>🔵 Resistencia psicol.: <strong>$${psychAbove.toLocaleString('en-US')}</strong></div>`;
+    html+=`<div>🟢 Soporte psicol.: <strong>$${psychBelow.toLocaleString('en-US')}</strong></div>`;
+    levelsEl.innerHTML=html;
+  }
+
+  // ── RESUM ─────────────────────────────────────────
+  const sumEl=document.getElementById('mkt-summary');
+  if(sumEl){
+    const coinName=mktCoin;
+    const trendTxt=bullCount>=2?'alcista':'bajista';
+    const fgTxt=d.fgLabel||'--';
+    const masTxt=d.ma20?`Por ${aboveMA20?'encima':'debajo'} de MA20, ${aboveMA50?'por encima':'por debajo'} de MA50${d.ma200?` y ${aboveMA200?'por encima':'por debajo'} de MA200`:''}.`:'';
+    sumEl.innerHTML=`<strong>${coinName}</strong> está en tendencia <strong style="color:${bullCount>=2?'#26a69a':'#ef5350'}">${bullCount>=2?'alcista':'bajista'}</strong> con sentimiento de <strong>${d.fgLabel}</strong> (${fgVal}/100). ${masTxt} Cambio mensual: <strong style="color:${pctColor(d.change30)}">${pct(d.change30)}</strong>.${d.ath?` A <strong style="color:#ef5350">${Math.abs(d.athChange).toFixed(1)}%</strong> del ATH histórico.`:''}`;
+  }
+
+  document.getElementById('mkt-updated').textContent='Act. '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+}
 </script>
 
 </body>
