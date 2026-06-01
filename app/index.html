@@ -1542,6 +1542,8 @@ function loadPrefs(){try{const raw=localStorage.getItem(PREFS_KEY);const p=raw?J
 
 window.addEventListener('load',()=>{
 loadHistory();loadPrefs();loadPushTFs();loadPinned();syncCB();updLev();updTFinfo();updatePushBar();initChart();connectWS(tf);connectTicker();renderHistorial();updateHistCount();calcUpdate();setTimeout(fetchExtLevels,2000);startExtLevelsInterval();
+// Si supabase-sync.js ja ha fet login, actualitzar el botó de perfil
+setTimeout(()=>{if(typeof seUser!=='undefined'&&seUser&&typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(seUser);},2000);
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').then(reg=>{reg.addEventListener('updatefound',()=>{const newSW=reg.installing;newSW.addEventListener('statechange',()=>{if(newSW.state==='installed'&&navigator.serviceWorker.controller)showUpdateBanner(newSW);});});}).catch(e=>console.log('SW error:',e));}
 });
 document.getElementById('cob').addEventListener('change',savePrefs);
@@ -1750,59 +1752,6 @@ function resetTradeAlerts(){slWarnSent=false;tp1WarnSent=false;againstWarnSent=f
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../supabase-sync.js"></script>
 <script>
-// ── AUTH SUPABASE directe (igual que la versió de referència) ─
-(function(){
-  const SE_URL='https://aivhwxixdjfyckvplimt.supabase.co';
-  const SE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdmh3eGl4ZGpmeWNrdnBsaW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzgzOTYsImV4cCI6MjA5NDgxNDM5Nn0.6JeBBItEGNaVP7l7F-90e-QE1INr_FTJV00aUl4WGrc';
-
-  function initAuth(){
-    if(typeof seDb!=='undefined'&&seDb){console.log('SE: usant supabase-sync.js');return;}
-    if(typeof supabase==='undefined'){console.log('SE: Supabase SDK no disponible');return;}
-    if(window._seAuthInit)return; // evitar doble init
-    window._seAuthInit=true;
-
-    const db=supabase.createClient(SE_URL,SE_KEY);
-
-    window.seLoginGoogle=async function(){
-      document.getElementById('se-profile-menu').style.display='none';
-      try{
-        await db.auth.signInWithOAuth({
-          provider:'google',
-          options:{redirectTo:'https://signaledge-app.github.io/signaledge/app'}
-        });
-      }catch(e){console.log('Login error:',e.message);}
-    };
-
-    window.seLogout=async function(){
-      try{await db.auth.signOut();}catch(e){}
-      window.seUser=null;
-      if(typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(null);
-      document.getElementById('se-profile-menu').style.display='none';
-    };
-
-    // onAuthStateChange captura tant sessions existents com el redirect OAuth
-    db.auth.onAuthStateChange((_event,session)=>{
-      window.seUser=session?.user||null;
-      if(typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(window.seUser);
-      console.log('SE Auth event:',_event, window.seUser?.email||'no user');
-    });
-
-    // Comprovar sessió existent (per si ja estava logejat)
-    db.auth.getSession().then(({data:{session}})=>{
-      if(session?.user){
-        window.seUser=session.user;
-        if(typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(session.user);
-      }
-    });
-
-    console.log('SE: Auth directe actiu');
-  }
-
-  // Intentar immediatament
-  initAuth();
-  // I també quan el DOM i la pàgina estiguin llests (per si Supabase SDK no estava disponible)
-  document.addEventListener('DOMContentLoaded',initAuth);
-  window.addEventListener('load',initAuth);
-})();
+// Auth gestionat per supabase-sync.js
 </script>
 </html>
