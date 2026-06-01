@@ -1653,5 +1653,177 @@ document.addEventListener('click',function(e){
     <span id="pm-login-label">Iniciar sesión con Google</span>
   </button>
 </div>
+<!-- Banner d'alertes de proximitat -->
+<div id="auto-alert-banner" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99990;min-width:280px;max-width:90vw"></div>
+
+<script>
+// ── AUTO-CLOSE I ALERTES SL/TP ───────────────────────────────
+let autoClosePending=false;
+let slWarnSent=false,tp1WarnSent=false,tp2WarnSent=false;
+
+function resetTradeAlerts(){
+  autoClosePending=false;
+  slWarnSent=false;tp1WarnSent=false;tp2WarnSent=false;
+}
+
+function notify(title,body,tag){
+  if(!pushEnabled||Notification.permission!=='granted')return;
+  try{new Notification(title,{body,tag,renotify:true});}catch(e){}
+}
+
+function autoCheckLevels(){
+  if(!trade||!price||autoClosePending)return;
+  const isLong=trade.dir==='long';
+  const sl=trade.sl,tp1=trade.tp1,tp2=trade.tp2,ep=trade.ep||trade.e;
+
+  // SL TOCAT → tancar automàticament
+  const slHit=isLong?(price<=sl):(price>=sl);
+  if(slHit){
+    autoClosePending=true;
+    notify('✗ SL tocat!',`${trade.dir.toUpperCase()} SL $${ff(sl)} — Trade tancat automàticament`,'auto-sl');
+    showAutoCloseModal('sl',sl);
+    return;
+  }
+
+  // TP2 TOCAT → tancar automàticament
+  const tp2Hit=isLong?(price>=tp2):(price<=tp2);
+  if(tp2Hit){
+    autoClosePending=true;
+    notify('🎯 TP2 tocat!',`${trade.dir.toUpperCase()} TP2 $${ff(tp2)} — Trade tancat automàticament`,'auto-tp2');
+    showAutoCloseModal('tp2',tp2);
+    return;
+  }
+
+  // TP1 TOCAT → preguntar % a tancar
+  const tp1Hit=isLong?(price>=tp1):(price<=tp1);
+  if(tp1Hit&&!trade.partialDone){
+    autoClosePending=true;
+    notify('🎯 TP1 tocat!',`${trade.dir.toUpperCase()} TP1 $${ff(tp1)} — Quant % vols tancar?`,'auto-tp1');
+    showAutoTP1Modal(tp1);
+    return;
+  }
+
+  // AVISOS DE PROXIMITAT
+  const totalDistSL=Math.abs(ep-sl);
+  if(totalDistSL>0){
+    const distSL=Math.abs(price-sl)/totalDistSL;
+    if(distSL<0.20&&!slWarnSent){slWarnSent=true;showProximityAlert('sl',sl,distSL);notify('⚠️ SL molt proper!',`Queda ${(distSL*100).toFixed(0)}% fins SL $${ff(sl)}`,'warn-sl');}
+    else if(distSL>=0.35)slWarnSent=false;
+  }
+
+  if(!trade.partialDone){
+    const totalDistTP1=Math.abs(ep-tp1);
+    if(totalDistTP1>0){
+      const distTP1=Math.abs(price-tp1)/totalDistTP1;
+      if(distTP1<0.20&&!tp1WarnSent){tp1WarnSent=true;showProximityAlert('tp1',tp1,distTP1);notify('🎯 TP1 molt proper!',`Queda ${(distTP1*100).toFixed(0)}% fins TP1 $${ff(tp1)}`,'warn-tp1');}
+      else if(distTP1>=0.35)tp1WarnSent=false;
+    }
+  }
+
+  const totalDistTP2=Math.abs(ep-tp2);
+  if(totalDistTP2>0){
+    const distTP2=Math.abs(price-tp2)/totalDistTP2;
+    if(distTP2<0.20&&!tp2WarnSent){tp2WarnSent=true;showProximityAlert('tp2',tp2,distTP2);notify('🚀 TP2 molt proper!',`Queda ${(distTP2*100).toFixed(0)}% fins TP2 $${ff(tp2)}`,'warn-tp2');}
+    else if(distTP2>=0.35)tp2WarnSent=false;
+  }
+}
+
+function showProximityAlert(type,levelPrice,pct){
+  const colors={sl:'#ef5350',tp1:'#f57c00',tp2:'#26a69a'};
+  const icons={sl:'⚠️',tp1:'🎯',tp2:'🚀'};
+  const labels={sl:'SL',tp1:'TP1',tp2:'TP2'};
+  const color=colors[type];
+  const el=document.getElementById('auto-alert-banner');
+  if(!el)return;
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:.6rem .875rem;border-radius:8px;border:2px solid ${color};background:var(--card);box-shadow:0 4px 20px rgba(0,0,0,.2);flex-wrap:wrap">
+    <span style="font-size:20px">${icons[type]}</span>
+    <div style="flex:1"><div style="font-size:12px;font-weight:700;color:${color}">${icons[type]} ${labels[type]} molt proper — queda ${(pct*100).toFixed(0)}%</div>
+    <div style="font-size:10px;color:#888">Ara $${ff(price)} · ${labels[type]} $${ff(levelPrice)}</div></div>
+    <button onclick="document.getElementById('auto-alert-banner').innerHTML=''" style="font-size:11px;padding:2px 7px;border:1px solid #ddd;background:transparent;cursor:pointer;border-radius:4px">✕</button>
+  </div>`;
+  el.style.display='block';
+  setTimeout(()=>{if(el)el.innerHTML='';el.style.display='none';},8000);
+}
+
+function showAutoCloseModal(result,closePrice){
+  const isTP2=result==='tp2',isSL=result==='sl';
+  const color=isTP2?'#26a69a':isSL?'#ef5350':'#f57c00';
+  const icon=isTP2?'🎯':isSL?'✗':'◎';
+  const pnlRaw=trade.dir==='long'?(closePrice-trade.ep)/trade.ep*100*trade.lev:(trade.ep-closePrice)/trade.ep*100*trade.lev;
+  const pnl=pnlRaw.toFixed(2);
+  let m=document.getElementById('auto-close-modal');
+  if(m)m.remove();
+  m=document.createElement('div');
+  m.id='auto-close-modal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.innerHTML=`<div style="background:var(--card);border-radius:14px;max-width:320px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.3);overflow:hidden;border:2px solid ${color}">
+    <div style="padding:.875rem 1rem;background:${color}18;border-bottom:1px solid ${color}44;display:flex;align-items:center;gap:8px">
+      <span style="font-size:22px">${icon}</span>
+      <div><div style="font-size:14px;font-weight:700;color:${color}">${isSL?'SL':'TP2'} tocat!</div>
+      <div style="font-size:10px;color:#888">${trade.dir.toUpperCase()} · $${ff(closePrice)}</div></div>
+      <div style="margin-left:auto;font-size:18px;font-weight:700;color:${parseFloat(pnl)>=0?'#26a69a':'#ef5350'}">${parseFloat(pnl)>=0?'+':''}${pnl}%</div>
+    </div>
+    <div style="padding:.875rem 1rem">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:.75rem">El trade s'ha tancat automàticament.</div>
+      <button onclick="confirmAutoClose('${result}',${closePrice})" style="width:100%;padding:.6rem;border-radius:8px;border:none;background:${color};color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">${icon} Confirmar tancament</button>
+      <button onclick="cancelAutoClose()" style="width:100%;padding:.5rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:inherit">Cancel·lar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function showAutoTP1Modal(tp1Price){
+  const pnlRaw=trade.dir==='long'?(tp1Price-trade.ep)/trade.ep*100*trade.lev:(trade.ep-tp1Price)/trade.ep*100*trade.lev;
+  const pnl=pnlRaw.toFixed(2);
+  let m=document.getElementById('auto-tp1-modal');
+  if(m)m.remove();
+  m=document.createElement('div');
+  m.id='auto-tp1-modal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.innerHTML=`<div style="background:var(--card);border-radius:14px;max-width:320px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.3);overflow:hidden;border:2px solid #f57c00">
+    <div style="padding:.875rem 1rem;background:#f57c0018;border-bottom:1px solid #f57c0044;display:flex;align-items:center;gap:8px">
+      <span style="font-size:22px">🎯</span>
+      <div><div style="font-size:14px;font-weight:700;color:#f57c00">TP1 tocat!</div>
+      <div style="font-size:10px;color:#888">${trade.dir.toUpperCase()} · TP1 $${ff(tp1Price)}</div></div>
+      <div style="margin-left:auto;font-size:18px;font-weight:700;color:#26a69a">+${pnl}%</div>
+    </div>
+    <div style="padding:.875rem 1rem">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:.5rem">Quant % vols tancar?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:.5rem">
+        <button onclick="confirmAutoTP1(25,${tp1Price})" style="padding:.5rem;border-radius:8px;border:1px solid #f57c00;background:#f57c0018;color:#f57c00;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">25%</button>
+        <button onclick="confirmAutoTP1(50,${tp1Price})" style="padding:.5rem;border-radius:8px;border:none;background:#f57c00;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">50% ✓ BE</button>
+        <button onclick="confirmAutoTP1(75,${tp1Price})" style="padding:.5rem;border-radius:8px;border:1px solid #f57c00;background:#f57c0018;color:#f57c00;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">75%</button>
+        <button onclick="confirmAutoTP1(100,${tp1Price})" style="padding:.5rem;border-radius:8px;border:1px solid #26a69a;background:#26a69a18;color:#26a69a;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">100%</button>
+      </div>
+      <div style="font-size:9px;color:#aaa;text-align:center;margin-bottom:.5rem">50% mou el SL a Breakeven automàticament</div>
+      <button onclick="cancelAutoClose()" style="width:100%;padding:.4rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:inherit">Ignorar (continua cap a TP2)</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function confirmAutoClose(result,closePrice){
+  const m=document.getElementById('auto-close-modal');if(m)m.remove();
+  closeTrade_dashboard(result);
+  autoClosePending=false;
+}
+function cancelAutoClose(){
+  const m1=document.getElementById('auto-close-modal');if(m1)m1.remove();
+  const m2=document.getElementById('auto-tp1-modal');if(m2)m2.remove();
+  autoClosePending=false;
+}
+function confirmAutoTP1(pct,tp1Price){
+  const m=document.getElementById('auto-tp1-modal');if(m)m.remove();
+  autoClosePending=false;
+  if(pct===100){closeTrade_dashboard('tp1');return;}
+  const pd=executePartial(trade.histId,pct);if(!pd)return;
+  if(pct>=50){trade.sl=trade.ep;trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);}
+  else{trade.partialDone=true;partialExecuted=true;}
+  renderPartialBanner(pd);renderHistorial();
+  lg(`🎯 Auto-parcial ${pct}% en TP1 $${ff(tp1Price)}`);
+}
+function checkSLAlert(){if(!trade||!price)return;autoCheckLevels();}
+</script>
+
 </body>
 </html>
