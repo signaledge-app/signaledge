@@ -1553,6 +1553,150 @@ document.getElementById('crt').addEventListener('change',savePrefs);
 document.getElementById('calc-capital').addEventListener('input',savePrefs);
 document.getElementById('calc-riesgo').addEventListener('input',savePrefs);
 document.getElementById('calc-margen-fix').addEventListener('input',savePrefs);
+
+// ── FILTRE DE DATES ───────────────────────────────────────────
+let dateFrom=null,dateTo=null;
+function applyDateFilter(){
+  const f=document.getElementById('df-from').value;
+  const t=document.getElementById('df-to').value;
+  dateFrom=f?new Date(f):null;
+  dateTo=t?new Date(t+'T23:59:59'):null;
+  document.querySelectorAll('.dq-btn').forEach(b=>b.classList.remove('active'));
+  renderHistorial();
+}
+function setDateQuick(range,btn){
+  document.querySelectorAll('.dq-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const now=new Date();
+  const from=document.getElementById('df-from');
+  const to=document.getElementById('df-to');
+  if(range==='all'){dateFrom=null;dateTo=null;from.value='';to.value='';}
+  else if(range==='today'){dateFrom=new Date(now.toDateString());dateTo=new Date(now.toDateString()+'T23:59:59');from.value=now.toISOString().slice(0,10);to.value=now.toISOString().slice(0,10);}
+  else if(range==='week'){const d=new Date(now);d.setDate(d.getDate()-7);dateFrom=d;dateTo=null;from.value=d.toISOString().slice(0,10);to.value='';}
+  else if(range==='month'){const d=new Date(now);d.setDate(d.getDate()-30);dateFrom=d;dateTo=null;from.value=d.toISOString().slice(0,10);to.value='';}
+  renderHistorial();
+}
+function filterByDate(trades){
+  if(!dateFrom&&!dateTo)return trades;
+  return trades.filter(t=>{
+    const d=new Date(t.openedAt||t.ts||0);
+    if(dateFrom&&d<dateFrom)return false;
+    if(dateTo&&d>dateTo)return false;
+    return true;
+  });
+}
+
+// ── EXPORTAR CSV ──────────────────────────────────────────────
+function exportCSV(){
+  const closed=filterByDate(tradeHistory).filter(t=>t.result!=='open');
+  if(!closed.length){alert('No hay trades cerrados para exportar.');return;}
+  const headers=['Fecha apertura','Fecha cierre','Dirección','Fuente','TF','Apalancamiento','Entrada','SL','TP1','TP2','R:R','SL%','Resultado','Precio cierre','PnL%','Parcial','Nota'];
+  const rows=closed.map(t=>[
+    t.openedAt?new Date(t.openedAt).toLocaleString('es',{timeZone:'Europe/Madrid'}):t.date,
+    t.closedAt?new Date(t.closedAt).toLocaleString('es',{timeZone:'Europe/Madrid'}):'',
+    t.dir==='long'?'LONG':'SHORT',(t.source||'').toUpperCase(),t.tf||'',(t.lev||'')+'x',
+    (t.ep||t.e||'').toString().replace('.',','),(t.sl||'').toString().replace('.',','),
+    (t.tp1||'').toString().replace('.',','),(t.tp2||'').toString().replace('.',','),
+    (t.r1||'').toString().replace('.',','),(t.sp||'').toString().replace('.',','),
+    t.result==='tp2'?'TP2':t.result==='tp1'?'TP1':t.result==='sl'?'SL':'Manual',
+    (t.closePrice||'').toString().replace('.',','),
+    t.pnlPct!=null?t.pnlPct.toFixed(2).replace('.',','): '',
+    t.partialDone?'Sí':'No',(t.note||'').replace(/,/g,';')
+  ]);
+  const csv=[headers,...rows].map(r=>r.join(';')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='signaledge_trades_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();URL.revokeObjectURL(url);
+}
+
+// ── ESTADÍSTIQUES PER TF/FONT/DIRECCIÓ ───────────────────────
+function calcBreakdown(trades,key){
+  const map={};
+  trades.forEach(t=>{
+    if(t.result==='open')return;
+    const k=t[key]||'?';
+    if(!map[k])map[k]={n:0,wins:0,pnl:0,rr:0};
+    map[k].n++;if(t.pnlPct>0)map[k].wins++;
+    map[k].pnl+=t.pnlPct||0;map[k].rr+=parseFloat(t.r1||0);
+  });
+  return Object.entries(map).map(([k,v])=>({
+    name:k,n:v.n,wr:v.n?Math.round(v.wins/v.n*100):0,pnl:v.pnl,rr:v.n?(v.rr/v.n).toFixed(1):0
+  })).sort((a,b)=>b.n-a.n);
+}
+function renderBreakdownCard(item){
+  const cls=item.wr>=55?'win':item.wr<45?'loss':'';
+  const wrCls=item.wr>=55?'pos':item.wr<45?'neg':'neu';
+  const pnlCls=item.pnl>=0?'pos':'neg';
+  const barColor=item.wr>=55?'#26a69a':item.wr<45?'#ef5350':'#aaa';
+  return`<div class="bk-card ${cls}"><div class="bk-row"><span class="bk-name">${item.name}</span><span class="bk-n">${item.n}t</span></div><div class="bk-wr ${wrCls}">${item.wr}% WR</div><div class="bk-bottom"><span class="bk-pnl ${pnlCls}">${item.pnl>=0?'+':''}${item.pnl.toFixed(2)}%</span><span>· R:R ${item.rr}</span></div><div class="bk-bar"><div class="bk-bar-fill" style="width:${Math.min(100,item.wr)}%;background:${barColor}"></div></div></div>`;
+}
+function switchBkTab(tab,btn){
+  document.querySelectorAll('.bk-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.bk-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('bk-pane-'+tab).classList.add('active');
+}
+function renderBreakdown(){
+  const closed=filterByDate(tradeHistory).filter(t=>t.result!=='open');
+  const sec=document.getElementById('breakdown-section');
+  if(!closed.length){if(sec)sec.style.display='none';return;}
+  if(sec)sec.style.display='block';
+  const srcNames={ob:'📦 OB',fvg:'⚡ FVG',rt:'🔁 Retest'};
+  const dirNames={long:'▲ Long',short:'▼ Short'};
+  const tfData=calcBreakdown(closed,'tf');
+  const srcData=calcBreakdown(closed,'source').map(d=>({...d,name:srcNames[d.name]||d.name}));
+  const dirData=calcBreakdown(closed,'dir').map(d=>({...d,name:dirNames[d.name]||d.name}));
+  const bkTf=document.getElementById('bk-tf');if(bkTf)bkTf.innerHTML=tfData.map(renderBreakdownCard).join('');
+  const bkSrc=document.getElementById('bk-src');if(bkSrc)bkSrc.innerHTML=srcData.map(renderBreakdownCard).join('');
+  const bkDir=document.getElementById('bk-dir');if(bkDir)bkDir.innerHTML=dirData.map(renderBreakdownCard).join('');
+}
+
+// ── GRÀFIC PNL ACUMULAT ───────────────────────────────────────
+function renderPnlChart(){
+  const closed=filterByDate(tradeHistory).filter(t=>t.result!=='open'&&t.pnlPct!=null);
+  const sec=document.getElementById('pnl-section');if(!sec)return;
+  if(closed.length<2){sec.style.display='none';return;}
+  sec.style.display='block';
+  const sorted=[...closed].sort((a,b)=>new Date(a.openedAt||a.ts||0)-new Date(b.openedAt||b.ts||0));
+  let acc=0;
+  const points=sorted.map(t=>{acc+=t.pnlPct||0;return acc;});
+  const total=points[points.length-1];
+  const lbl=document.getElementById('pnl-total-lbl');
+  if(lbl){lbl.textContent=(total>=0?'+':'')+total.toFixed(2)+'%';lbl.style.color=total>=0?'#26a69a':'#ef5350';}
+  const canvas=document.getElementById('pnl-canvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const wrap=canvas.parentElement;
+  const W=wrap.offsetWidth||600,H=wrap.offsetHeight||80;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  const dark=document.body.classList.contains('dark');
+  ctx.clearRect(0,0,W,H);
+  const min=Math.min(0,...points),max=Math.max(0,...points),range=max-min||1,pad=10;
+  const toY=v=>H-pad-(v-min)/range*(H-pad*2);
+  const toX=i=>pad+i/(points.length-1)*(W-pad*2);
+  ctx.beginPath();ctx.strokeStyle=dark?'#2a2d3e':'#e0e0e0';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.moveTo(0,toY(0));ctx.lineTo(W,toY(0));ctx.stroke();ctx.setLineDash([]);
+  const g=ctx.createLinearGradient(0,0,0,H);
+  if(total>=0){g.addColorStop(0,'rgba(38,166,154,0.3)');g.addColorStop(1,'rgba(38,166,154,0)');}
+  else{g.addColorStop(0,'rgba(239,83,80,0)');g.addColorStop(1,'rgba(239,83,80,0.3)');}
+  ctx.beginPath();ctx.moveTo(toX(0),toY(points[0]));
+  points.forEach((v,i)=>{if(i>0)ctx.lineTo(toX(i),toY(v));});
+  ctx.lineTo(toX(points.length-1),H);ctx.lineTo(toX(0),H);ctx.closePath();
+  ctx.fillStyle=g;ctx.fill();
+  ctx.beginPath();ctx.strokeStyle=total>=0?'#26a69a':'#ef5350';ctx.lineWidth=2;ctx.lineJoin='round';
+  ctx.moveTo(toX(0),toY(points[0]));
+  points.forEach((v,i)=>{if(i>0)ctx.lineTo(toX(i),toY(v));});
+  ctx.stroke();
+  const lx=toX(points.length-1),ly=toY(points[points.length-1]);
+  ctx.beginPath();ctx.arc(lx,ly,4,0,Math.PI*2);ctx.fillStyle=total>=0?'#26a69a':'#ef5350';ctx.fill();
+}
+
+// ── CALC MODE ─────────────────────────────────────────────────
+function setCalcMode(mode){calcMode=mode;savePrefs();}
 </script>
 
 <script>
