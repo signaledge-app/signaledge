@@ -1555,22 +1555,67 @@ document.getElementById('calc-margen-fix').addEventListener('input',savePrefs);
 </script>
 
 <script>
-function seToggleMenu(){const menu=document.getElementById('se-profile-menu');if(!menu)return;menu.classList.toggle('open');if(menu.classList.contains('open')){setTimeout(()=>document.addEventListener('click',function h(e){if(!menu.contains(e.target)&&e.target.id!=='se-profile-btn'){menu.classList.remove('open');}document.removeEventListener('click',h);},50);}}
+function seToggleMenu(){
+  const menu=document.getElementById('se-profile-menu');
+  if(!menu)return;
+  const isOpen=menu.style.display==='block';
+  menu.style.display=isOpen?'none':'block';
+  if(!isOpen){
+    seUpdateDarkMenuItem();
+    setTimeout(()=>document.addEventListener('click',function h(e){
+      const m=document.getElementById('se-profile-menu');
+      const b=document.getElementById('se-profile-btn');
+      if(m&&!m.contains(e.target)&&e.target!==b&&!b.contains(e.target)){m.style.display='none';}
+      document.removeEventListener('click',h);
+    }),50);
+  }
+}
 function seMenuLoginAction(){
   document.getElementById('se-profile-menu').style.display='none';
   if(typeof seUser!=='undefined'&&seUser){
     if(typeof seLogout==='function')seLogout();
   }else{
     if(typeof seLoginGoogle==='function')seLoginGoogle();
-    else alert('⚠️ El login encara s\'està carregant. Torna-ho a intentar.');
+    else alert('Login carregant, torna a intentar-ho.');
   }
 }
-function seUpdateProfileMenu(user){const btn=document.getElementById('se-profile-btn');const name=document.getElementById('pm-name');const email=document.getElementById('pm-email');const loginLabel=document.getElementById('pm-login-label');const loginBtn=document.getElementById('pm-login-btn');if(!btn)return;if(user){const avatar=user.user_metadata?.avatar_url;const userName=user.user_metadata?.name||user.email.split('@')[0];btn.innerHTML=avatar?`<img src="${avatar}" style="width:28px;height:28px;border-radius:50%">`:'👤';btn.classList.add('logged');if(name)name.textContent=userName;if(email)email.textContent=user.email;if(loginLabel)loginLabel.textContent='Cerrar sesión';if(loginBtn)loginBtn.classList.add('danger');}else{btn.innerHTML='👤';btn.classList.remove('logged');if(name)name.textContent='No has iniciado sesión';if(email)email.textContent='';if(loginLabel)loginLabel.textContent='Iniciar sesión con Google';if(loginBtn)loginBtn.classList.remove('danger');}}
-function seUpdateDarkMenuItem(){const isDark=document.body.classList.contains('dark');const icon=document.getElementById('pm-dark-icon');const label=document.getElementById('pm-dark-label');if(icon)icon.textContent=isDark?'☀️':'🌙';if(label)label.textContent=isDark?'Modo claro':'Modo oscuro';}
-</script>
-
-<script>
-function seInitDarkMode(){const saved=localStorage.getItem('se_dark_mode');if(saved==='1')document.body.classList.add('dark');seUpdateDarkMenuItem();}
+function seUpdateProfileMenu(user){
+  const btn=document.getElementById('se-profile-btn');
+  const name=document.getElementById('pm-name');
+  const email=document.getElementById('pm-email');
+  const loginLabel=document.getElementById('pm-login-label');
+  const loginBtn=document.getElementById('pm-login-btn');
+  if(!btn)return;
+  if(user){
+    const avatar=user.user_metadata?.avatar_url;
+    const userName=user.user_metadata?.name||user.email.split('@')[0];
+    btn.innerHTML=avatar?`<img src="${avatar}" style="width:28px;height:28px;border-radius:50%">`:'\u{1F464}';
+    btn.classList.add('logged');
+    if(name)name.textContent=userName;
+    if(email)email.textContent=user.email;
+    if(loginLabel)loginLabel.textContent='Cerrar sesión';
+    if(loginBtn)loginBtn.classList.add('danger');
+  }else{
+    btn.innerHTML='\u{1F464}';
+    btn.classList.remove('logged');
+    if(name)name.textContent='No has iniciado sesión';
+    if(email)email.textContent='';
+    if(loginLabel)loginLabel.textContent='Iniciar sesión con Google';
+    if(loginBtn)loginBtn.classList.remove('danger');
+  }
+}
+function seUpdateDarkMenuItem(){
+  const isDark=document.body.classList.contains('dark');
+  const icon=document.getElementById('pm-dark-icon');
+  const label=document.getElementById('pm-dark-label');
+  if(icon)icon.textContent=isDark?'\u2600\uFE0F':'\uD83C\uDF19';
+  if(label)label.textContent=isDark?'Modo claro':'Modo oscuro';
+}
+function seInitDarkMode(){
+  const saved=localStorage.getItem('se_dark_mode');
+  if(saved==='1')document.body.classList.add('dark');
+  seUpdateDarkMenuItem();
+}
 function seToggleDark(){
   const isDark=!document.body.classList.contains('dark');
   localStorage.setItem('se_dark_mode',isDark?'1':'0');
@@ -1578,180 +1623,14 @@ function seToggleDark(){
 }
 document.addEventListener('DOMContentLoaded',seInitDarkMode);
 if(document.readyState!=='loading')seInitDarkMode();
-// Tancar menú perfil al clicar fora
 document.addEventListener('click',function(e){
   const menu=document.getElementById('se-profile-menu');
   const btn=document.getElementById('se-profile-btn');
-  if(menu&&btn&&menu.style.display==='block'&&!menu.contains(e.target)&&!btn.contains(e.target)){
+  if(menu&&btn&&menu.style.display==='block'&&!menu.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)){
     menu.style.display='none';
   }
 });
 </script>
-
-<script>
-// ── FILTRE DE DATES ───────────────────────────────────────────
-let dateFrom=null,dateTo=null;
-function applyDateFilter(){const f=document.getElementById('df-from').value;const t=document.getElementById('df-to').value;dateFrom=f?new Date(f):null;dateTo=t?new Date(t+'T23:59:59'):null;document.querySelectorAll('.dq-btn').forEach(b=>b.classList.remove('active'));renderHistorial();}
-function setDateQuick(range,btn){document.querySelectorAll('.dq-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const now=new Date();const from=document.getElementById('df-from');const to=document.getElementById('df-to');if(range==='all'){dateFrom=null;dateTo=null;from.value='';to.value='';}else if(range==='today'){dateFrom=new Date(now.toDateString());dateTo=new Date(now.toDateString()+'T23:59:59');from.value=now.toISOString().slice(0,10);to.value=now.toISOString().slice(0,10);}else if(range==='week'){const d=new Date(now);d.setDate(d.getDate()-7);dateFrom=d;dateTo=null;from.value=d.toISOString().slice(0,10);to.value='';}else if(range==='month'){const d=new Date(now);d.setDate(d.getDate()-30);dateFrom=d;dateTo=null;from.value=d.toISOString().slice(0,10);to.value='';}renderHistorial();}
-function filterByDate(trades){if(!dateFrom&&!dateTo)return trades;return trades.filter(t=>{const d=new Date(t.openedAt||t.ts||0);if(dateFrom&&d<dateFrom)return false;if(dateTo&&d>dateTo)return false;return true;});}
-function exportCSV(){const closed=filterByDate(tradeHistory).filter(t=>t.result!=='open');if(!closed.length){alert('No hay trades cerrados para exportar.');return;}const headers=['Fecha apertura','Fecha cierre','Dirección','Fuente','TF','Apalancamiento','Entrada','SL','TP1','TP2','R:R','SL%','Resultado','Precio cierre','PnL%','Parcial','Nota'];const rows=closed.map(t=>[t.openedAt?new Date(t.openedAt).toLocaleString('es',{timeZone:'Europe/Madrid'}):t.date,t.closedAt?new Date(t.closedAt).toLocaleString('es',{timeZone:'Europe/Madrid'}):'',t.dir==='long'?'LONG':'SHORT',(t.source||'').toUpperCase(),t.tf||'',(t.lev||'')+'x',(t.ep||t.e||'').toString().replace('.',','),(t.sl||'').toString().replace('.',','),(t.tp1||'').toString().replace('.',','),(t.tp2||'').toString().replace('.',','),(t.r1||'').toString().replace('.',','),(t.sp||'').toString().replace('.',','),t.result==='tp2'?'TP2':t.result==='tp1'?'TP1':t.result==='sl'?'SL':'Manual',(t.closePrice||'').toString().replace('.',','),t.pnlPct!=null?(t.pnlPct.toFixed(2)).replace('.',','): '',(t.partialDone?'Sí':'No'),(t.note||'').replace(/,/g,';')]);const csv=[headers,...rows].map(r=>r.join(';')).join('\n');const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='signaledge_trades_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);}
-function calcBreakdown(trades,key){const map={};trades.forEach(t=>{if(t.result==='open')return;const k=t[key]||'?';if(!map[k])map[k]={n:0,wins:0,pnl:0,rr:0};map[k].n++;if(t.pnlPct>0)map[k].wins++;map[k].pnl+=t.pnlPct||0;map[k].rr+=parseFloat(t.r1||0);});return Object.entries(map).map(([k,v])=>({name:k,n:v.n,wr:v.n?Math.round(v.wins/v.n*100):0,pnl:v.pnl,rr:v.n?(v.rr/v.n).toFixed(1):0})).sort((a,b)=>b.n-a.n);}
-function renderBreakdownCard(item){const cls=item.wr>=55?'win':item.wr<45?'loss':'';const wrCls=item.wr>=55?'pos':item.wr<45?'neg':'neu';const pnlCls=item.pnl>=0?'pos':'neg';const barColor=item.wr>=55?'#26a69a':item.wr<45?'#ef5350':'#aaa';return`<div class="bk-card ${cls}"><div class="bk-row"><span class="bk-name">${item.name}</span><span class="bk-n">${item.n}t</span></div><div class="bk-wr ${wrCls}">${item.wr}% WR</div><div class="bk-bottom"><span class="bk-pnl ${pnlCls}">${item.pnl>=0?'+':''}${item.pnl.toFixed(2)}%</span><span>· R:R ${item.rr}</span></div><div class="bk-bar"><div class="bk-bar-fill" style="width:${Math.min(100,item.wr)}%;background:${barColor}"></div></div></div>`;}
-function switchBkTab(tab,btn){document.querySelectorAll('.bk-tab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.bk-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('bk-pane-'+tab).classList.add('active');}
-function renderBreakdown(){const closed=filterByDate(tradeHistory).filter(t=>t.result!=='open');const sec=document.getElementById('breakdown-section');if(!closed.length){sec.style.display='none';return;}sec.style.display='block';const srcNames={ob:'📦 OB',fvg:'⚡ FVG',rt:'🔁 Retest'};const dirNames={long:'▲ Long',short:'▼ Short'};const tfData=calcBreakdown(closed,'tf');const srcData=calcBreakdown(closed,'source').map(d=>({...d,name:srcNames[d.name]||d.name}));const dirData=calcBreakdown(closed,'dir').map(d=>({...d,name:dirNames[d.name]||d.name}));document.getElementById('bk-tf').innerHTML=tfData.map(renderBreakdownCard).join('');document.getElementById('bk-src').innerHTML=srcData.map(renderBreakdownCard).join('');document.getElementById('bk-dir').innerHTML=dirData.map(renderBreakdownCard).join('');}
-</script>
-
-<script>
-function renderPnlChart(){const closed=filterByDate(tradeHistory).filter(t=>t.result!=='open'&&t.pnlPct!=null);const sec=document.getElementById('pnl-section');if(!sec)return;if(closed.length<2){sec.style.display='none';return;}sec.style.display='block';const sorted=[...closed].sort((a,b)=>new Date(a.openedAt||a.ts||0)-new Date(b.openedAt||b.ts||0));let acc=0;const points=sorted.map(t=>{acc+=t.pnlPct||0;return acc;});const total=points[points.length-1];const lbl=document.getElementById('pnl-total-lbl');if(lbl){lbl.textContent=(total>=0?'+':'')+total.toFixed(2)+'%';lbl.style.color=total>=0?'#26a69a':'#ef5350';}const canvas=document.getElementById('pnl-canvas');if(!canvas)return;const ctx=canvas.getContext('2d');const dpr=window.devicePixelRatio||1;const wrap=canvas.parentElement;const W=wrap.offsetWidth||wrap.parentElement?.offsetWidth||600;const H=wrap.offsetHeight||80;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.scale(dpr,dpr);const dark=document.body.classList.contains('dark');ctx.clearRect(0,0,W,H);const min=Math.min(0,...points),max=Math.max(0,...points);const range=max-min||1;const pad=10;const toY=v=>H-pad-(v-min)/range*(H-pad*2);const toX=(i)=>pad+i/(points.length-1)*(W-pad*2);const zeroY=toY(0);ctx.beginPath();ctx.strokeStyle=dark?'#2a2d3e':'#e0e0e0';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.moveTo(0,zeroY);ctx.lineTo(W,zeroY);ctx.stroke();ctx.setLineDash([]);const gradient=ctx.createLinearGradient(0,0,0,H);if(total>=0){gradient.addColorStop(0,'rgba(38,166,154,0.3)');gradient.addColorStop(1,'rgba(38,166,154,0.0)');}else{gradient.addColorStop(0,'rgba(239,83,80,0.0)');gradient.addColorStop(1,'rgba(239,83,80,0.3)');}ctx.beginPath();ctx.moveTo(toX(0),toY(points[0]));points.forEach((v,i)=>{if(i>0)ctx.lineTo(toX(i),toY(v));});ctx.lineTo(toX(points.length-1),H);ctx.lineTo(toX(0),H);ctx.closePath();ctx.fillStyle=gradient;ctx.fill();ctx.beginPath();ctx.strokeStyle=total>=0?'#26a69a':'#ef5350';ctx.lineWidth=2;ctx.lineJoin='round';ctx.moveTo(toX(0),toY(points[0]));points.forEach((v,i)=>{if(i>0)ctx.lineTo(toX(i),toY(v));});ctx.stroke();const lastX=toX(points.length-1),lastY=toY(points[points.length-1]);ctx.beginPath();ctx.arc(lastX,lastY,4,0,Math.PI*2);ctx.fillStyle=total>=0?'#26a69a':'#ef5350';ctx.fill();}
-</script>
-
-<script>
-function openBitunixModal(){
-  const openT=tradeHistory.find(t=>t.result==='open');if(!openT){alert('No hi ha cap trade obert!');return;}
-  const isLong=openT.dir==='long';const entry=openT.et==='Limit'?(openT.e||openT.ep):(openT.ep||openT.e);const sl=openT.partialDone?(openT.breakevenSL||openT.sl):openT.sl;const tp1=openT.tp1;const tp2=openT.tp2;const levVal=openT.lev||lev;
-  const tp1PctRaw=entry>0?((tp1-entry)/entry*100*levVal):0;const tp2PctRaw=entry>0?((tp2-entry)/entry*100*levVal):0;const slPctRaw=entry>0?((sl-entry)/entry*100*levVal):0;
-  const tp1Pct=isLong?tp1PctRaw.toFixed(1):(-tp1PctRaw).toFixed(1);const tp2Pct=isLong?tp2PctRaw.toFixed(1):(-tp2PctRaw).toFixed(1);const slPct=isLong?(-slPctRaw).toFixed(1):slPctRaw.toFixed(1);
-  const badge=document.getElementById('bm-dir-badge');badge.textContent=isLong?'▲ LONG':'▼ SHORT';badge.className='bm-dir-badge '+(isLong?'long':'short');
-  const orderType=openT.et==='Limit'?'LÍMIT':'MARKET';
-  document.getElementById('bm-pair').textContent='BTCUSDT · '+orderType+' · '+levVal+'x';
-  document.getElementById('bm-entry').textContent=ff(entry);document.getElementById('bm-sl').textContent=ff(sl)+'  (−'+slPct+'%)';
-  document.getElementById('bm-tp1').textContent=ff(tp1)+'  (+'+tp1Pct+'%)';document.getElementById('bm-tp2').textContent=ff(tp2)+'  (+'+tp2Pct+'%)';
-  document.getElementById('bm-tp1-pct').textContent='+'+tp1Pct+'%';document.getElementById('bm-tp2-pct').textContent='+'+tp2Pct+'%';
-  const btn=document.getElementById('bm-copy-all-btn');btn.style.background='#f57c00';document.getElementById('bm-copy-all-icon').textContent='📋';const t=document.getElementById('bm-copy-all-txt');if(t)t.textContent=' Copiar orden';
-  document.getElementById('bitunix-modal-overlay').classList.add('open');
-}
-function closeBitunixModal(){document.getElementById('bitunix-modal-overlay').classList.remove('open');}
-function copyBmField(id,btn){const el=document.getElementById(id);if(!el)return;const raw=el.textContent.split('(')[0].replace(/[^0-9.,]/g,'').trim();navigator.clipboard.writeText(raw).then(()=>{const orig=btn.textContent;btn.textContent='✓';btn.classList.add('copied');setTimeout(()=>{btn.textContent=orig;btn.classList.remove('copied');},1500);}).catch(()=>{const ta=document.createElement('textarea');ta.value=raw;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);btn.textContent='✓';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copiar';btn.classList.remove('copied');},1500);});}
-function copyAllBitunix(){const entry=document.getElementById('bm-entry').textContent.split('(')[0].trim();const sl=document.getElementById('bm-sl').textContent.split('(')[0].trim();const tp1=document.getElementById('bm-tp1').textContent.split('(')[0].trim();const tp2=document.getElementById('bm-tp2').textContent.split('(')[0].trim();const dir=document.getElementById('bm-dir-badge').textContent.replace('▲','').replace('▼','').trim();const lv=document.getElementById('bm-pair').textContent.split('·')[2]?.trim()||'';const text=`BITUNIX ORDER — BTCUSDT\n━━━━━━━━━━━━━━━━━━━━━━\nDirecció:  ${dir}\nTipo:      LÍMIT\nApalancam: ${lv}\nEntrada:   ${entry}\nSL:        ${sl}\nTP1:       ${tp1}\nTP2:       ${tp2}\n━━━━━━━━━━━━━━━━━━━━━━`;navigator.clipboard.writeText(text).then(()=>{const btn=document.getElementById('bm-copy-all-btn');btn.style.background='#26a69a';document.getElementById('bm-copy-all-icon').textContent='✓';setTimeout(()=>{btn.style.background='#f57c00';document.getElementById('bm-copy-all-icon').textContent='📋';},2000);}).catch(()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);const btn=document.getElementById('bm-copy-all-btn');btn.style.background='#26a69a';document.getElementById('bm-copy-all-icon').textContent='✓';setTimeout(()=>{btn.style.background='#f57c00';document.getElementById('bm-copy-all-icon').textContent='📋';},2000);});}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBitunixModal();});
-</script>
-
-<script>
-// ── NOTIFICACIONS DE TRADE (amb PATCH P3a + P3b) ──────────────
-let slWarnSent=false;
-let autoClosePending=false;
-let slWarnLastPrice=null;
-let tp1WarnSent=false;
-let againstWarnSent=false;
-let timeWarnNext=0;
-function notify(title,body,tag){if(!pushEnabled||Notification.permission!=='granted')return;try{new Notification(title,{body,tag,renotify:true,icon:'/signaledge/icon-192.png'});}catch(e){}}
-function checkSLAlert(){
-  if(!trade||!price)return;
-  const sl=trade.sl,ep=trade.ep||trade.e,tp1=trade.tp1,ts=trade.ts;
-  if(!sl||!ep)return;
-  const dir=trade.dir==='long'?'LONG':'SHORT';const isLong=trade.dir==='long';const totalDist=Math.abs(ep-sl);const currentDist=Math.abs(price-sl);const pct=currentDist/totalDist;
-  if(pct<0.25&&!slWarnSent){slWarnSent=true;const slPct=((Math.abs(price-sl)/price)*100).toFixed(2);notify('⚠️ SL muy cerca!',`${dir} — Precio $${ff(price)} · SL $${ff(sl)} (${slPct}% restante)`,'sl-warning');}else if(pct>=0.4){slWarnSent=false;}
-  const against=isLong?(price<ep):(price>ep);const againstPct=against?(Math.abs(price-ep)/totalDist):0;
-  if(againstPct>=0.5&&!againstWarnSent){againstWarnSent=true;notify('📉 Trade muy en contra',`${dir} — Precio $${ff(price)} · Entrada $${ff(ep)} · SL $${ff(sl)}`,'against-warning');}else if(againstPct<0.3){againstWarnSent=false;}
-  if(tp1){const tp1Dist=Math.abs(ep-tp1);const tp1Current=Math.abs(price-tp1);const tp1Pct=tp1Current/tp1Dist;if(tp1Pct<0.25&&!tp1WarnSent){tp1WarnSent=true;notify('🎯 TP1 muy cerca!',`${dir} — Precio $${ff(price)} · TP1 $${ff(tp1)}`,'tp1-warning');}else if(tp1Pct>=0.4){tp1WarnSent=false;}}
-  if(ts){const now=Date.now();if(timeWarnNext===0)timeWarnNext=ts+4*3600*1000;if(now>=timeWarnNext){const hores=Math.floor((now-ts)/3600000);notify('⏰ Trade abierto hace '+hores+'h',`${dir} — Entrada $${ff(ep)} · Precio actual $${ff(price)}`,'time-warning');timeWarnNext=now+4*3600*1000;}}
-}
-// ── AUTO-CLOSE SL / TP1 / TP2 ─────────────────────────────────
-function autoCheckLevels(){
-  if(!trade||autoClosePending)return;
-  const p=price,isLong=trade.dir==='long';
-  const effSL=trade.partialDone?(trade.ep||trade.sl):trade.sl;
-  const lv=lev||trade.lev||1;
-  if(effSL&&(isLong?p<=effSL:p>=effSL)){
-    autoClosePending=true;
-    const lbl=trade.partialDone?'Breakeven':'SL';
-    const pct=((isLong?p-trade.ep:trade.ep-p)/trade.ep*100*lv).toFixed(2);
-    if(confirm('⛔ '+lbl+' tocado!\n\nPrecio: $'+ff(p)+'\n'+lbl+': $'+ff(effSL)+'\nPnL: '+pct+'%\n\n¿Cerrar el trade?')){
-      closeTrade_dashboard('sl');
-      if(pushEnabled&&Notification.permission==='granted')try{new Notification('⛔ '+lbl+' tocado','Cerrado · $'+ff(p)+' · '+pct+'%');}catch(e){}
-    }
-    autoClosePending=false;return;
-  }
-  if(!trade.partialDone&&trade.tp1&&(isLong?p>=trade.tp1:p<=trade.tp1)){
-    autoClosePending=true;
-    const p1=((isLong?trade.tp1-trade.ep:trade.ep-trade.tp1)/trade.ep*100*lv).toFixed(2);
-    showAutoTP1Modal(trade,p,p1);return;
-  }
-  if(trade.tp2&&(isLong?p>=trade.tp2:p<=trade.tp2)){
-    autoClosePending=true;
-    const p2=((isLong?trade.tp2-trade.ep:trade.ep-trade.tp2)/trade.ep*100*lv).toFixed(2);
-    if(confirm('🎯 TP2 tocado!\n\nPrecio: $'+ff(p)+'\nTP2: $'+ff(trade.tp2)+'\nGanancia: +'+p2+'%\n\n¿Cerrar el trade?')){
-      closeTrade_dashboard('tp2');
-      if(pushEnabled&&Notification.permission==='granted')try{new Notification('🎯 TP2 tocado!','Cerrado +'+p2+'% · $'+ff(p));}catch(e){}
-    }
-    autoClosePending=false;
-  }
-}
-function showAutoTP1Modal(t,p,pnlTp1){
-  const pct=prompt(
-    '🎯 TP1 tocado! +'+pnlTp1+'%\n'+
-    '━━━━━━━━━━━━━━━━━━━━━\n'+
-    'Precio: $'+ff(p)+'  ·  TP1: $'+ff(t.tp1)+'\n'+
-    'TP2 objetivo: $'+ff(t.tp2)+'\n'+
-    '━━━━━━━━━━━━━━━━━━━━━\n'+
-    '¿Qué % cerrar ahora?\n'+
-    '25 = ¼  ·  50 = mitad  ·  100 = todo','50');
-  autoClosePending=false;
-  if(pct===null)return;
-  const n=parseFloat(pct);
-  if(isNaN(n)||n<=0||n>100){alert('⚠️ Valor no válido (1-100)');return;}
-  if(n===100){
-    closeTrade_dashboard('tp1');
-    if(pushEnabled&&Notification.permission==='granted')try{new Notification('✓ TP1 al 100%','+'+pnlTp1+'% · $'+ff(p));}catch(e){}
-  }else{
-    if(!t.histId)return;
-    t.partialPct=n;
-    const pd=executePartial(t.histId,n);
-    if(!pd)return;
-    if(n>=50&&trade){trade.sl=trade.ep;trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);}
-    else if(trade){trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);}
-    renderPartialBanner(pd);renderHistorial();
-    if(pushEnabled&&Notification.permission==='granted')try{new Notification('🎯 Parcial '+n+'% TP1','Resta '+(100-n)+'% → TP2 $'+ff(t.tp2));}catch(e){}
-  }
-}
-function resetTradeAlerts(){slWarnSent=false;tp1WarnSent=false;againstWarnSent=false;timeWarnNext=0;}
-</script>
-
-<!-- ── BITUNIX MODAL ──────────────────────────────────────────── -->
-<div id="bitunix-modal-overlay" onclick="if(event.target===this)closeBitunixModal()">
-  <div id="bitunix-modal">
-    <div class="bm-head">
-      <div class="bm-head-title"><span>📋 Copiar orden</span><span class="bm-dir-badge" id="bm-dir-badge">--</span></div>
-      <button class="bm-close" onclick="closeBitunixModal()">✕</button>
-    </div>
-    <div class="bm-body">
-      <div class="bm-field"><div class="bm-lbl"><div class="bm-lbl-dot" style="background:#2962ff"></div>Par / Tipo</div><div class="bm-val-wrap"><span class="bm-val" id="bm-pair">BTCUSDT · LÍMIT</span></div></div>
-      <div class="bm-field"><div class="bm-lbl"><div class="bm-lbl-dot" style="background:#2962ff"></div>Entrada</div><div class="bm-val-wrap"><span class="bm-val entry" id="bm-entry">--</span><button class="bm-copy-field" onclick="copyBmField('bm-entry',this)">Copiar</button></div></div>
-      <div class="bm-field"><div class="bm-lbl"><div class="bm-lbl-dot" style="background:#ef5350"></div>Stop Loss</div><div class="bm-val-wrap"><span class="bm-val sl" id="bm-sl">--</span><button class="bm-copy-field" onclick="copyBmField('bm-sl',this)">Copiar</button></div></div>
-      <div class="bm-field"><div class="bm-lbl"><div class="bm-lbl-dot" style="background:#f57c00"></div>TP1 <span style="font-weight:400;color:#bbb;font-size:9px" id="bm-tp1-pct"></span></div><div class="bm-val-wrap"><span class="bm-val tp1" id="bm-tp1">--</span><button class="bm-copy-field" onclick="copyBmField('bm-tp1',this)">Copiar</button></div></div>
-      <div class="bm-field"><div class="bm-lbl"><div class="bm-lbl-dot" style="background:#26a69a"></div>TP2 <span style="font-weight:400;color:#bbb;font-size:9px" id="bm-tp2-pct"></span></div><div class="bm-val-wrap"><span class="bm-val tp2" id="bm-tp2">--</span><button class="bm-copy-field" onclick="copyBmField('bm-tp2',this)">Copiar</button></div></div>
-    </div>
-    <div class="bm-footer">
-      <button class="bm-btn-copy-all" id="bm-copy-all-btn" onclick="copyAllBitunix()"><span id="bm-copy-all-icon">📋</span><span id="bm-copy-all-txt"> Copiar orden</span></button>
-      <div class="bm-hint">Abre tu exchange → Futuros → BTC/USDT<br>y rellena los campos uno a uno</div>
-    </div>
-  </div>
-</div>
-<!-- ── BOTÓ PERFIL FIXED ──────────────────────────────────── -->
-<button id="se-profile-btn" title="Perfil"
-  onclick="(function(){var m=document.getElementById('se-profile-menu');var isOpen=m.style.display==='block';m.style.display=isOpen?'none':'block';if(!isOpen){var dark=document.body.classList.contains('dark');var ic=document.getElementById('pm-dark-icon');var lb=document.getElementById('pm-dark-label');if(ic)ic.textContent=dark?'☀️':'🌙';if(lb)lb.textContent=dark?'Modo claro':'Modo oscuro';}})()"
-  style="position:fixed;top:8px;left:8px;z-index:999999;width:34px;height:34px;border-radius:50%;border:2px solid var(--border);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:0;outline:none">👤</button>
-
-<div id="se-profile-menu"
-  style="display:none;position:fixed;top:50px;left:8px;z-index:999998;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);min-width:220px;overflow:hidden">
-  <div class="pm-header">
-    <div class="pm-name" id="pm-name">No has iniciado sesión</div>
-    <div class="pm-email" id="pm-email"></div>
-  </div>
-  <button class="pm-item" onclick="seToggleDark();document.getElementById('se-profile-menu').style.display='none'">
-    <span class="pm-icon" id="pm-dark-icon">🌙</span>
-    <span id="pm-dark-label">Modo oscuro</span>
-  </button>
-  <div class="pm-divider"></div>
-  <button class="pm-item" id="pm-login-btn" onclick="seMenuLoginAction()">
-    <span class="pm-icon">🔑</span>
-    <span id="pm-login-label">Iniciar sesión con Google</span>
-  </button>
-</div>
-</body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../supabase-sync.js"></script>
-<script>
-// Auth gestionat per supabase-sync.js
-</script>
 </html>
