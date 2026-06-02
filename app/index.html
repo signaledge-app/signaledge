@@ -681,7 +681,6 @@ body.dark .bm-hint{color:#666}
   </div>
   <div class="chart-o chart-wrapper-end" style="display:none"></div>
   <div class="dbg-toggle" onclick="toggleDbg()">⚙ debug</div>
-  <div class="dbg-toggle" onclick="toggleIOSDebug()" style="margin-left:4px">🐛 iOS</div>
   <div class="dbg" id="dbg">OBs: -- · FVGs: -- · Retests: --</div>
   <div class="sw"><div class="swt">Señales — <span id="tfl">1m</span></div><div id="sel"><div class="empty">Cargando...</div></div></div>
   <div class="log" id="lg">Iniciando...</div>
@@ -1762,13 +1761,6 @@ function loadPrefs(){try{const raw=localStorage.getItem(PREFS_KEY);const p=raw?J
 
 window.addEventListener('load',()=>{
 loadHistory();loadPrefs();loadPushTFs();loadPinned();syncCB();updLev();updTFinfo();updatePushBar();initChart();connectWS(tf);connectTicker();renderHistorial();updateHistCount();calcUpdate();setTimeout(fetchExtLevels,2000);startExtLevelsInterval();
-// Debug panel per iOS
-const _iosLog=[];
-const _origErr=window.onerror;
-window.onerror=function(msg,src,line){_iosLog.push(`❌ ${msg} (${line})`);_updateDbgPanel();return false;};
-window.addEventListener('unhandledrejection',e=>{_iosLog.push(`⚠️ ${e.reason}`);_updateDbgPanel();});
-function _updateDbgPanel(){const p=document.getElementById('ios-debug-content');if(p)p.innerHTML=_iosLog.slice(-8).join('<br>');}
-function toggleIOSDebug(){const p=document.getElementById('ios-debug-panel');if(p)p.style.display=p.style.display==='none'?'block':'none';}
 const _hideLoginBtn=()=>{const b=document.getElementById('se-login-btn');if(b)b.style.cssText='display:none!important';};
 _hideLoginBtn();
 const _obs=new MutationObserver(_hideLoginBtn);
@@ -2619,14 +2611,6 @@ function renderMercado(d){
   document.getElementById('mkt-updated').textContent='Act. '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
 }
 </script>
-
-<div id="ios-debug-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,.92);color:#0f0;font-size:10px;font-family:monospace;padding:8px;z-index:99999;max-height:180px;overflow-y:auto;border-top:2px solid #f00">
-  <div style="color:#fff;margin-bottom:4px;display:flex;justify-content:space-between">
-    <span>🐛 iOS Debug Log</span>
-    <button onclick="toggleIOSDebug()" style="color:#f00;background:none;border:none;cursor:pointer;font-size:14px">✕</button>
-  </div>
-  <div id="ios-debug-content">Cap error de moment ✅</div>
-</div>
 
 </body>
 </html>
