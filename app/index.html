@@ -1508,10 +1508,17 @@ function update(){
   if(!candles.length)return;
   if(!price&&candles.length)price=candles[candles.length-1].close;
   if(!price)return;
-  // Debug Safari
   const dbg=document.getElementById('debug-info');
-  if(dbg)dbg.textContent=`p:${price.toFixed(0)} c:${candles.length} tf:${tf}`;
-  syncCB();const obs=detectOBs(candles,price),fvgs=detectFVGs(candles,price),pats=detectPats(),struct=detectStruct(candles);renderStruct(struct);drawBOS(struct);const retests=detectRetests(candles,price,struct);const sigs=genSigs(obs,fvgs,retests,pats,struct);renderSigs(sigs,pats);drawPats(pats);if(trade){updAtb();drawTradeLines(trade);checkSLAlert();}if(typeof drawExtLevelsOnChart==='function')drawExtLevelsOnChart();}
+  syncCB();
+  const obs=detectOBs(candles,price),fvgs=detectFVGs(candles,price),pats=detectPats(),struct=detectStruct(candles);
+  renderStruct(struct);drawBOS(struct);
+  const retests=detectRetests(candles,price,struct);
+  const sigs=genSigs(obs,fvgs,retests,pats,struct);
+  if(dbg)dbg.textContent=`p:${price.toFixed(0)} c:${candles.length} ob:${obs.length} fvg:${fvgs.length} sig:${sigs.length}`;
+  renderSigs(sigs,pats);drawPats(pats);
+  if(trade){updAtb();drawTradeLines(trade);checkSLAlert();}
+  if(typeof drawExtLevelsOnChart==='function')drawExtLevelsOnChart();
+}
 // ✅ PATCH P3c: auto-close check al WS
 function connectWS(t){if(ws){try{ws.close();}catch(e){}}candles=[];price=0;ws=new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_'+t);ws.onopen=()=>{document.getElementById('dot').className='dot';document.getElementById('clbl').textContent='En vivo · '+t;lg('Conectado · '+t);loadHist2(t);};ws.onmessage=e=>{const k=JSON.parse(e.data).k;const c={time:+k.t,open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v,closed:k.x};if(candles.length&&candles[candles.length-1].time===c.time)candles[candles.length-1]=c;else{candles.push(c);if(candles.length>1100)candles=candles.slice(-1100);}price=c.close;if(c.closed)lg('Vela '+tf+' '+(c.close>=c.open?'▲':'▼')+' $'+ff(c.close));updPrice();if(cSeries){try{cSeries.update({time:Math.floor(c.time/1000),open:c.open,high:c.high,low:c.low,close:c.close});}catch(e){}if(volSeries){try{volSeries.update({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'});}catch(e){}}}update();if(trade&&!autoClosePending)setTimeout(()=>autoCheckLevels(),100);};ws.onerror=()=>{document.getElementById('clbl').textContent='Error';document.getElementById('dot').className='dot off';};ws.onclose=()=>{document.getElementById('dot').className='dot off';};}
 function connectTicker(){twS=new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@ticker');twS.onmessage=e=>{const d=JSON.parse(e.data);open24=+d.o;document.getElementById('mo').textContent='$'+ff(+d.o);document.getElementById('mh').textContent='$'+ff(+d.h);document.getElementById('ml2').textContent='$'+ff(+d.l);document.getElementById('mv').textContent=fk(+d.v)+' BTC';updPrice();};}
