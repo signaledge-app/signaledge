@@ -681,7 +681,6 @@ body.dark .bm-hint{color:#666}
   </div>
   <div class="chart-o chart-wrapper-end" style="display:none"></div>
   <div class="dbg-toggle" onclick="toggleDbg()">⚙ debug</div>
-  <span id="debug-info" style="font-size:9px;color:var(--text4);position:fixed;top:2px;right:48px;z-index:9999;background:rgba(0,0,0,.5);padding:2px 4px;border-radius:3px"></span>
   <div class="dbg" id="dbg">OBs: -- · FVGs: -- · Retests: --</div>
   <div class="sw"><div class="swt">Señales — <span id="tfl">1m</span></div><div id="sel"><div class="empty">Cargando...</div></div></div>
   <div class="log" id="lg">Iniciando...</div>
@@ -1302,7 +1301,7 @@ function recLev(sig){
   else{return{lev:maxRec,color:'#ef5350',label:'🔴 '+curLev+'x risc',reason:'Máx recomendado: '+maxRec+'x para SL '+slPct+'%'};}
 }
 function liq(e,dir,lv){return dir==='long'?e*(1-(1/lv)+.004):e*(1+(1/lv)-.004);}
-function calcLvls(z,dir,isRT=false){const{sl,m:sm}=calcSL(z,dir,isRT),{tp1,tp2,m:tm}=calcTP(dir);const e=isRT?z.level:(z.source==='fvg'?z.mid:(dir==='long'?z.high:z.low));const lq=liq(e,dir,lev),msl=maxSL();if(dir==='long'){const risk=e-sl;if(risk<=0)return null;const sp=(e-sl)/e;const r1=(tp1-e)/risk,r2=(tp2-e)/risk;if(r1<MIN_RR&&r2<MIN_RR)return null;return{e,sl,tp1,tp2,lq,sm,tm,r1:r1.toFixed(1),r2:r2.toFixed(1),sp:(sp*100).toFixed(2),lc:sp>msl*.8,msp:(msl*100).toFixed(2)};}const risk=sl-e;if(risk<=0)return null;const sp=(sl-e)/e;const r1=(e-tp1)/risk,r2=(e-tp2)/risk;if(r1<MIN_RR&&r2<MIN_RR)return null;return{e,sl,tp1,tp2,lq,sm,tm,r1:r1.toFixed(1),r2:r2.toFixed(1),sp:(sp*100).toFixed(2),lc:sp>msl*.8,msp:(msl*100).toFixed(2)};}
+function calcLvls(z,dir,isRT=false){const{sl,m:sm}=calcSL(z,dir,isRT),{tp1,tp2,m:tm}=calcTP(dir);const e=isRT?z.level:(z.source==='fvg'?z.mid:(dir==='long'?z.high:z.low));const lq=liq(e,dir,lev),msl=maxSL();if(dir==='long'){const risk=e-sl;if(risk<=0)return null;const sp=(e-sl)/e;if(sp>msl)return null;const r1=(tp1-e)/risk,r2=(tp2-e)/risk;if(r1<MIN_RR&&r2<MIN_RR)return null;return{e,sl,tp1,tp2,lq,sm,tm,r1:r1.toFixed(1),r2:r2.toFixed(1),sp:(sp*100).toFixed(2),lc:sp>msl*.8,msp:(msl*100).toFixed(2)};}const risk=sl-e;if(risk<=0)return null;const sp=(sl-e)/e;if(sp>msl)return null;const r1=(e-tp1)/risk,r2=(e-tp2)/risk;if(r1<MIN_RR&&r2<MIN_RR)return null;return{e,sl,tp1,tp2,lq,sm,tm,r1:r1.toFixed(1),r2:r2.toFixed(1),sp:(sp*100).toFixed(2),lc:sp>msl*.8,msp:(msl*100).toFixed(2)};}
 function calcScore(s){
   const cs=s.candleStr||{level:'normal',score:1};const vs=s.volStr||{level:'normal',ratio:1};
   const c={confirmed:s.status==='confirmed',mtf:s.aligned&&(s.cstr==='strong'||s.cstr==='medium'),mtfS:s.aligned&&s.cstr==='strong',rr:parseFloat(s.lvls.r1)>=MIN_RR,rrS:parseFloat(s.lvls.r1)>=3,conf:!!(s.confFVG||s.confOB||s.source==='rt'),wt:s.withTrend,strongCandle:cs.level==='strong',weakCandle:cs.level==='weak',highVol:vs.level==='high'||vs.level==='above',lowVol:vs.level==='low'};
@@ -1508,17 +1507,11 @@ function update(){
   if(!candles.length)return;
   if(!price&&candles.length)price=candles[candles.length-1].close;
   if(!price)return;
-  const dbg=document.getElementById('debug-info');
   syncCB();
   const obs=detectOBs(candles,price),fvgs=detectFVGs(candles,price),pats=detectPats(),struct=detectStruct(candles);
   renderStruct(struct);drawBOS(struct);
   const retests=detectRetests(candles,price,struct);
   const sigs=genSigs(obs,fvgs,retests,pats,struct);
-  if(dbg){
-    const prox=TFCFG[tf]?TFCFG[tf].msl*1.5:'?';
-    const fvgInfo=fvgs.length>0?`fvg0:${fvgs[0].low.toFixed(0)}-${fvgs[0].high.toFixed(0)}(${fvgs[0].type})`:'';
-    dbg.textContent=`p:${price.toFixed(0)} c:${candles.length} ob:${obs.length} fvg:${fvgs.length} sig:${sigs.length} tf:${tf} prox:${typeof prox==='number'?prox.toFixed(4):prox} ${fvgInfo}`;
-  }
   renderSigs(sigs,pats);drawPats(pats);
   if(trade){updAtb();drawTradeLines(trade);checkSLAlert();}
   if(typeof drawExtLevelsOnChart==='function')drawExtLevelsOnChart();
