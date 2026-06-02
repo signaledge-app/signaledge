@@ -203,6 +203,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sc-contra-body{min-width:0;box-sizing:border-box}
 .lev-badge{background:#f0f0f0;color:#555;border:1px solid #ddd}
 body.dark .lev-badge{background:#252836;color:#9294a0;border-color:#3a3d50}
+/* Amagar botó login que insereix supabase-sync.js */
+#se-login-btn{display:none!important;visibility:hidden!important;width:0!important;height:0!important;overflow:hidden!important;position:absolute!important;pointer-events:none!important}
+#se-dark-btn{display:none!important}
 .sc-contra-expand{font-size:9px;color:#f57c00;border:1px solid #f57c00;background:transparent;border-radius:4px;padding:1px 6px;cursor:pointer;font-family:inherit;margin-left:auto}
 .sc.long{border-radius:0 6px 6px 0}.sc.short{border-radius:0 6px 6px 0}
 .rt-info{font-size:10px;padding:5px 8px;border-radius:5px;margin-bottom:.4rem;background:#e0f2f1;color:#004D40;border-left:3px solid #00897B}
@@ -1743,8 +1746,13 @@ function loadPrefs(){try{const raw=localStorage.getItem(PREFS_KEY);const p=raw?J
 
 window.addEventListener('load',()=>{
 loadHistory();loadPrefs();loadPushTFs();loadPinned();syncCB();updLev();updTFinfo();updatePushBar();initChart();connectWS(tf);connectTicker();renderHistorial();updateHistCount();calcUpdate();setTimeout(fetchExtLevels,2000);startExtLevelsInterval();
-// Si supabase-sync.js ja ha fet login, actualitzar el botó de perfil
-setTimeout(()=>{if(typeof seUser!=='undefined'&&seUser&&typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(seUser);},2000);
+// Amagar botó login que supabase-sync.js insereix dinàmicament a la topbar
+const _hideLoginBtn=()=>{const b=document.getElementById('se-login-btn');if(b)b.style.cssText='display:none!important';};
+_hideLoginBtn();
+const _obs=new MutationObserver(_hideLoginBtn);
+_obs.observe(document.body,{childList:true,subtree:true});
+document.addEventListener('DOMContentLoaded',_hideLoginBtn);
+window.addEventListener('load',_hideLoginBtn);
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').then(reg=>{reg.addEventListener('updatefound',()=>{const newSW=reg.installing;newSW.addEventListener('statechange',()=>{if(newSW.state==='installed'&&navigator.serviceWorker.controller)showUpdateBanner(newSW);});});}).catch(e=>console.log('SW error:',e));}
 });
 document.getElementById('cob').addEventListener('change',savePrefs);
