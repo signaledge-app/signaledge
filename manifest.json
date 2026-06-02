@@ -3,7 +3,7 @@
   "short_name": "SignalEdge",
   "description": "Detección de señales de trading BTC/USDT en tiempo real",
   "start_url": "/signaledge/app/",
-  "scope": "/signaledge/app/",
+  "scope": "/signaledge/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0d1117",
