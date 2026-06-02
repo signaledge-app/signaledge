@@ -1514,7 +1514,11 @@ function update(){
   renderStruct(struct);drawBOS(struct);
   const retests=detectRetests(candles,price,struct);
   const sigs=genSigs(obs,fvgs,retests,pats,struct);
-  if(dbg)dbg.textContent=`p:${price.toFixed(0)} c:${candles.length} ob:${obs.length} fvg:${fvgs.length} sig:${sigs.length}`;
+  if(dbg){
+    const prox=TFCFG[tf]?TFCFG[tf].msl*1.5:'?';
+    const fvgInfo=fvgs.length>0?`fvg0:${fvgs[0].low.toFixed(0)}-${fvgs[0].high.toFixed(0)}(${fvgs[0].type})`:'';
+    dbg.textContent=`p:${price.toFixed(0)} c:${candles.length} ob:${obs.length} fvg:${fvgs.length} sig:${sigs.length} tf:${tf} prox:${typeof prox==='number'?prox.toFixed(4):prox} ${fvgInfo}`;
+  }
   renderSigs(sigs,pats);drawPats(pats);
   if(trade){updAtb();drawTradeLines(trade);checkSLAlert();}
   if(typeof drawExtLevelsOnChart==='function')drawExtLevelsOnChart();
