@@ -299,7 +299,18 @@ body.dark .chart-wrapper{background:var(--chart);border-color:var(--border)}
 .pnl-chart-title span{font-size:11px;font-weight:700}
 .pnl-canvas-wrap{position:relative;height:80px}
 #pnl-canvas{width:100%;height:100%;display:block}
-@media(max-width:700px){#tab-historial .hist-page{padding-top:5rem}}
+@media(max-width:700px){
+  #tab-mercado .hist-page>div[style*="grid-template-columns:auto"]{
+    display:flex!important;flex-wrap:wrap!important;gap:8px!important;
+  }
+  #tab-mercado [style*="grid-template-columns:1fr 1fr"]{
+    grid-template-columns:1fr!important;
+  }
+  #tab-mercado [style*="grid-template-columns:auto 1fr 1fr 1fr auto auto"]{
+    grid-template-columns:1fr 1fr!important;gap:4px!important;padding:.5rem!important;
+  }
+  #tab-mercado [style*="border-right:1px"]{border-right:none!important;border-bottom:1px solid var(--border2)!important;padding-bottom:4px!important;}
+}
 @media(max-width:1000px) and (orientation:landscape){#tab-historial .hist-page{padding-top:4.5rem}}
 :root{--bg:#f5f5f5;--bg2:#fff;--bg3:#fafafa;--bg4:#f0f0f0;--border:#e0e0e0;--border2:#eee;--border3:#ebebeb;--text:#222;--text2:#444;--text3:#666;--text4:#999;--text5:#aaa;--blue:#2962ff;--blue-bg:#e8f0ff;--card:#fff;--input-bg:#fafafa;--tf-bar:#fafafa;--ebar:#f0f4ff;--ebar-border:#d0d8f0;--metric:#fff;--lev-bar:#fff;--lev-info:#fff;--mtf:#fff;--struct:#fff;--chart:#fff;}
 body.dark{--bg:#0f1117;--bg2:#1a1d27;--bg3:#13151f;--bg4:#252836;--border:#2a2d3e;--border2:#252836;--border3:#2a2d3e;--text:#e8eaf0;--text2:#c8cad4;--text3:#9294a0;--text4:#666878;--text5:#4a4c5a;--card:#1a1d27;--input-bg:#13151f;--tf-bar:#13151f;--ebar:#1e2130;--ebar-border:#2a2d3e;--metric:#1a1d27;--lev-bar:#1a1d27;--lev-info:#1a1d27;--mtf:#1a1d27;--struct:#1a1d27;--chart:#1a1d27;}
@@ -1969,6 +1980,8 @@ function copyAllBitunix(){
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBitunixModal();});
 </script>
+
+<script>
   const menu=document.getElementById('se-profile-menu');
   if(!menu)return;
   const isOpen=menu.style.display==='block';
