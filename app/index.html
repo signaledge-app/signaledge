@@ -386,6 +386,8 @@ body.dark input[type=date]{color-scheme:dark}
 .dq-btn.active{background:#2962ff;color:#fff;border-color:#2962ff}
 .spark-btn{font-size:9px;padding:2px 7px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text4);cursor:pointer;font-family:inherit;transition:all .15s}
 .spark-btn.active{background:#2962ff;color:#fff;border-color:#2962ff}
+.mkt-coin-btn{font-size:11px;padding:3px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text3);cursor:pointer;font-family:inherit;font-weight:500;transition:all .15s}
+.mkt-coin-btn.active{background:#2962ff;color:#fff;border-color:#2962ff}
 #tab-mercado .hist-page{padding:.75rem 0}
 #tab-mercado{padding:.75rem;padding-top:.5rem}
 #mercado-content{padding-top:0!important;margin-top:0!important}
@@ -1007,17 +1009,22 @@ function editEntryPrice(id){
 }
 function addTradeToHistory(sig){
   const l=sig.lvls;
-  const t={id:genId(),ts:Date.now(),date:new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),dir:sig.dir,source:sig.source,et:sig.et,tf,lev,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,r1:l.r1,r2:l.r2,sp:l.sp,ep:price,result:'open',pnl:null,pnlPct:null,closePrice:null,closeTs:null,duration:null,note:'',levelType:sig.levelType||null,partialDone:false,partialPnlPct:null,breakevenSL:null};
-  tradeHistory.unshift(t);saveHistory();renderHistorial();updateHistCount();lg('📝 Trade añadido al historial');return t.id;
+  const t={id:genId(),ts:Date.now(),date:new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),dir:sig.dir,source:sig.source,et:sig.et,tf,lev,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,r1:l.r1,r2:l.r2,sp:l.sp,ep:price,result:'open',pnl:null,pnlPct:null,closePrice:null,closeTs:null,duration:null,note:'',levelType:sig.levelType||null,partialDone:false,partialPnlPct:null,breakevenSL:null,openedAt:new Date().toISOString()};
+  tradeHistory.unshift(t);saveHistory();renderHistorial();updateHistCount();
+  // Sync directe a Supabase
+  if(typeof seUser!=='undefined'&&seUser&&typeof seSaveTrade==='function')seSaveTrade(seUser.id,t);
+  lg('📝 Trade añadido al historial');return t.id;
 }
 function closeTrade_hist(id,result,closePrice){resetTradeAlerts();
   const t=tradeHistory.find(x=>x.id===id);if(!t)return;
-  t.result=result;t.closePrice=closePrice||price;t.closeTs=Date.now();t.duration=Math.round((t.closeTs-t.ts)/60000);
+  t.result=result;t.closePrice=closePrice||price;t.closeTs=Date.now();t.closedAt=new Date().toISOString();t.duration=Math.round((t.closeTs-t.ts)/60000);
   const raw=t.dir==='long'?(t.closePrice-t.ep)/t.ep:(t.ep-t.closePrice)/t.ep;
   const restPnl=raw*100*t.lev;
   t.pnlPct=t.partialDone?(t.partialPnlPct*0.5)+(restPnl*0.5):restPnl;
   t.pnl=t.pnlPct.toFixed(2);
   saveHistory();renderHistorial();updateHistCount();
+  // Sync directe a Supabase
+  if(typeof seUser!=='undefined'&&seUser&&typeof seSaveTrade==='function')seSaveTrade(seUser.id,t);
   const em=result==='tp2'?'🎯':result==='tp1'?'✓':result==='sl'?'✗':'◎';
   lg(`${em} [${result.toUpperCase()}] ${t.pnl>0?'+':''}${t.pnl}%${t.partialDone?' (incl. parcial)':''}`);
 }
@@ -1499,7 +1506,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click'
   if(tab==='mercado'){
     document.querySelectorAll('.tab-pane').forEach(p=>{if(p.id!=='tab-mercado')p.classList.remove('active');});
     if(mercadoOverlay)mercadoOverlay.style.display='block';
-    setTimeout(()=>loadMercado(),50); // esperar que l'overlay sigui visible
+    setTimeout(()=>{if(typeof window.loadMercado==='function')window.loadMercado();},100);
   }else{
     if(mercadoOverlay)mercadoOverlay.style.display='none';
     document.querySelectorAll('.tab-pane').forEach(p=>{if(p.id!=='tab-mercado')p.classList.remove('active');});
@@ -1670,7 +1677,36 @@ function showUpdateBanner(newSW){const b=document.createElement('div');b.classNa
 
 // ── CALC HELPERS ──────────────────────────────────────────────
 function loadSigToCalc(sig){calcActiveSig=sig;calcManualSig=true;calcSigStale=false;calcUpdate();const sidebar=document.querySelector('.sidebar');if(sidebar)sidebar.scrollTo({top:0,behavior:'smooth'});if(typeof renderSigs==='function'&&lastSigs)renderSigs(lastSigs,[]);}
-function copyOrder(sig){const l=sig.lvls;const dir=sig.dir==='long'?'LONG':'SHORT';const text=`📊 ${dir} BTCUSDT\n━━━━━━━━━━━━━━━━━\nTipo:      ${sig.et}\nEntrada:   $${ff(l.e)}\nStop Loss: $${ff(l.sl)} (-${l.sp}%)\nTP1:       $${ff(l.tp1)} (+${l.r1}R)\nTP2:       $${ff(l.tp2)} (+${l.r2}R)\n━━━━━━━━━━━━━━━━━\nLeverage:  ${lev}x\nTF:        ${tf}\nFuente:    ${sig.source.toUpperCase()}\nLiquidación: $${ff(l.lq)}`;navigator.clipboard.writeText(text).then(()=>{const btn=event.target;const orig=btn.textContent;btn.textContent='✓';btn.style.background='#26a69a';btn.style.color='#fff';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},1500);}).catch(()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('Orden copiada:\n\n'+text);});}
+function copyOrder(sig){
+  const l=sig.lvls;
+  const dir=sig.dir==='long'?'LONG':'SHORT';
+  const text=`📊 ${dir} BTCUSDT\n━━━━━━━━━━━━━━━━━\nTipo:      ${sig.et}\nEntrada:   $${ff(l.e)}\nStop Loss: $${ff(l.sl)} (-${l.sp}%)\nTP1:       $${ff(l.tp1)} (+${l.r1}R)\nTP2:       $${ff(l.tp2)} (+${l.r2}R)\n━━━━━━━━━━━━━━━━━\nLeverage:  ${lev}x\nTF:        ${tf}\nFuente:    ${sig.source.toUpperCase()}\nLiquidación: $${ff(l.lq)}`;
+  copyToClipboard(text, event.target);
+}
+
+function copyToClipboard(text, btn){
+  const doFallback=()=>{
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=text;ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(ta);ta.focus();ta.select();
+      const ok=document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    }catch(e){return false;}
+  };
+  const onSuccess=(b)=>{
+    if(!b)return;
+    const orig=b.textContent;
+    b.textContent='✓ Copiado';b.style.background='#26a69a';b.style.color='#fff';
+    setTimeout(()=>{b.textContent=orig;b.style.background='';b.style.color='';},1500);
+  };
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(text).then(()=>onSuccess(btn)).catch(()=>{doFallback();onSuccess(btn);});
+  }else{
+    doFallback();onSuccess(btn);
+  }
+}
 function pinSig(idx){const sig=window._S&&window._S[idx];if(!sig)return;if(pinnedSigs.has(idx)){pinnedSigs.delete(idx);}else{pinnedSigs.set(idx,{...sig,_idx:idx});}savePinned();renderPinnedBanner();if(typeof lastSigs!=='undefined'&&lastSigs)renderSigs(lastSigs);}
 function savePinned(){try{const data=[...pinnedSigs.values()].map(s=>({dir:s.dir,source:s.source,et:s.et,lvls:{e:s.lvls.e,sl:s.lvls.sl,tp1:s.lvls.tp1,tp2:s.lvls.tp2,r1:s.lvls.r1,r2:s.lvls.r2,sp:s.lvls.sp},levelType:s.levelType,_idx:s._idx,_ts:Date.now()}));localStorage.setItem('btc_pinned_sigs',JSON.stringify(data));}catch(e){}}
 function loadPinned(){try{const raw=localStorage.getItem('btc_pinned_sigs');if(!raw)return;const data=JSON.parse(raw);const cutoff=Date.now()-14400000;data.forEach((s,i)=>{if(s._ts>cutoff)pinnedSigs.set(i,s);});if(pinnedSigs.size>0)renderPinnedBanner();}catch(e){}}
@@ -1849,8 +1885,90 @@ function renderPnlChart(){
 function setCalcMode(mode){calcMode=mode;savePrefs();}
 </script>
 
+<!-- BITUNIX MODAL -->
+<div id="bitunix-modal-overlay" onclick="if(event.target===this)closeBitunixModal()">
+  <div id="bitunix-modal">
+    <div class="bm-head">
+      <div class="bm-head-title"><span>📋 Copiar orden</span><span class="bm-dir-badge" id="bm-dir-badge">--</span></div>
+      <button class="bm-close" onclick="closeBitunixModal()">✕</button>
+    </div>
+    <div class="bm-body">
+      <div class="bm-field">
+        <div class="bm-lbl"><div class="bm-lbl-dot" style="background:#2962ff"></div>Par / Tipo</div>
+        <span class="bm-val" id="bm-pair">--</span>
+      </div>
+      <div class="bm-field">
+        <div class="bm-lbl"><div class="bm-lbl-dot" style="background:#2962ff"></div>Entrada</div>
+        <div class="bm-val-wrap"><span class="bm-val entry" id="bm-entry">--</span><button class="bm-copy-field" onclick="copyBmField('bm-entry',this)">Copiar</button></div>
+      </div>
+      <div class="bm-field">
+        <div class="bm-lbl"><div class="bm-lbl-dot" style="background:#ef5350"></div>Stop Loss</div>
+        <div class="bm-val-wrap"><span class="bm-val sl" id="bm-sl">--</span><button class="bm-copy-field" onclick="copyBmField('bm-sl',this)">Copiar</button></div>
+      </div>
+      <div class="bm-field">
+        <div class="bm-lbl"><div class="bm-lbl-dot" style="background:#f57c00"></div>TP1 <span style="font-size:9px;color:#bbb" id="bm-tp1-pct"></span></div>
+        <div class="bm-val-wrap"><span class="bm-val tp1" id="bm-tp1">--</span><button class="bm-copy-field" onclick="copyBmField('bm-tp1',this)">Copiar</button></div>
+      </div>
+      <div class="bm-field">
+        <div class="bm-lbl"><div class="bm-lbl-dot" style="background:#26a69a"></div>TP2 <span style="font-size:9px;color:#bbb" id="bm-tp2-pct"></span></div>
+        <div class="bm-val-wrap"><span class="bm-val tp2" id="bm-tp2">--</span><button class="bm-copy-field" onclick="copyBmField('bm-tp2',this)">Copiar</button></div>
+      </div>
+    </div>
+    <div class="bm-footer">
+      <button class="bm-btn-copy-all" id="bm-copy-all-btn" onclick="copyAllBitunix()">
+        <span id="bm-copy-all-icon">📋</span> Copiar orden completa
+      </button>
+      <div class="bm-hint">Abre tu exchange → Futuros → BTC/USDT<br>y rellena los campos uno a uno</div>
+    </div>
+  </div>
+</div>
+
 <script>
-function seToggleMenu(){
+function openBitunixModal(){
+  const openT=tradeHistory.find(t=>t.result==='open');
+  if(!openT){alert('No hay ningún trade abierto.');return;}
+  const isLong=openT.dir==='long';
+  const entry=openT.et==='Limit'?(openT.e||openT.ep):(openT.ep||openT.e);
+  const sl=openT.partialDone?(openT.breakevenSL||openT.sl):openT.sl;
+  const tp1=openT.tp1,tp2=openT.tp2,levVal=openT.lev||lev;
+  const tp1Pct=entry>0?((tp1-entry)/entry*100*levVal*(isLong?1:-1)).toFixed(1):0;
+  const tp2Pct=entry>0?((tp2-entry)/entry*100*levVal*(isLong?1:-1)).toFixed(1):0;
+  const slPct=entry>0?((sl-entry)/entry*100*levVal*(isLong?-1:1)).toFixed(1):0;
+  const badge=document.getElementById('bm-dir-badge');
+  if(badge){badge.textContent=isLong?'▲ LONG':'▼ SHORT';badge.className='bm-dir-badge '+(isLong?'long':'short');}
+  document.getElementById('bm-pair').textContent=`BTCUSDT · ${openT.et||'LIMIT'} · ${levVal}x`;
+  document.getElementById('bm-entry').textContent=ff(entry);
+  document.getElementById('bm-sl').textContent=ff(sl)+'  (−'+slPct+'%)';
+  document.getElementById('bm-tp1').textContent=ff(tp1)+'  (+'+tp1Pct+'%)';
+  document.getElementById('bm-tp2').textContent=ff(tp2)+'  (+'+tp2Pct+'%)';
+  document.getElementById('bm-tp1-pct').textContent='+'+tp1Pct+'%';
+  document.getElementById('bm-tp2-pct').textContent='+'+tp2Pct+'%';
+  const btn=document.getElementById('bm-copy-all-btn');
+  if(btn){btn.style.background='#f57c00';document.getElementById('bm-copy-all-icon').textContent='📋';}
+  document.getElementById('bitunix-modal-overlay').classList.add('open');
+}
+function closeBitunixModal(){
+  document.getElementById('bitunix-modal-overlay').classList.remove('open');
+}
+function copyBmField(id,btn){
+  const el=document.getElementById(id);if(!el)return;
+  const raw=el.textContent.split('(')[0].replace(/[^0-9.,]/g,'').trim();
+  copyToClipboard(raw,btn);
+}
+function copyAllBitunix(){
+  const entry=document.getElementById('bm-entry').textContent.split('(')[0].trim();
+  const sl=document.getElementById('bm-sl').textContent.split('(')[0].trim();
+  const tp1=document.getElementById('bm-tp1').textContent.split('(')[0].trim();
+  const tp2=document.getElementById('bm-tp2').textContent.split('(')[0].trim();
+  const dir=document.getElementById('bm-dir-badge').textContent.replace('▲','').replace('▼','').trim();
+  const par=document.getElementById('bm-pair').textContent;
+  const text=`BTCUSDT ${dir}\n━━━━━━━━━━━━━━━━━━━━━━\n${par}\nEntrada: ${entry}\nSL:      ${sl}\nTP1:     ${tp1}\nTP2:     ${tp2}\n━━━━━━━━━━━━━━━━━━━━━━`;
+  const btn=document.getElementById('bm-copy-all-btn');
+  copyToClipboard(text,btn);
+  if(btn){setTimeout(()=>{btn.style.background='#f57c00';document.getElementById('bm-copy-all-icon').textContent='📋';},2000);}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBitunixModal();});
+</script>
   const menu=document.getElementById('se-profile-menu');
   if(!menu)return;
   const isOpen=menu.style.display==='block';
@@ -2123,6 +2241,14 @@ function checkSLAlert(){if(!trade||!price)return;autoCheckLevels();}
 // ── PESTANYA MERCADO ──────────────────────────────────────────
 let mktCoin='BTC';
 let mktCache={};
+let sparkCache={};
+
+// Símbols per cada API — definit aquí per estar disponible a totes les funcions
+const MKT_SYMBOLS={
+  BTC:{binance:'BTCUSDT',coincap:'bitcoin',cg:'bitcoin'},
+  ETH:{binance:'ETHUSDT',coincap:'ethereum',cg:'ethereum'},
+  SOL:{binance:'SOLUSDT',coincap:'solana',cg:'solana'}
+};
 
 let sparkDays=7;
 
@@ -2134,34 +2260,30 @@ function setSparkPeriod(days,btn){
   const id=coinIds[mktCoin]||'bitcoin';
   // Petit delay per evitar rate limit si es canvia ràpid
   clearTimeout(window._sparkTimer);
-  window._sparkTimer=setTimeout(()=>loadSparkline(id,days),300);
+  window._sparkTimer=setTimeout(()=>loadSparkline(mktCoin,days),300);
 }
 
-let sparkCache={};
-
-async function loadSparkline(id,days){
+async function loadSparkline(coin,days){
   const canvas=document.getElementById('mkt-sparkline');
   if(!canvas)return;
-
-  const cacheKey=`${id}-${days}`;
+  const sym=MKT_SYMBOLS[coin]||MKT_SYMBOLS.BTC;
+  const cacheKey=`${coin}-${days}`;
   const now=Date.now();
-
-  // Usar cache si és recent (10 min)
   if(sparkCache[cacheKey]&&(now-sparkCache[cacheKey].ts)<600000){
-    drawSparkline(sparkCache[cacheKey].prices);
-    return;
+    drawSparkline(sparkCache[cacheKey].prices);return;
   }
-
   try{
-    const url=`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
+    const interval=days<=7?'1h':days<=30?'4h':days<=90?'1d':'1w';
+    const limit=days<=7?Math.min(days*24,168):days<=30?Math.min(days*6,180):Math.min(days,365);
+    const url=`https://api.binance.com/api/v3/klines?symbol=${sym.binance}&interval=${interval}&limit=${limit}`;
     const r=await fetch(url);
-    if(!r.ok){console.log('Sparkline HTTP error:',r.status);return;}
+    if(!r.ok){console.log('Sparkline error HTTP:',r.status);return;}
     const data=await r.json();
-    if(!data?.prices?.length){console.log('Sparkline: no prices returned');return;}
-    const prices=data.prices.map(p=>p[1]);
+    if(!data?.length){console.log('Sparkline: no data');return;}
+    const prices=data.map(k=>parseFloat(k[4]));
+    console.log(`Sparkline ${coin} ${days}d: ${prices.length} punts`);
     sparkCache[cacheKey]={prices,ts:now};
-    drawSparkline(prices);
-    console.log(`Sparkline ${id} ${days}d: ${prices.length} punts, ${prices[0].toFixed(0)} → ${prices[prices.length-1].toFixed(0)}`);
+    setTimeout(()=>drawSparkline(prices),50);
   }catch(e){console.log('Sparkline error:',e.message);}
 }
 
@@ -2170,7 +2292,9 @@ function drawSparkline(prices){
   if(!canvas||!prices?.length)return;
   const ctx=canvas.getContext('2d');
   const dpr=window.devicePixelRatio||1;
-  const W=canvas.parentElement.offsetWidth-32,H=70;
+  const wrap=canvas.parentElement;
+  const W=Math.max(wrap.clientWidth||wrap.offsetWidth||300,100);
+  const H=70;
   canvas.width=W*dpr;canvas.height=H*dpr;
   canvas.style.width=W+'px';canvas.style.height=H+'px';
   ctx.scale(dpr,dpr);
@@ -2203,104 +2327,121 @@ function drawSparkline(prices){
   if(c){c.textContent=(chgPct>=0?'+':'')+chgPct.toFixed(2)+'%';c.style.color=color;}
 }
 
+let _mktLoadTimer=null;
+
 function setMktCoin(coin,btn){
   mktCoin=coin;
   document.querySelectorAll('.mkt-coin-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  const coinIds={BTC:'bitcoin',ETH:'ethereum',SOL:'solana'};
-  delete mktCache[coinIds[coin]||coin];
-  setTimeout(()=>loadMercado(),50);
+  clearTimeout(_mktLoadTimer);
+  _mktLoadTimer=setTimeout(()=>window.loadMercado&&window.loadMercado(),300);
 }
 
 async function loadMercado(){
-  const coinIds={BTC:'bitcoin',ETH:'ethereum',SOL:'solana'};
-  const id=coinIds[mktCoin]||'bitcoin';
+  const sym=MKT_SYMBOLS[mktCoin]||MKT_SYMBOLS.BTC;
   const now=Date.now();
 
-  if(mktCache[id]&&(now-mktCache[id].ts)<300000){
-    renderMercado(mktCache[id].data);
-    loadSparkline(id,sparkDays);
+  if(mktCache[mktCoin]&&(now-mktCache[mktCoin].ts)<300000){
+    renderMercado(mktCache[mktCoin].data);
+    loadSparkline(mktCoin,sparkDays);
     renderMktCompare();
     return;
   }
 
-  document.getElementById('mkt-updated').textContent='Cargando...';
+  const updEl=document.getElementById('mkt-updated');
+  if(updEl)updEl.textContent='Cargando...';
+
+  const safeFetch=async(url)=>{
+    try{const r=await fetch(url);if(!r.ok)return null;return await r.json();}catch(e){return null;}
+  };
 
   try{
-    const [mktRes,fgRes]=await Promise.all([
-      fetch(`https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&community_data=false&developer_data=false`),
-      fetch('https://api.alternative.me/fng/?limit=1')
+    // 1. Preu actual i canvis 24h — Binance (sense rate limit)
+    const [ticker24h,fgData]=await Promise.all([
+      safeFetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${sym.binance}`),
+      safeFetch('https://api.alternative.me/fng/?limit=1')
     ]);
-    const mktData=await mktRes.json();
-    const fgData=await fgRes.json();
+
+    const price=parseFloat(ticker24h?.lastPrice)||0;
+    const change24h=parseFloat(ticker24h?.priceChangePercent)||0;
+
+    if(!price){
+      throw new Error('No se pudo obtener el precio de Binance');
+    }
+
+    const vol30=parseFloat(ticker24h?.quoteVolume||0);
 
     const data={
-      price:mktData.market_data?.current_price?.usd||0,
-      change7:mktData.market_data?.price_change_percentage_7d||0,
-      change30:mktData.market_data?.price_change_percentage_30d||0,
-      vol30:mktData.market_data?.total_volume?.usd||0,
-      fg:fgData.data?.[0]?.value||50,
-      fgLabel:fgData.data?.[0]?.value_classification||'--',
-      ath:mktData.market_data?.ath?.usd||0,
-      athChange:mktData.market_data?.ath_change_percentage?.usd||0,
-      marketCap:mktData.market_data?.market_cap?.usd||0,
+      price,
+      change7:change24h, // s'actualitza amb klines
+      change30:change24h, // s'actualitza amb klines
+      vol30,marketCap:0,
+      fg:fgData?.data?.[0]?.value||50,
+      fgLabel:fgData?.data?.[0]?.value_classification||'--',
+      ath:0,athChange:0,
       ma20:null,ma50:null,ma200:null,prices30:null
     };
 
-    // Preus historials per MAs i sparkline
-    try{
-      const chartRes=await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=200&interval=daily`);
-      const chartData=await chartRes.json();
-      if(chartData?.prices?.length>=20){
-        const closes=chartData.prices.map(c=>c[1]);
-        const avg=arr=>arr.reduce((a,b)=>a+b,0)/arr.length;
-        data.ma20=avg(closes.slice(-20));
-        data.ma50=closes.length>=50?avg(closes.slice(-50)):null;
-        data.ma200=closes.length>=200?avg(closes.slice(-200)):null;
-        data.prices30=closes.slice(-30); // sparkline 30d
+    // 3. Dades historials per MAs — Binance klines (molt fiable)
+    const interval='1d';
+    const klinesData=await safeFetch(`https://api.binance.com/api/v3/klines?symbol=${sym.binance}&interval=${interval}&limit=200`);
+    if(klinesData?.length>=20){
+      const closes=klinesData.map(k=>parseFloat(k[4]));
+      const avg=arr=>arr.reduce((a,b)=>a+b,0)/arr.length;
+      data.ma20=avg(closes.slice(-20));
+      data.ma50=closes.length>=50?avg(closes.slice(-50)):null;
+      data.ma200=closes.length>=200?avg(closes.slice(-200)):null;
+      data.prices30=closes.slice(-30);
+      // Canvis reals dels últims 7 i 30 dies
+      if(closes.length>=30){
+        const p30=closes[closes.length-31]||closes[0];
+        const p7=closes[closes.length-8]||closes[0];
+        data.change30=((price-p30)/p30*100);
+        data.change7=((price-p7)/p7*100);
       }
-    }catch(e){console.log('MA error:',e.message);}
+    }
 
-    mktCache[id]={data,ts:now};
+    // 4. ATH — CoinGecko (opcional, no bloquejant)
+    const cgBasic=await safeFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${sym.cg}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`);
+    if(cgBasic?.[sym.cg]){
+      // CoinGecko simple price no té ATH, però confirma el preu
+    }
+
+    mktCache[mktCoin]={data,ts:now};
     renderMercado(data);
-    loadSparkline(id,sparkDays);
+    loadSparkline(mktCoin,sparkDays);
     renderMktCompare();
 
   }catch(e){
-    document.getElementById('mkt-updated').textContent='Error al cargar datos';
     console.log('Mercado error:',e.message);
+    if(updEl)updEl.textContent='⚠️ Error: '+e.message;
+    if(mktCache[mktCoin]){
+      renderMercado(mktCache[mktCoin].data);
+      if(updEl)updEl.textContent='⚠️ Usando caché anterior';
+    }
   }
 }
 
-// Comparativa BTC/ETH/SOL 30d
 async function renderMktCompare(){
   const el=document.getElementById('mkt-compare');
   if(!el)return;
-  const coins=[
-    {id:'bitcoin',symbol:'₿ BTC'},
-    {id:'ethereum',symbol:'Ξ ETH'},
-    {id:'solana',symbol:'◎ SOL'}
-  ];
+  const coins=['BTC','ETH','SOL'];
   const results=[];
   for(const c of coins){
-    if(mktCache[c.id]){
-      results.push({symbol:c.symbol,change30:mktCache[c.id].data.change30});
-    }else{
-      try{
-        const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${c.id}&vs_currencies=usd&include_24hr_change=true&include_30d_change=true`);
-        // Simple price no té 30d, usar cache si existeix o skip
-        results.push({symbol:c.symbol,change30:null});
-      }catch(e){results.push({symbol:c.symbol,change30:null});}
+    if(mktCache[c]&&mktCache[c].data.change30!==null){
+      results.push({symbol:c==='BTC'?'₿ BTC':c==='ETH'?'Ξ ETH':'◎ SOL',change30:mktCache[c].data.change30});
     }
   }
-  if(results.every(r=>r.change30===null)){el.innerHTML='<span style="font-size:10px;color:var(--text4)">Selecciona cada moneda para cargar su comparativa</span>';return;}
-  const sorted=[...results].filter(r=>r.change30!==null).sort((a,b)=>b.change30-a.change30);
+  if(!results.length){el.innerHTML='<span style="font-size:10px;color:var(--text4)">Selecciona cada moneda para cargar su comparativa</span>';return;}
+  const sorted=[...results].sort((a,b)=>b.change30-a.change30);
+  const medals=['🥇','🥈','🥉'];
   el.innerHTML=sorted.map((r,i)=>{
-    const medal=i===0?'🥇':i===1?'🥈':'🥉';
     const color=r.change30>=0?'#26a69a':'#ef5350';
-    return`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">${medal} <span style="font-weight:500">${r.symbol}</span> <strong style="color:${color}">${r.change30>=0?'+':''}${r.change30.toFixed(2)}%</strong></div>`;
-  }).join('')+`<div style="font-size:9px;color:var(--text4);margin-top:4px">Selecciona ETH y SOL para ver la comparativa completa</div>`;
+    return`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">${medals[i]||''} <span style="font-weight:500">${r.symbol}</span> <strong style="color:${color}">${r.change30>=0?'+':''}${r.change30.toFixed(2)}%</strong></div>`;
+  }).join('')+'<div style="font-size:9px;color:var(--text4);margin-top:4px">Selecciona las 3 monedas para ver la comparativa completa</div>';
 }
+// Exposar globalment per si el tab handler crida abans
+window.loadMercado=loadMercado;
 
 function renderMercado(d){
   const ff2=(n,dec=0)=>n>=1e9?'$'+(n/1e9).toFixed(1)+'B':n>=1e6?'$'+(n/1e6).toFixed(1)+'M':'$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:dec});
