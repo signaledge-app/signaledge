@@ -42,6 +42,7 @@ async function seOnLogin(user){
   await seLoadPrefs(user.id);
   await seLoadTrades(user.id);
   await seLoadPinned(user.id);
+  await seLoadPriceAlerts(user.id);
   seInterceptSave(user.id);
   seSubscribeRealtime(user.id);
 }
@@ -73,7 +74,11 @@ function seSubscribeRealtime(userId){
       seApplyPrefs(payload.new);
     }).subscribe();
 
-  seRealtimeChannel=seDb.channel('trades-changes-'+userId)
+  // Subscripció Realtime alertes de preu
+  seDb.channel('alerts-changes-'+userId)
+    .on('postgres_changes',{event:'*',schema:'public',table:'price_alerts',filter:`user_id=eq.${userId}`},async()=>{
+      await seLoadPriceAlerts(userId);
+    }).subscribe();
     .on('postgres_changes',{event:'*',schema:'public',table:'trades',filter:`user_id=eq.${userId}`},payload=>{
       console.log('SE Realtime:',payload.eventType);
       if(typeof tradeHistory==='undefined')return;
@@ -336,12 +341,16 @@ function seInterceptSave(userId){
   let lastTradesMap=seParseTradesMap(lastHistoryStr);
   let lastPinned=localStorage.getItem('btc_pinned_sigs');
 
+  let lastPriceAlerts=localStorage.getItem('btc_price_alerts');
+
   setInterval(async()=>{
     if(!seUser)return;
     const currentPrefs=localStorage.getItem('btc_dashboard_prefs_v1');
     if(currentPrefs!==lastPrefs){lastPrefs=currentPrefs;await seSavePrefs(userId);}
     const currentPinned=localStorage.getItem('btc_pinned_sigs');
     if(currentPinned!==lastPinned){lastPinned=currentPinned;await seSavePinned(userId,currentPinned);}
+    const currentAlerts=localStorage.getItem('btc_price_alerts');
+    if(currentAlerts!==lastPriceAlerts){lastPriceAlerts=currentAlerts;await seSavePriceAlerts(userId);}
     const currentHistoryStr=localStorage.getItem('btc_trade_history_v1');
     if(currentHistoryStr!==lastHistoryStr){
       const currentMap=seParseTradesMap(currentHistoryStr);
@@ -379,4 +388,37 @@ function seShowIndicator(ok){
     if(tfBar){el=document.createElement('span');el.id='se-sync-dot';el.style.cssText='font-size:9px;margin-left:6px;cursor:default;';tfBar.appendChild(el);}
   }
   if(el){el.textContent=ok?'☁️':'';el.title=ok?'Sincronizado con la nube':'';}
+}
+
+// ── ALERTES DE PREU ───────────────────────────────────────────
+async function seSavePriceAlerts(userId){
+  if(!seDb||!userId)return;
+  try{
+    // Esborrar totes i reinserir les actives
+    await seDb.from('price_alerts').delete().eq('user_id',userId);
+    const alerts=JSON.parse(localStorage.getItem('btc_price_alerts')||'[]');
+    if(!alerts.length)return;
+    await seDb.from('price_alerts').insert(
+      alerts.map(a=>({id:a.id,user_id:userId,price:a.price,note:a.note||null,created_at:a.createdAt||new Date().toISOString()}))
+    );
+    console.log('SE Sync: alertes de preu guardades ✓');
+  }catch(e){console.log('seSavePriceAlerts error:',e.message);}
+}
+
+async function seLoadPriceAlerts(userId){
+  if(!seDb||!userId)return;
+  try{
+    const{data}=await seDb.from('price_alerts').select('*').eq('user_id',userId);
+    if(!data?.length)return;
+    const alerts=data.map(a=>({id:a.id,price:parseFloat(a.price),note:a.note||'',triggered:false,createdAt:a.created_at}));
+    localStorage.setItem('btc_price_alerts',JSON.stringify(alerts));
+    // Aplicar al dashboard
+    if(typeof priceAlerts!=='undefined'){
+      priceAlerts=alerts;
+      if(typeof updatePriceAlertsCount==='function')updatePriceAlertsCount();
+      if(typeof drawPriceAlertLines==='function')drawPriceAlertLines();
+      if(typeof renderPriceAlerts==='function')renderPriceAlerts();
+    }
+    console.log('SE Sync: '+alerts.length+' alertes de preu carregades ✓');
+  }catch(e){console.log('seLoadPriceAlerts error:',e.message);}
 }
