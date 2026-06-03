@@ -1,14 +1,10 @@
-// ── SignalEdge Supabase Sync v3 — Google OAuth ────────────────
-// Fitxer independent — no modifica el codi principal
-// Si falla, el dashboard segueix funcionant normalment
-
+// ── SignalEdge Supabase Sync v4 — Google OAuth ────────────────
 const SE_SUPA_URL='https://aivhwxixdjfyckvplimt.supabase.co';
 const SE_SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdmh3eGl4ZGpmeWNrdnBsaW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzgzOTYsImV4cCI6MjA5NDgxNDM5Nn0.6JeBBItEGNaVP7l7F-90e-QE1INr_FTJV00aUl4WGrc';
 
 let seDb=null;
 let seUser=null;
 
-// ── INICIALITZAR ──────────────────────────────────────────────
 window.addEventListener('load',()=>{
   setTimeout(async()=>{
     try{
@@ -29,7 +25,6 @@ window.addEventListener('load',()=>{
 async function seLoginGoogle(){
   if(!seDb)return;
   try{
-    // redirectTo apunta al dashboard /app, no a la landing
     await seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledge-app.github.io/signaledge/app'}});
   }catch(e){console.log('SE Login error:',e.message);}
 }
@@ -56,7 +51,6 @@ let seRealtimeChannel=null;
 function seSubscribeRealtime(userId){
   if(!seDb)return;
   if(seRealtimeChannel){seDb.removeChannel(seRealtimeChannel);seRealtimeChannel=null;}
-
   const existingPinned=seDb.getChannels().find(c=>c.topic.includes('pinned-changes'));
   if(existingPinned)seDb.removeChannel(existingPinned);
   seDb.channel('pinned-changes-'+userId)
@@ -69,6 +63,14 @@ function seSubscribeRealtime(userId){
       if(typeof loadPinned==='function')loadPinned();
       if(typeof renderPinnedBanner==='function')renderPinnedBanner();
       setTimeout(()=>{if(typeof lastSigs!=='undefined'&&lastSigs&&typeof renderSigs==='function')renderSigs(lastSigs);},100);
+    }).subscribe();
+
+  // Subscripció a canvis de preferències en temps real
+  seDb.channel('prefs-changes-'+userId)
+    .on('postgres_changes',{event:'*',schema:'public',table:'user_prefs',filter:`user_id=eq.${userId}`},payload=>{
+      if(payload.new&&payload.new.user_id!==seUser?.id)return;
+      console.log('SE Realtime: prefs actualitzades');
+      seApplyPrefs(payload.new);
     }).subscribe();
 
   seRealtimeChannel=seDb.channel('trades-changes-'+userId)
@@ -152,18 +154,89 @@ function seUpdateLoginBtn(loggedIn,user){
   }
 }
 
+// ── APLICAR PREFERÈNCIES AL DOM ───────────────────────────────
+function seApplyPrefs(data){
+  if(!data)return;
+  // Apalancament
+  if(data.lev&&typeof lev!=='undefined'){
+    lev=data.lev;
+    document.querySelectorAll('.lev-btn').forEach(b=>b.classList.toggle('active',+b.dataset.lev===lev));
+    if(typeof updLev==='function')updLev();
+  }
+  // Timeframe
+  if(data.tf&&typeof tf!=='undefined'&&data.tf!==tf){
+    tf=data.tf;
+    document.querySelectorAll('.tf').forEach(b=>b.classList.toggle('active',b.dataset.tf===tf));
+    if(typeof updTFinfo==='function')updTFinfo();
+    if(typeof connectWS==='function')connectWS(tf);
+  }
+  // Capital disponible
+  if(data.capital){
+    const el=document.getElementById('calc-capital');
+    if(el){el.value=data.capital;}
+  }
+  // Capital a usar
+  if(data.capital_usar){
+    const el=document.getElementById('calc-capital-usar');
+    if(el){el.value=data.capital_usar;}
+  }
+  // Risc per trade
+  if(data.riesgo){
+    const el=document.getElementById('calc-riesgo');
+    if(el){el.value=data.riesgo;}
+  }
+  // Filtres OB/FVG/Retest
+  if(typeof data.use_ob!=='undefined'&&typeof useOB!=='undefined'){
+    useOB=!!data.use_ob;
+    const cb=document.getElementById('cob');
+    if(cb){cb.checked=useOB;document.getElementById('lob').className='ecb'+(useOB?' ob-on':'');}
+  }
+  if(typeof data.use_fvg!=='undefined'&&typeof useFVG!=='undefined'){
+    useFVG=!!data.use_fvg;
+    const cb=document.getElementById('cfvg');
+    if(cb){cb.checked=useFVG;document.getElementById('lfvg').className='ecb'+(useFVG?' fvg-on':'');}
+  }
+  if(typeof data.use_rt!=='undefined'&&typeof useRT!=='undefined'){
+    useRT=!!data.use_rt;
+    const cb=document.getElementById('crt');
+    if(cb){cb.checked=useRT;document.getElementById('lrt').className='ecb'+(useRT?' rt-on':'');}
+  }
+  // Recalcular
+  if(typeof calcUpdate==='function')calcUpdate();
+  if(typeof update==='function')setTimeout(update,100);
+  console.log('SE Sync: Preferencias aplicadas ✓');
+}
+
 // ── CARREGAR PREFERÈNCIES ─────────────────────────────────────
 async function seLoadPrefs(userId){
   try{
     const{data}=await seDb.from('user_prefs').select('*').eq('user_id',userId).maybeSingle();
     if(!data)return;
-    if(typeof lev!=='undefined'&&data.lev){lev=data.lev;document.querySelectorAll('.lev-btn').forEach(b=>b.classList.toggle('active',+b.dataset.lev===lev));if(typeof updLev==='function')updLev();}
-    if(typeof tf!=='undefined'&&data.tf){tf=data.tf;document.querySelectorAll('.tf').forEach(b=>b.classList.toggle('active',b.dataset.tf===tf));if(typeof updTFinfo==='function')updTFinfo();if(typeof connectWS==='function')connectWS(tf);}
-    if(data.capital){const el=document.getElementById('calc-capital');if(el)el.value=data.capital;}
-    if(data.riesgo){const el=document.getElementById('calc-riesgo');if(el)el.value=data.riesgo;}
-    if(typeof calcUpdate==='function')calcUpdate();
+    seApplyPrefs(data);
     console.log('SE Sync: Preferencias cargadas ✓');
   }catch(e){console.log('SE Sync loadPrefs error:',e.message);}
+}
+
+// ── GUARDAR PREFERÈNCIES ──────────────────────────────────────
+async function seSavePrefs(userId){
+  if(!seDb||!userId)return;
+  try{
+    const capital=parseFloat(document.getElementById('calc-capital')?.value)||1000;
+    const riesgo=parseFloat(document.getElementById('calc-riesgo')?.value)||2;
+    const capitalUsar=parseFloat(document.getElementById('calc-capital-usar')?.value)||null;
+    await seDb.from('user_prefs').upsert({
+      user_id:userId,
+      lev:typeof lev!=='undefined'?lev:2,
+      tf:typeof tf!=='undefined'?tf:'1m',
+      use_ob:typeof useOB!=='undefined'?useOB:true,
+      use_fvg:typeof useFVG!=='undefined'?useFVG:false,
+      use_rt:typeof useRT!=='undefined'?useRT:false,
+      capital,
+      capital_usar:capitalUsar,
+      riesgo,
+      updated_at:new Date().toISOString()
+    },{onConflict:'user_id'});
+  }catch(e){console.log('SE seSavePrefs error:',e.message);}
 }
 
 // ── CARREGAR TRADES ───────────────────────────────────────────
@@ -182,7 +255,7 @@ async function seLoadTrades(userId){
     if(typeof tradeHistory!=='undefined'){
       let deletedIds=new Set();
       try{deletedIds=new Set(JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]'));}catch(e){}
-      for(const id of deletedIds){await seDeleteTrade(userId,id);}
+      for(const id of Object.keys(deletedIds)){await seDeleteTrade(userId,id);}
       const localIds=new Set(tradeHistory.map(t=>t.id));
       const newTrades=cloudTrades.filter(t=>!localIds.has(t.id)&&!deletedIds.has(t.id));
       if(newTrades.length>0){
@@ -201,21 +274,6 @@ async function seLoadTrades(userId){
   }catch(e){console.log('SE Sync loadTrades error:',e.message);}
 }
 
-// ── GUARDAR PREFERÈNCIES ──────────────────────────────────────
-async function seSavePrefs(userId){
-  if(!seDb||!userId)return;
-  try{
-    const capital=parseFloat(document.getElementById('calc-capital')?.value)||1000;
-    const riesgo=parseFloat(document.getElementById('calc-riesgo')?.value)||2;
-    await seDb.from('user_prefs').upsert({
-      user_id:userId,lev:typeof lev!=='undefined'?lev:2,tf:typeof tf!=='undefined'?tf:'1m',
-      use_ob:typeof useOB!=='undefined'?useOB:true,use_fvg:typeof useFVG!=='undefined'?useFVG:false,
-      use_rt:typeof useRT!=='undefined'?useRT:false,capital,riesgo,
-      updated_at:new Date().toISOString()
-    },{onConflict:'user_id'});
-  }catch(e){}
-}
-
 // ── GUARDAR TRADE ─────────────────────────────────────────────
 async function seSaveTrade(userId,t){
   if(!seDb||!userId||!t)return;
@@ -229,15 +287,15 @@ async function seSaveTrade(userId,t){
       partial_pnl_pct:t.partialPnlPct||null,breakeven_sl:t.breakevenSL||null,
       notes:t.notes||null,opened_at:t.openedAt||new Date().toISOString(),closed_at:t.closedAt||null
     });
-  }catch(e){}
+  }catch(e){console.log('SE seSaveTrade error:',e.message);}
 }
 
-// ── ELIMINAR TRADE DE SUPABASE ────────────────────────────────
+// ── ELIMINAR TRADE ────────────────────────────────────────────
 async function seDeleteTrade(userId,tradeId){
   if(!seDb||!userId||!tradeId)return;
   try{
     await seDb.from('trades').delete().eq('id',tradeId).eq('user_id',userId);
-    console.log('SE Sync: trade eliminado del servidor ✓',tradeId);
+    console.log('SE Sync: trade eliminado ✓',tradeId);
   }catch(e){console.log('SE Sync delete error:',e.message);}
 }
 
@@ -289,7 +347,6 @@ function seInterceptSave(userId){
       const currentMap=seParseTradesMap(currentHistoryStr);
       for(const id of Object.keys(lastTradesMap)){
         if(!currentMap[id]){
-          console.log('SE Sync: eliminando trade del servidor',id);
           await seDeleteTrade(userId,id);
           try{
             const del=JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]');
