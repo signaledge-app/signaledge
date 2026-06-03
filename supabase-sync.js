@@ -81,6 +81,8 @@ function seSubscribeRealtime(userId){
     .on('postgres_changes',{event:'*',schema:'public',table:'price_alerts',filter:`user_id=eq.${userId}`},async()=>{
       await seLoadPriceAlerts(userId);
     }).subscribe();
+
+  seRealtimeChannel=seDb.channel('trades-changes-'+userId)
     .on('postgres_changes',{event:'*',schema:'public',table:'trades',filter:`user_id=eq.${userId}`},payload=>{
       console.log('SE Realtime:',payload.eventType);
       if(typeof tradeHistory==='undefined')return;
