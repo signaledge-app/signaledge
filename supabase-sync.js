@@ -394,25 +394,37 @@ function seShowIndicator(ok){
 async function seSavePriceAlerts(userId){
   if(!seDb||!userId)return;
   try{
-    // Esborrar totes i reinserir les actives
-    await seDb.from('price_alerts').delete().eq('user_id',userId);
     const alerts=JSON.parse(localStorage.getItem('btc_price_alerts')||'[]');
-    if(!alerts.length)return;
-    await seDb.from('price_alerts').insert(
-      alerts.map(a=>({id:a.id,user_id:userId,price:a.price,note:a.note||null,created_at:a.createdAt||new Date().toISOString()}))
-    );
-    console.log('SE Sync: alertes de preu guardades ✓');
+    // Esborrar totes les alertes actuals d'aquest usuari
+    await seDb.from('price_alerts').delete().eq('user_id',userId);
+    if(!alerts.length){console.log('SE Sync: alertes de preu esborrades ✓');return;}
+    const rows=alerts.map(a=>({
+      id:String(a.id),
+      user_id:userId,
+      price:parseFloat(a.price),
+      note:a.note||null,
+      created_at:a.createdAt||new Date().toISOString()
+    }));
+    const{error}=await seDb.from('price_alerts').insert(rows);
+    if(error)console.log('seSavePriceAlerts insert error:',error.message);
+    else console.log('SE Sync: '+alerts.length+' alertes de preu guardades ✓');
   }catch(e){console.log('seSavePriceAlerts error:',e.message);}
 }
 
 async function seLoadPriceAlerts(userId){
   if(!seDb||!userId)return;
   try{
-    const{data}=await seDb.from('price_alerts').select('*').eq('user_id',userId);
+    const{data,error}=await seDb.from('price_alerts').select('*').eq('user_id',userId);
+    if(error){console.log('seLoadPriceAlerts error:',error.message);return;}
     if(!data?.length)return;
-    const alerts=data.map(a=>({id:a.id,price:parseFloat(a.price),note:a.note||'',triggered:false,createdAt:a.created_at}));
+    const alerts=data.map(a=>({
+      id:parseInt(a.id)||a.id,
+      price:parseFloat(a.price),
+      note:a.note||'',
+      triggered:false,
+      createdAt:a.created_at
+    }));
     localStorage.setItem('btc_price_alerts',JSON.stringify(alerts));
-    // Aplicar al dashboard
     if(typeof priceAlerts!=='undefined'){
       priceAlerts=alerts;
       if(typeof updatePriceAlertsCount==='function')updatePriceAlertsCount();
