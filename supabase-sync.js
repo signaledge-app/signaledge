@@ -36,6 +36,8 @@ async function seLogout(){
 // ── QUAN ES FA LOGIN ──────────────────────────────────────────
 async function seOnLogin(user){
   console.log('SE Sync: Login ✓',user.email);
+  seUser=user;
+  window.seUser=user; // exposar globalment
   seUpdateLoginBtn(true,user);
   if(typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(user);
   seShowIndicator(true);
@@ -124,6 +126,8 @@ function seSubscribeRealtime(userId){
 // ── QUAN ES FA LOGOUT ─────────────────────────────────────────
 function seOnLogout(){
   console.log('SE Sync: Logout');
+  seUser=null;
+  window.seUser=null;
   seUpdateLoginBtn(false,null);
   if(typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(null);
   seShowIndicator(false);
