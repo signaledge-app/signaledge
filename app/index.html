@@ -1114,7 +1114,7 @@ function addTradeToHistory(sig){
   const t={id:genId(),ts:Date.now(),date:new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),dir:sig.dir,source:sig.source,et:sig.et,tf,lev,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,r1:l.r1,r2:l.r2,sp:l.sp,ep:price,result:'open',pnl:null,pnlPct:null,closePrice:null,closeTs:null,duration:null,note:'',levelType:sig.levelType||null,partialDone:false,partialPnlPct:null,breakevenSL:null,openedAt:new Date().toISOString()};
   tradeHistory.unshift(t);saveHistory();renderHistorial();updateHistCount();
   // Sync directe a Supabase
-  if(typeof seUser!=='undefined'&&seUser&&typeof seSaveTrade==='function')seSaveTrade(seUser.id,t);
+  const _u=typeof seUser!=='undefined'?seUser:window.seUser;if(_u&&typeof seSaveTrade==='function')seSaveTrade(_u.id,t);
   lg('📝 Trade añadido al historial');return t.id;
 }
 function closeTrade_hist(id,result,closePrice){resetTradeAlerts();
@@ -1126,7 +1126,7 @@ function closeTrade_hist(id,result,closePrice){resetTradeAlerts();
   t.pnl=t.pnlPct.toFixed(2);
   saveHistory();renderHistorial();updateHistCount();
   // Sync directe a Supabase
-  if(typeof seUser!=='undefined'&&seUser&&typeof seSaveTrade==='function')seSaveTrade(seUser.id,t);
+  const _u=typeof seUser!=='undefined'?seUser:window.seUser;if(_u&&typeof seSaveTrade==='function')seSaveTrade(_u.id,t);
   const em=result==='tp2'?'🎯':result==='tp1'?'✓':result==='sl'?'✗':'◎';
   lg(`${em} [${result.toUpperCase()}] ${t.pnl>0?'+':''}${t.pnl}%${t.partialDone?' (incl. parcial)':''}`);
 }
@@ -1141,7 +1141,7 @@ function updateTradeNote(id,note){
     t.note=note;
     saveHistory();
     // Sync a Supabase
-    if(typeof seUser!=='undefined'&&seUser&&typeof seSaveTrade==='function')seSaveTrade(seUser.id,t);
+    const _u=typeof seUser!=='undefined'?seUser:window.seUser;if(_u&&typeof seSaveTrade==='function')seSaveTrade(_u.id,t);
   }
 }
 function updateHistCount(){document.getElementById('hist-count').textContent=tradeHistory.length;}
