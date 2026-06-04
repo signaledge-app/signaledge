@@ -1,5 +1,5 @@
-// SignalEdge Service Worker v3
-const CACHE_NAME = 'signaledge-v3';
+// SignalEdge Service Worker v4
+const CACHE_NAME = 'signaledge-v4';
 self.addEventListener('install', e => {
   self.skipWaiting();
 });
@@ -14,6 +14,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.url.includes('binance.com')) return;
   if (e.request.url.includes('ws://') || e.request.url.includes('wss://')) return;
+  if (e.request.url.includes('supabase.co')) return;
   e.respondWith(
     fetch(e.request).catch(() => {
       return new Response('Sin conexión', {status: 503});
