@@ -2104,15 +2104,6 @@ function exportPDF(){
   td{padding:7px 10px;border-bottom:1px solid #f0f0f0;}
   tr:hover td{background:#f9f9f9;}
   .footer{margin-top:24px;text-align:center;font-size:10px;color:#999;}
-
-/* ── Cookie Banner ── */
-#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#161b22;border-top:1px solid #30363d;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;z-index:99999;font-size:11px;color:#c9d1d9;transform:translateY(100%);transition:transform .3s ease;}
-#cookie-banner.visible{transform:translateY(0);}
-#cookie-banner a{color:#2962ff;text-decoration:none;}
-.cookie-btns{display:flex;gap:6px;flex-shrink:0;}
-.cookie-accept{background:#2962ff;color:#fff;border:none;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:500;}
-.cookie-reject{background:transparent;color:#8b949e;border:1px solid #30363d;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:11px;}
-
 </style>
 </head>
 <body>
@@ -3636,22 +3627,19 @@ function renderMercado(d){
 }
 </script>
 
-<!-- Cookie Banner -->
-<div id="cookie-banner">
-  <span>🍪 Usamos cookies y Google Analytics para mejorar la app. <a href="/privacy.html" target="_blank">Política de privacidad</a></span>
-  <div class="cookie-btns">
-    <button class="cookie-reject" onclick="cookieReject()">Solo esenciales</button>
-    <button class="cookie-accept" onclick="cookieAccept()">Aceptar</button>
-  </div>
-</div>
+
+<style>#ck{position:fixed;bottom:0;left:0;right:0;background:#161b22;border-top:1px solid #30363d;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:999999;font-size:11px;color:#8b949e;transform:translateY(100%);transition:transform .3s ease;}#ck.show{transform:translateY(0);}#ck a{color:#2962ff;text-decoration:none;}#ck-btns{display:flex;gap:8px;flex-shrink:0;}#ck-ok{background:#2962ff;color:#fff;border:none;padding:6px 16px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;}#ck-no{background:transparent;color:#8b949e;border:1px solid #30363d;padding:6px 16px;border-radius:6px;cursor:pointer;font-size:11px;}</style>
+<div id="ck"><span>🍪 Usamos cookies propias y de Google Analytics para mejorar la app. <a href="/privacy.html" target="_blank">Política de privacidad</a></span><div id="ck-btns"><button id="ck-no">Solo esenciales</button><button id="ck-ok">Aceptar</button></div></div>
 <script>
 (function(){
-  var consent=localStorage.getItem('se_cookie_consent');
-  if(!consent){setTimeout(function(){var b=document.getElementById('cookie-banner');if(b)b.classList.add('visible');},2000);}
-  else if(consent==='rejected'){window['ga-disable-G-HDDSLP9JW0']=true;}
+  var b=document.getElementById('ck');
+  if(!b)return;
+  var c=localStorage.getItem('se_ck');
+  if(!c){setTimeout(function(){b.classList.add('show');},1500);}
+  else if(c==='no'){window['ga-disable-G-HDDSLP9JW0']=true;}
+  document.getElementById('ck-ok').addEventListener('click',function(){localStorage.setItem('se_ck','ok');b.classList.remove('show');});
+  document.getElementById('ck-no').addEventListener('click',function(){localStorage.setItem('se_ck','no');window['ga-disable-G-HDDSLP9JW0']=true;b.classList.remove('show');});
 })();
-function cookieAccept(){localStorage.setItem('se_cookie_consent','accepted');var b=document.getElementById('cookie-banner');if(b)b.classList.remove('visible');}
-function cookieReject(){localStorage.setItem('se_cookie_consent','rejected');window['ga-disable-G-HDDSLP9JW0']=true;var b=document.getElementById('cookie-banner');if(b)b.classList.remove('visible');}
 </script>
 </body>
 </html>
