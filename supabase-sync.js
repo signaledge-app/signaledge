@@ -25,7 +25,7 @@ window.addEventListener('load',()=>{
 async function seLoginGoogle(){
   if(!seDb)return;
   try{
-    await seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com/app'}});
+    await seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com'}});
   }catch(e){console.log('SE Login error:',e.message);}
 }
 async function seLogout(){
@@ -72,6 +72,7 @@ function seSubscribeRealtime(userId){
   seDb.channel('prefs-changes-'+userId)
     .on('postgres_changes',{event:'*',schema:'public',table:'user_prefs',filter:`user_id=eq.${userId}`},payload=>{
       if(payload.new&&payload.new.user_id!==seUser?.id)return;
+      if(window._seUserEditing){console.log('SE Realtime: prefs ignorades (usuari editant)');return;}
       console.log('SE Realtime: prefs actualitzades');
       seApplyPrefs(payload.new);
     }).subscribe();
@@ -348,6 +349,15 @@ function seInterceptSave(userId){
   let lastPinned=localStorage.getItem('btc_pinned_sigs');
 
   let lastPriceAlerts=localStorage.getItem('btc_price_alerts');
+
+  // Detectar quan l'usuari està editant camps de prefs — ignorar Realtime mentre edita
+  const _prefFields=['calc-capital','calc-capital-usar','calc-riesgo'];
+  _prefFields.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.addEventListener('focus',()=>{window._seUserEditing=true;});
+    el.addEventListener('blur',()=>{setTimeout(()=>{window._seUserEditing=false;},3000);});
+  });
 
   setInterval(async()=>{
     if(!seUser)return;
