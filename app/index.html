@@ -1479,7 +1479,25 @@ function updAtb(){if(!trade){document.getElementById('atb').style.display='none'
   const p=trade.dir==='long'?(price-trade.ep):(trade.ep-price),pc=(p/trade.ep*100*trade.lev).toFixed(2);const srcLbl=trade.source==='rt'?`🔁RT ${trade.levelType||''}`:trade.source==='fvg'?'⚡FVG':'📦OB';const currentSL=trade.partialDone?trade.ep:trade.sl;const badge=trade.partialDone?'<span style="font-size:9px;background:#fff8e1;color:#e65100;padding:1px 6px;border-radius:8px;border:1px solid #ffcc80;margin-left:4px">🎯 Parcial</span>':'';bar.innerHTML=`<div style="flex:1"><div style="font-size:11px;font-weight:600">${trade.dir==='long'?'▲ LONG':'▼ SHORT'} · ${srcLbl} · ${trade.et} · ${trade.lev}x · R:R ${trade.r1}${badge}</div><div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;margin-top:2px"><span style="color:#2962ff">$${ff(trade.e)}</span><span style="color:${trade.partialDone?'#f57c00':'#ef5350'}">${trade.partialDone?'🔒BE':'SL'} $${ff(currentSL)}</span>${!trade.partialDone?`<span style="color:#f57c00">TP1 $${ff(trade.tp1)}</span>`:''}<span style="color:#26a69a">TP2 $${ff(trade.tp2)}</span></div></div>${executed?`<span class="pnl ${p>=0?'pos':'neg'}">${p>=0?'+':''}${pc}%</span>`:`<span class="pnl" style="color:#999;font-size:11px">⏳ Esperando $${ff(trade.ep)}</span>`}<div style="display:flex;gap:4px;flex-shrink:0">${executed&&!trade.partialDone?`<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px" onclick="manualPartial('${trade.histId}')">🎯 TP1 Parcial</button>`:''}<button class="btn" style="background:#26a69a;color:#fff;border:none;font-size:10px" onclick="closeTrade_dashboard('tp2')">TP2</button>${trade.partialDone?`<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px" onclick="closeTrade_dashboard('sl')">🔒 BE tocado</button>`:`<button class="bct" onclick="closeTrade_dashboard('sl')">SL</button>`}<button class="btn" onclick="closeTrade_dashboard('manual')">Cerrar</button><button class="btn-bitunix" onclick="openBitunixModal()" style="font-size:10px;padding:3px 8px">📋</button></div>`;}
 function analyzeTF(tfn,cs,p){if(!cs||cs.length<6)return{tf:tfn,dir:'neu',sig:'none',bull:0,bear:0,detail:'--'};const obs=detectOBs(cs,p),bull=obs.filter(o=>o.type==='bull'),bear=obs.filter(o=>o.type==='bear');const last=cs[cs.length-1],prev=cs[cs.length-2];let bc=false,bz=false,ec=false,ez=false;bull.forEach(o=>{if(p>=o.low&&p<=o.high*1.005)bz=true;if(last.low<=o.high*1.003&&last.close>last.open&&last.close>prev.close)bc=true;});bear.forEach(o=>{if(p<=o.high&&p>=o.low*.995)ez=true;if(last.high>=o.low*.997&&last.close<last.open&&last.close<prev.close)ec=true;});if(bc&&!ec)return{tf:tfn,dir:'bull',sig:'confirmed',bull:bull.length,bear:bear.length,detail:'OB alcista ✓'};if(ec&&!bc)return{tf:tfn,dir:'bear',sig:'confirmed',bull:bull.length,bear:bear.length,detail:'OB bajista ✓'};if(bz&&!ez)return{tf:tfn,dir:'bull',sig:'zone',bull:bull.length,bear:bear.length,detail:'En zona alcista'};if(ez&&!bz)return{tf:tfn,dir:'bear',sig:'zone',bull:bull.length,bear:bear.length,detail:'En zona bajista'};if(bull.length>bear.length)return{tf:tfn,dir:'bull',sig:'weak',bull:bull.length,bear:bear.length,detail:bull.length+' OBs ▲'};if(bear.length>bull.length)return{tf:tfn,dir:'bear',sig:'weak',bull:bull.length,bear:bear.length,detail:bear.length+' OBs ▼'};return{tf:tfn,dir:'neu',sig:'none',bull:0,bear:0,detail:'Neutro'};}
 function getConf(a){const w={confirmed:1.5,zone:1.0,weak:0.5,none:0};const bulls=a.filter(x=>x.dir==='bull'),bears=a.filter(x=>x.dir==='bear');const bs=bulls.reduce((s,x)=>s+(w[x.sig]||0),0),es=bears.reduce((s,x)=>s+(w[x.sig]||0),0);if(bulls.length===3)return bs>=3?{k:'sl',l:'🟢 FUERTE ALCISTA',d:'3/3 TFs largo.'}:{k:'ml',l:'🟡 MEDIO ALCISTA',d:'2-3 TFs alcistas.'};if(bears.length===3)return es>=3?{k:'ss',l:'🔴 FUERTE BAJISTA',d:'3/3 TFs corto.'}:{k:'ms',l:'🟠 MEDIO BAJISTA',d:'2-3 TFs bajistas.'};if(bulls.length===2)return{k:'ml',l:'🟡 MEDIO ALCISTA',d:'2/3 TFs alcistas.'};if(bears.length===2)return{k:'ms',l:'🟠 MEDIO BAJISTA',d:'2/3 TFs bajistas.'};return{k:'wk',l:'⚪ SIN CONFLUENCIA',d:'TFs contradictorios.'};}
-function renderMTF(analyses,conf){const sl={confirmed:'✓',zone:'◎',weak:'~',none:'–'};document.getElementById('mtfgrid').innerHTML=analyses.map(a=>`<div class="mtf-c ${a.dir==='bull'?'bull':a.dir==='bear'?'bear':'neutral'}"><div class="mtf-tf">${a.tf}</div><div class="mtf-d ${a.dir==='bull'?'bull':a.dir==='bear'?'bear':'neu'}">${a.dir==='bull'?'▲ ALCISTA':a.dir==='bear'?'▼ BAJISTA':'➖ NEUTRO'}</div><div class="mtf-sb">${sl[a.sig]||'–'} ${a.detail}</div></div>`).join('');const cr=document.getElementById('confrow');cr.className='conf-r '+conf.k;const dots=analyses.map(a=>a.dir==='bull'?'#26a69a':a.dir==='bear'?'#ef5350':'#bdbdbd');cr.innerHTML=`<span class="conf-b ${conf.k}">${conf.l}</span><span class="conf-desc">${conf.d} · ${analyses.map(a=>a.tf).join(' · ')}</span><div style="display:flex;gap:4px">${dots.map(c=>`<div style="width:10px;height:10px;border-radius:50%;background:${c}"></div>`).join('')}</div>`;const cl={sl:'3/3 🟢',ss:'3/3 🔴',ml:'2/3 🟡',ms:'2/3 🟠',wk:'--'};document.getElementById('mc').textContent=cl[conf.k]||'--';document.getElementById('mtfst').textContent='Act. '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+(mtfCache[tf]?' 💾':'');lastConf=conf;renderTrendMain(analyses);}
+function renderMTF(analyses,conf){const sl={confirmed:'✓',zone:'◎',weak:'~',none:'–'};document.getElementById('mtfgrid').innerHTML=analyses.map(a=>`<div class="mtf-c ${a.dir==='bull'?'bull':a.dir==='bear'?'bear':'neutral'}"><div class="mtf-tf">${a.tf}</div><div class="mtf-d ${a.dir==='bull'?'bull':a.dir==='bear'?'bear':'neu'}">${a.dir==='bull'?'▲ ALCISTA':a.dir==='bear'?'▼ BAJISTA':'➖ NEUTRO'}</div><div class="mtf-sb">${sl[a.sig]||'–'} ${a.detail}</div></div>`).join('');const cr=document.getElementById('confrow');cr.className='conf-r '+conf.k;const dots=analyses.map(a=>a.dir==='bull'?'#26a69a':a.dir==='bear'?'#ef5350':'#bdbdbd');cr.innerHTML=`<span class="conf-b ${conf.k}">${conf.l}</span><span class="conf-desc">${conf.d} · ${analyses.map(a=>a.tf).join(' · ')}</span><div style="display:flex;gap:4px">${dots.map(c=>`<div style="width:10px;height:10px;border-radius:50%;background:${c}"></div>`).join('')}</div>`;const cl={sl:'3/3 🟢',ss:'3/3 🔴',ml:'2/3 🟡',ms:'2/3 🟠',wk:'--'};document.getElementById('mc').textContent=cl[conf.k]||'--';document.getElementById('mtfst').textContent='Act. '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+(mtfCache[tf]?' 💾':'');
+  // Detectar canvi de tendència MTF
+  if(lastConf&&lastConf.k!==conf.k){
+    const wasBull=lastConf.k==='sl'||lastConf.k==='ml';
+    const isBull=conf.k==='sl'||conf.k==='ml';
+    const wasNeutral=lastConf.k==='wk';
+    if(!wasNeutral&&wasBull!==isBull){
+      const msg=isBull?'📈 MTF cambió a ALCISTA':'📉 MTF cambió a BAJISTA';
+      const color=isBull?'#26a69a':'#ef5350';
+      const banner=document.createElement('div');
+      banner.style.cssText=`position:fixed;top:60px;left:50%;transform:translateX(-50%);background:${color};color:#fff;padding:10px 24px;border-radius:20px;font-size:13px;font-weight:700;z-index:99999;box-shadow:0 4px 20px ${color}66`;
+      banner.textContent=msg+' — '+conf.l;
+      document.body.appendChild(banner);
+      setTimeout(()=>banner.remove(),5000);
+      notify(msg,conf.d,'mtf-change');
+      vibrate(isBull?[200,100,200,100,200]:[300,100,300]);
+    }
+  }
+  lastConf=conf;renderTrendMain(analyses);}
 async function fetchMTF(){if(mtfBusy||!price)return;const cacheKey=tf,now=Date.now();if(mtfCache[cacheKey]&&(now-mtfCache[cacheKey].ts)<MTF_CACHE_MS){renderMTF(mtfCache[cacheKey].analyses,mtfCache[cacheKey].conf);return;}mtfBusy=true;document.getElementById('mtfst').textContent='Actualizando...';const tfs=MTFM[tf]||['15m','1h','4h'];try{const res=[];for(const t of tfs){const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${t}&limit=${(TFCFG[t]||{lim:100}).lim}`);if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();res.push(analyzeTF(t,d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4]})),price));await new Promise(r=>setTimeout(r,300));}const conf=getConf(res);mtfCache[cacheKey]={analyses:res,conf,ts:now};renderMTF(res,conf);lg('MTF → '+lastConf.l);}catch(e){document.getElementById('mtfst').textContent='Error';}mtfBusy=false;}
 
 function renderSigs(sigs,pats){const el=document.getElementById('sel');document.getElementById('tfl').textContent=tf;lastSigs=sigs;for(const idx of actSigs){if(idx>=sigs.length)actSigs.delete(idx);}renderAlert(sigs);updSigBar(sigs);drawZones(sigs);if(trade)checkPartialTrigger();if(tradeHistory.some(t=>t.result==='open'))renderHistorial();
@@ -1918,6 +1936,23 @@ function loadPrefs(){try{const raw=localStorage.getItem(PREFS_KEY);const p=raw?J
 
 window.addEventListener('load',()=>{
 loadHistory();loadPrefs();loadPushTFs();loadPinned();syncCB();updLev();updTFinfo();updatePushBar();initChart();connectWS(tf);connectTicker();renderHistorial();updateHistCount();calcUpdate();setTimeout(fetchExtLevels,2000);startExtLevelsInterval();
+// ── OPTIMITZACIÓ RENDIMENT: alentir quan pestanya oculta ─────
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    // Pestanya oculta — alentir MTF i nivells externs
+    if(mtfInt){clearInterval(mtfInt);mtfInt=setInterval(fetchMTF,600000);} // 10 min
+    if(extLevelsInt){clearInterval(extLevelsInt);extLevelsInt=setInterval(()=>{if(activExtTFs&&activExtTFs.size)fetchAllExtLevels();},600000);}
+  }else{
+    // Pestanya visible — restaurar freqüència normal
+    if(mtfInt){clearInterval(mtfInt);mtfInt=setInterval(fetchMTF,180000);} // 3 min
+    if(extLevelsInt){clearInterval(extLevelsInt);extLevelsInt=setInterval(()=>{if(activExtTFs&&activExtTFs.size)fetchAllExtLevels();},300000);}
+    // Actualitzar immediatament quan torna
+    setTimeout(()=>{if(typeof fetchMTF==='function')fetchMTF();},500);
+    // Reconnectar WebSocket si s'ha tallat
+    setTimeout(()=>{if(typeof ws==='undefined'||!ws||ws.readyState!==WebSocket.OPEN){if(typeof connectWS==='function')connectWS(tf);}},1000);
+  }
+});
+
 // ── GESTOS SWIPE MÒBIL ───────────────────────────────────────
 (function(){
   const TABS=['dashboard','historial','mercado'];
@@ -2898,7 +2933,7 @@ function seMenuLoginAction(){
   // Iniciar sessió — intentar totes les opcions
   if(typeof seLoginGoogle==='function'){seLoginGoogle();return;}
   if(typeof seDb!=='undefined'&&seDb){
-    seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledge-app.github.io/signaledge/app'}});
+    seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com'}});
     return;
   }
   // Fallback: crear client propi
@@ -2907,7 +2942,7 @@ function seMenuLoginAction(){
       'https://aivhwxixdjfyckvplimt.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdmh3eGl4ZGpmeWNrdnBsaW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzgzOTYsImV4cCI6MjA5NDgxNDM5Nn0.6JeBBItEGNaVP7l7F-90e-QE1INr_FTJV00aUl4WGrc'
     );
-    db.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledge-app.github.io/signaledge/app'}});
+    db.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com'}});
   }catch(e){console.log('Login error:',e);}
 }
 function seUpdateProfileMenu(user){
