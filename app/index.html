@@ -1967,6 +1967,7 @@ document.addEventListener('visibilitychange',()=>{
     if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
     const target=e.target;
     if(target.closest('#trade-detail-overlay,#tutorial-overlay,#price-alerts-panel,#bitunix-modal-overlay,#tab-mercado'))return;
+    if(target.closest('#cc,.chart-wrapper,.chart-main,.chart-vol,canvas'))return;
     const activeBtn=document.querySelector('.tab-btn.active');
     if(!activeBtn)return;
     const currentTab=activeBtn.dataset.tab;
