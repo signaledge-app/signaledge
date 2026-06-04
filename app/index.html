@@ -2933,7 +2933,7 @@ function seMenuLoginAction(){
   // Iniciar sessió — intentar totes les opcions
   if(typeof seLoginGoogle==='function'){seLoginGoogle();return;}
   if(typeof seDb!=='undefined'&&seDb){
-    seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com'}});
+    seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com/app'}});
     return;
   }
   // Fallback: crear client propi
@@ -2942,7 +2942,7 @@ function seMenuLoginAction(){
       'https://aivhwxixdjfyckvplimt.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdmh3eGl4ZGpmeWNrdnBsaW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzgzOTYsImV4cCI6MjA5NDgxNDM5Nn0.6JeBBItEGNaVP7l7F-90e-QE1INr_FTJV00aUl4WGrc'
     );
-    db.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com'}});
+    db.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com/app'}});
   }catch(e){console.log('Login error:',e);}
 }
 function seUpdateProfileMenu(user){
