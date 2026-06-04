@@ -32,9 +32,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 5vw;height:64px;di
 .logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:pulse 2s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.6;transform:scale(.8);}}
 .nav-right{display:flex;align-items:center;gap:16px;}
-.lang-toggle{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
-.lang-btn{padding:4px 12px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--text2);background:none;border:none;cursor:pointer;transition:all .2s;}
-.lang-btn.active{background:var(--accent);color:#000;font-weight:600;}
+.lang-toggle{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:20px;overflow:hidden;padding:2px;}
+.lang-btn{padding:3px 10px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:600;color:var(--text3);background:none;border:none;cursor:pointer;transition:all .2s;border-radius:20px;letter-spacing:.5px;}
+.lang-btn.active{background:var(--accent);color:#000;}
 .btn-nav{padding:8px 20px;border-radius:7px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;text-decoration:none;}
 .btn-nav:hover{background:var(--accent);color:#000;}
 .hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 5vw 60px;text-align:center;z-index:1;overflow:hidden;}
@@ -187,6 +187,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 .legal-disclaimer{background:#0d1117;border-top:1px solid #21262d;padding:12px 24px;text-align:center;font-size:11px;color:#484f58;line-height:1.5;}
 .legal-disclaimer a{color:#484f58;text-decoration:underline;}
 
+
 </style>
 </head>
 <body>
@@ -237,11 +238,11 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
   <div class="orb orb1"></div><div class="orb orb2"></div>
   <div class="hero-badge"><div class="hero-badge-dot"></div><span>Señales en vivo · BTC/USDT</span></div>
   <h1 class="hero-title"><span>Opera con</span><br><span class="line2">precisión.</span></h1>
-  <p class="hero-sub">Señales de trading BTC/USDT en tiempo real basadas en OB, FVG y estructura de mercado. Gestión de capital integrada para operar con disciplina.</p>
+  <p class="hero-sub" data-es="Señales de trading BTC/USDT en tiempo real basadas en OB, FVG y estructura de mercado. Gestión de capital integrada para operar con disciplina." data-en="Real-time BTC/USDT trading signals based on OB, FVG and market structure. Integrated capital management to trade with discipline.">Señales de trading BTC/USDT en tiempo real basadas en OB, FVG y estructura de mercado. Gestión de capital integrada para operar con disciplina.</p>
   <div class="hero-cta">
     <!-- FIX: apunta a /app no a la landing -->
-    <a href="https://signaledgeapp.com/app" class="btn-primary">⚡ Empezar gratis</a>
-    <a href="#features" class="btn-secondary">Ver funciones →</a>
+    <a href="https://signaledgeapp.com/app" class="btn-primary" data-es="⚡ Empezar gratis" data-en="⚡ Get started free">⚡ Empezar gratis</a>
+    <a href="#features" class="btn-secondary" data-es="Ver funciones →" data-en="See features →">Ver funciones →</a>
   </div>
   <div class="ticker-wrap">
     <div class="ticker">
@@ -392,11 +393,18 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 </footer>
 
 <script>
-let currentLang='es';
+let currentLang=localStorage.getItem('se_lang')||'es';
+window.addEventListener('DOMContentLoaded',()=>{if(currentLang!=='es')setLang(currentLang);});
 function setLang(lang){
   currentLang=lang;
   document.getElementById('btn-es').classList.toggle('active',lang==='es');
   document.getElementById('btn-en').classList.toggle('active',lang==='en');
+  // Traduir tots els elements amb data-es / data-en
+  document.querySelectorAll('[data-'+lang+']').forEach(el=>{
+    el.textContent=el.getAttribute('data-'+lang);
+  });
+  // Guardar preferència
+  localStorage.setItem('se_lang',lang);
 }
 function toggleProfileMenu(){
   const menu=document.getElementById('nav-profile-menu');
