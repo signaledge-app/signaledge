@@ -2,6 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HDDSLP9JW0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HDDSLP9JW0');
+  </script>
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/x-icon" href="/icon-192.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
@@ -164,6 +172,21 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 .npm-login-desc{font-size:10px;color:var(--text3);text-align:center;margin-top:8px;line-height:1.5;}
 @media(max-width:768px){.stats-grid{grid-template-columns:repeat(2,1fr);gap:24px;}.signals-demo{grid-template-columns:1fr;}.preview-content{grid-template-columns:1fr 1fr;}.hero-cta{flex-direction:column;align-items:center;}.btn-primary,.btn-secondary{width:100%;max-width:300px;justify-content:center;}.mercado-preview{grid-template-columns:1fr;}}
 @media(max-width:480px){.preview-content{grid-template-columns:1fr;}nav{padding:0 4vw;}}
+
+/* ── Cookie Banner ── */
+#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#161b22;border-top:1px solid #30363d;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#c9d1d9;transform:translateY(100%);transition:transform .3s ease;}
+#cookie-banner.visible{transform:translateY(0);}
+#cookie-banner a{color:#2962ff;text-decoration:none;}
+#cookie-banner a:hover{text-decoration:underline;}
+.cookie-btns{display:flex;gap:8px;flex-shrink:0;}
+.cookie-accept{background:#2962ff;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;}
+.cookie-reject{background:transparent;color:#8b949e;border:1px solid #30363d;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;}
+.cookie-accept:hover{background:#1a4fd6;}
+.cookie-reject:hover{color:#c9d1d9;border-color:#8b949e;}
+/* ── Disclaimer footer ── */
+.legal-disclaimer{background:#0d1117;border-top:1px solid #21262d;padding:12px 24px;text-align:center;font-size:11px;color:#484f58;line-height:1.5;}
+.legal-disclaimer a{color:#484f58;text-decoration:underline;}
+
 </style>
 </head>
 <body>
@@ -365,7 +388,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 
 <footer>
   <div class="footer-logo">SignalEdge</div>
-  <div class="footer-text">BTC/USDT · Señales en tiempo real · No es asesoramiento financiero</div>
+  <div class="footer-text">BTC/USDT · Señales en tiempo real · No es asesoramiento financiero · <a href="/privacy.html" style="color:inherit;text-decoration:underline" target="_blank">Privacidad</a></div>
 </footer>
 
 <script>
@@ -469,5 +492,39 @@ const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isInt
 document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<!-- Legal Disclaimer -->
+<div class="legal-disclaimer">
+  ⚠️ SignalEdge no proporciona asesoramiento financiero. Las señales son puramente informativas. Operar con criptomonedas implica riesgo elevado de pérdida de capital. · <a href="/privacy.html" target="_blank">Política de privacidad</a>
+</div>
+
+<!-- Cookie Banner -->
+<div id="cookie-banner">
+  <span>🍪 Usamos cookies propias y de Google Analytics para mejorar la app. <a href="/privacy.html" target="_blank">Política de privacidad</a></span>
+  <div class="cookie-btns">
+    <button class="cookie-reject" onclick="cookieReject()">Solo esenciales</button>
+    <button class="cookie-accept" onclick="cookieAccept()">Aceptar</button>
+  </div>
+</div>
+<script>
+(function(){
+  var consent=localStorage.getItem('se_cookie_consent');
+  if(!consent){setTimeout(function(){var b=document.getElementById('cookie-banner');if(b)b.classList.add('visible');},1000);}
+  else if(consent==='rejected'){
+    // Desactivar GA si ha rebutjat
+    window['ga-disable-G-HDDSLP9JW0']=true;
+  }
+})();
+function cookieAccept(){
+  localStorage.setItem('se_cookie_consent','accepted');
+  var b=document.getElementById('cookie-banner');if(b)b.classList.remove('visible');
+}
+function cookieReject(){
+  localStorage.setItem('se_cookie_consent','rejected');
+  window['ga-disable-G-HDDSLP9JW0']=true;
+  var b=document.getElementById('cookie-banner');if(b)b.classList.remove('visible');
+}
+</script>
+
 </body>
 </html>
