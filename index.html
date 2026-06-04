@@ -389,7 +389,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 
 <footer>
   <div class="footer-logo">SignalEdge</div>
-  <div class="footer-text" id="t-footer">BTC/USDT · Señales en tiempo real · No es asesoramiento financiero · <a href="/privacy.html" style="color:inherit;text-decoration:underline" target="_blank">Privacidad</a></div>
+  <div class="footer-text" id="t-footer">BTC/USDT · Señales en tiempo real · No es asesoramiento financiero · <a href="/privacy.html" style="color:inherit;text-decoration:underline" target="_blank" id="t-footer-link">Privacidad</a></div>
 </footer>
 
 <script>
@@ -417,7 +417,8 @@ const TEXTS={
     't-sig-h':'Así se ven<br>las señales.',
     't-cta':'Empieza a operar<br>con ventaja.','t-ctasub':'Gratuito. Sin tarjeta de crédito. Sin instalación.',
     't-footer':'BTC/USDT · Señales en tiempo real · No es asesoramiento financiero ·',
-    't-ck-text':'🍪 Usamos cookies propias y de Google Analytics para mejorar la app.','t-ck-link':'Política de privacidad','t-ck-no':'Solo esenciales','t-ck-ok':'Aceptar'
+    't-ck-text':'🍪 Usamos cookies propias y de Google Analytics para mejorar la app.','t-ck-link':'Política de privacidad','t-ck-no':'Solo esenciales','t-ck-ok':'Aceptar',
+    't-disclaimer':'⚠️ SignalEdge no proporciona asesoramiento financiero. Las señales son puramente informativas. Operar con criptomonedas implica riesgo elevado de pérdida de capital.','t-priv-link':'Política de privacidad','t-footer-link':'Privacidad'
   },
   en:{
     'btn-entrar':'Open app','btn-empezar':'⚡ Get started free','btn-verfunc':'See features →','btn-abrir':'⚡ Open SignalEdge',
@@ -440,7 +441,8 @@ const TEXTS={
     't-sig-h':'This is what<br>signals look like.',
     't-cta':'Start trading<br>with an edge.','t-ctasub':'Free. No credit card. No installation.',
     't-footer':'BTC/USDT · Real-time signals · Not financial advice ·',
-    't-ck-text':'🍪 We use cookies and Google Analytics to improve the app.','t-ck-link':'Privacy policy','t-ck-no':'Essential only','t-ck-ok':'Accept'
+    't-ck-text':'🍪 We use cookies and Google Analytics to improve the app.','t-ck-link':'Privacy policy','t-ck-no':'Essential only','t-ck-ok':'Accept',
+    't-disclaimer':'⚠️ SignalEdge does not provide financial advice. Signals are purely informational. Trading cryptocurrencies involves a high risk of capital loss.','t-priv-link':'Privacy policy','t-footer-link':'Privacy'
   }
 };
 function setLang(lang){
@@ -559,7 +561,7 @@ document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 
 <!-- Legal Disclaimer -->
 <div class="legal-disclaimer">
-  ⚠️ SignalEdge no proporciona asesoramiento financiero. Las señales son puramente informativas. Operar con criptomonedas implica riesgo elevado de pérdida de capital. · <a href="/privacy.html" target="_blank">Política de privacidad</a>
+  <span id="t-disclaimer">⚠️ SignalEdge no proporciona asesoramiento financiero. Las señales son puramente informativas. Operar con criptomonedas implica riesgo elevado de pérdida de capital.</span> · <a href="/privacy.html" target="_blank" id="t-priv-link">Política de privacidad</a>
 </div>
 
 <!-- Cookie Banner -->
