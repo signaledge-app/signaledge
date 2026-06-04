@@ -458,12 +458,22 @@ function setLang(lang){
   // hero-sub per classe
   const sub=document.querySelector('.hero-sub');
   if(sub)sub.textContent=t['hero-sub'];
-  // Cookie banner — reconstruir amb link
-  const ckText=document.getElementById('t-ck-text');
+  // Cookie banner link
   const ckLink=document.getElementById('t-ck-link');
-  if(ckText&&ckLink)ckLink.textContent=t['t-ck-link'];
+  if(ckLink)ckLink.textContent=t['t-ck-link'];
+  // Actualitzar tots els links de privacy.html amb ?lang=
+  document.querySelectorAll('a[href*="privacy.html"]').forEach(a=>{
+    a.href='/privacy.html?lang='+lang;
+  });
   localStorage.setItem('se_lang',lang);
 }
+// Aplicar lang als links de privacy en carregar
+window.addEventListener('DOMContentLoaded',()=>{
+  const lang=localStorage.getItem('se_lang')||'es';
+  document.querySelectorAll('a[href*="privacy.html"]').forEach(a=>{
+    a.href='/privacy.html?lang='+lang;
+  });
+});
 function toggleProfileMenu(){
   const menu=document.getElementById('nav-profile-menu');
   menu.classList.toggle('open');
