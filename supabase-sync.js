@@ -25,7 +25,7 @@ window.addEventListener('load',()=>{
 async function seLoginGoogle(){
   if(!seDb)return;
   try{
-    await seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com'}});
+    await seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com/app'}});
   }catch(e){console.log('SE Login error:',e.message);}
 }
 async function seLogout(){
