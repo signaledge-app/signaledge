@@ -1942,6 +1942,22 @@ loadHistory();loadPrefs();loadPushTFs();loadPinned();syncCB();updLev();updTFinfo
     const newBtn=document.querySelector(`.tab-btn[data-tab="${TABS[newIdx]}"]`);
     if(newBtn)newBtn.click();
   },{passive:true});
+  // Swipe específic per la pestanya Mercado (overlay independent)
+  const mktEl=document.getElementById('tab-mercado');
+  if(mktEl){
+    let mktStartX=0,mktStartY=0;
+    mktEl.addEventListener('touchstart',e=>{mktStartX=e.touches[0].clientX;mktStartY=e.touches[0].clientY;},{passive:true});
+    mktEl.addEventListener('touchend',e=>{
+      const dx=e.changedTouches[0].clientX-mktStartX;
+      const dy=e.changedTouches[0].clientY-mktStartY;
+      if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
+      // Swipe dreta → tornar a Historial
+      if(dx>0){
+        const histBtn=document.querySelector('.tab-btn[data-tab="historial"]');
+        if(histBtn)histBtn.click();
+      }
+    },{passive:true});
+  }
 })();
 
 const _hideLoginBtn=()=>{const b=document.getElementById('se-login-btn');if(b)b.style.cssText='display:none!important';};
@@ -2076,10 +2092,19 @@ function exportPDF(){
 </html>`;
 
   // Obrir en nova finestra i imprimir
+  // Afegir botó tornar i descarregar al PDF
+  const pdfWithNav=html.replace('<body>',`<body>
+<div style="position:fixed;top:0;left:0;right:0;background:#0d1420;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.3)">
+  <button onclick="window.close()" style="background:none;border:1px solid #4a5a72;color:#8a9ab5;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer">← Volver</button>
+  <span style="color:#00d4ff;font-weight:700;font-size:14px">SignalEdge</span>
+  <button onclick="window.print()" style="background:#2962ff;border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">📥 Guardar PDF</button>
+</div>
+<div style="height:52px"></div>`);
+
   const w=window.open('','_blank');
-  w.document.write(html);
+  if(!w){alert('Permite las ventanas emergentes para exportar el PDF.');return;}
+  w.document.write(pdfWithNav);
   w.document.close();
-  w.onload=()=>setTimeout(()=>{w.print();},300);
 }
 
 function exportCSV(){
@@ -2589,114 +2614,149 @@ function showTradeDetail(id){
 function shareTradeCard(){
   const canvas=document.getElementById('share-canvas');
   const ctx=canvas.getContext('2d');
-  const W=600,H=380;
+  const W=600,H=420;
   canvas.width=W;canvas.height=H;
 
-  // Llegir dades del modal
+  // Dades del modal
   const pnlEl=document.getElementById('tdm-pnl');
   const pnl=pnlEl?.textContent||'--';
   const isPnlPos=pnlEl?.classList.contains('pos');
   const isPnlNeg=pnlEl?.classList.contains('neg');
   const tags=document.getElementById('tdm-tags');
-  const dirTag=tags?.querySelector('span')?.textContent||'--';
-  const subtitle=document.getElementById('tdm-subtitle')?.textContent||'--';
-  const entry=document.getElementById('tdm-entry')?.textContent||'--';
-  const close=document.getElementById('tdm-close')?.textContent||'--';
+  const tagSpans=tags?.querySelectorAll('span')||[];
+  const dirTag=tagSpans[0]?.textContent||'--';
+  const srcTag=tagSpans[1]?.textContent||'--';
+  const resTag=tagSpans[2]?.textContent||'--';
+  const entry=document.getElementById('tdm-entry')?.textContent?.replace('$','')||'--';
+  const closeP=document.getElementById('tdm-close')?.textContent?.replace('$','')||'--';
+  const tp1=document.getElementById('tdm-tp1')?.textContent?.split(' ')[0]?.replace('$','')||'--';
+  const tp2=document.getElementById('tdm-tp2')?.textContent?.split(' ')[0]?.replace('$','')||'--';
   const openDate=document.getElementById('tdm-open-date')?.textContent||'--';
   const closeDate=document.getElementById('tdm-close-date')?.textContent||'';
-  const dur=document.getElementById('tdm-dur')?.textContent||'--';
-  const note=document.getElementById('tdm-note')?.value||'';
 
-  // Colors
-  const bg='#0d1420';
-  const accent=isPnlPos?'#26a69a':isPnlNeg?'#ef5350':'#aaa';
-  const card='#131d2b';
-  const border='#1e2d40';
+  const accent=isPnlPos?'#00e676':isPnlNeg?'#ff4757':'#aaa';
+  const isLong=dirTag.includes('LONG');
 
-  // Fons
-  ctx.fillStyle=bg;
+  // ── FONS DEGRADAT ─────────────────────────────────────────
+  const bgGrad=ctx.createLinearGradient(0,0,W,H);
+  bgGrad.addColorStop(0,'#080c12');
+  bgGrad.addColorStop(1,'#0d1a2e');
+  ctx.fillStyle=bgGrad;
   ctx.fillRect(0,0,W,H);
 
-  // Gradient decoratiu
-  const grad=ctx.createRadialGradient(0,0,0,0,0,300);
-  grad.addColorStop(0,accent+'22');
-  grad.addColorStop(1,'transparent');
-  ctx.fillStyle=grad;
-  ctx.fillRect(0,0,W,H);
-
-  // Card principal
-  ctx.fillStyle=card;
-  ctx.strokeStyle=border;
+  // Noise overlay (grid subtil)
+  ctx.strokeStyle='rgba(255,255,255,0.03)';
   ctx.lineWidth=1;
-  roundRect(ctx,24,24,W-48,H-48,12);
-  ctx.fill();ctx.stroke();
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Gradient accent lateral
+  const sideGrad=ctx.createLinearGradient(0,0,200,H);
+  sideGrad.addColorStop(0,accent+'33');
+  sideGrad.addColorStop(1,'transparent');
+  ctx.fillStyle=sideGrad;
+  ctx.fillRect(0,0,W,H);
 
   // Línia accent esquerra
-  ctx.fillStyle=accent;
-  roundRect(ctx,24,24,4,H-48,12);
-  ctx.fill();
+  const lineGrad=ctx.createLinearGradient(0,0,0,H);
+  lineGrad.addColorStop(0,accent);
+  lineGrad.addColorStop(1,accent+'00');
+  ctx.fillStyle=lineGrad;
+  ctx.fillRect(0,0,4,H);
 
-  // PnL gran
-  ctx.font='bold 72px Syne,sans-serif';
-  ctx.fillStyle=accent;
+  // ── LOGO / HEADER ─────────────────────────────────────────
+  ctx.font='bold 15px Arial';
+  ctx.fillStyle='#00d4ff';
   ctx.textAlign='left';
-  ctx.fillText(pnl,60,110);
+  ctx.fillText('● SignalEdge',24,36);
 
-  // Subtítol (R:R, ET)
-  ctx.font='500 14px DM Sans,sans-serif';
-  ctx.fillStyle='#8a9ab5';
-  ctx.fillText(subtitle,60,135);
-
-  // Badge direcció
-  ctx.font='bold 13px DM Sans,sans-serif';
-  ctx.fillStyle=accent;
-  ctx.fillText(dirTag,60,170);
+  // Par
+  ctx.font='bold 13px Arial';
+  ctx.fillStyle='#e8edf5';
+  ctx.textAlign='right';
+  ctx.fillText('BTC/USDT',W-24,36);
 
   // Separador
-  ctx.strokeStyle=border;
+  ctx.strokeStyle='rgba(255,255,255,0.08)';
   ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(60,185);ctx.lineTo(W-60,185);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(24,48);ctx.lineTo(W-24,48);ctx.stroke();
 
-  // Dades
-  const rows=[
-    ['Entrada',`$${entry}`],
-    ['Cierre',close&&close!=='--'?`$${close}`:'En curso'],
-    ['Duración',dur],
-    ['Fecha',closeDate||openDate],
-  ];
+  // ── DIRECCIÓ + APALANCAMENT ───────────────────────────────
+  ctx.font='bold 18px Arial';
+  ctx.fillStyle=isLong?'#00e676':'#ff4757';
   ctx.textAlign='left';
-  rows.forEach((r,i)=>{
-    const x=60+Math.floor(i/2)*240;
-    const y=215+(i%2)*40;
-    ctx.font='11px DM Sans,sans-serif';ctx.fillStyle='#4a5a72';
-    ctx.fillText(r[0].toUpperCase(),x,y);
-    ctx.font='500 14px DM Sans,sans-serif';ctx.fillStyle='#e8edf5';
-    ctx.fillText(r[1],x,y+18);
-  });
+  ctx.fillText(dirTag,24,82);
 
-  // Nota
-  if(note){
-    ctx.font='italic 12px DM Sans,sans-serif';
+  // Font senyal
+  ctx.font='13px Arial';
+  ctx.fillStyle='#8a9ab5';
+  ctx.fillText(srcTag,24,102);
+
+  // Resultat badge
+  ctx.font='bold 12px Arial';
+  ctx.fillStyle=isPnlPos?'#00e676':isPnlNeg?'#ff4757':'#aaa';
+  ctx.textAlign='right';
+  ctx.fillText(resTag,W-24,82);
+
+  // ── PnL GRAN ──────────────────────────────────────────────
+  ctx.font='bold 86px Arial';
+  ctx.fillStyle=accent;
+  ctx.textAlign='left';
+  ctx.fillText(pnl,20,195);
+
+  // Ombra PnL
+  ctx.shadowColor=accent+'66';
+  ctx.shadowBlur=30;
+  ctx.fillText(pnl,20,195);
+  ctx.shadowBlur=0;
+
+  // ── SEPARADOR ─────────────────────────────────────────────
+  ctx.strokeStyle='rgba(255,255,255,0.08)';
+  ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(24,215);ctx.lineTo(W-24,215);ctx.stroke();
+
+  // ── DADES ─────────────────────────────────────────────────
+  const rows=[
+    {label:'Precio de entrada',val:'$'+entry},
+    {label:'Precio de cierre',val:closeP!=='--'?'$'+closeP:'En curso'},
+    {label:'TP1',val:tp1!=='--'?'$'+tp1:'--'},
+    {label:'TP2',val:tp2!=='--'?'$'+tp2:'--'},
+  ];
+
+  rows.forEach((r,i)=>{
+    const col=i<2?0:1;
+    const row=i<2?i:i-2;
+    const x=24+col*290;
+    const y=248+row*52;
+    ctx.font='11px Arial';
     ctx.fillStyle='#4a5a72';
     ctx.textAlign='left';
-    ctx.fillText('"'+note.slice(0,60)+(note.length>60?'...':'')+'"',60,305);
-  }
+    ctx.fillText(r.label.toUpperCase(),x,y);
+    ctx.font='bold 16px Arial';
+    ctx.fillStyle='#e8edf5';
+    ctx.fillText(r.val,x,y+20);
+  });
 
-  // Logo SignalEdge
-  ctx.font='bold 13px Syne,sans-serif';
-  ctx.fillStyle='#00d4ff';
-  ctx.textAlign='right';
-  ctx.fillText('SignalEdge',W-48,H-38);
-  ctx.font='10px DM Sans,sans-serif';
+  // ── DATA ──────────────────────────────────────────────────
+  ctx.strokeStyle='rgba(255,255,255,0.08)';
+  ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(24,H-48);ctx.lineTo(W-24,H-48);ctx.stroke();
+
+  ctx.font='12px Arial';
   ctx.fillStyle='#4a5a72';
-  ctx.fillText('signaledge-app.github.io',W-48,H-22);
+  ctx.textAlign='left';
+  ctx.fillText(closeDate||openDate,24,H-22);
 
-  // Descarregar o compartir
+  ctx.font='11px Arial';
+  ctx.fillStyle='#2a3a52';
+  ctx.textAlign='right';
+  ctx.fillText('signaledge-app.github.io',W-24,H-22);
+
+  // ── COMPARTIR ─────────────────────────────────────────────
   canvas.style.display='block';
   canvas.toBlob(blob=>{
     canvas.style.display='none';
     const url=URL.createObjectURL(blob);
-    // Intentar Web Share API (mòbil)
     if(navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([blob],'signaledge-trade.png',{type:'image/png'})]})){
       navigator.share({
         title:'Mi resultado en SignalEdge',
@@ -2704,13 +2764,13 @@ function shareTradeCard(){
         files:[new File([blob],'signaledge-trade.png',{type:'image/png'})]
       }).catch(()=>{});
     }else{
-      // Fallback: descarregar
       const a=document.createElement('a');
       a.href=url;a.download='signaledge-trade.png';a.click();
       setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
   },'image/png');
 }
+
 
 function roundRect(ctx,x,y,w,h,r){
   ctx.beginPath();
