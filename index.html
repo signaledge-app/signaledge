@@ -171,7 +171,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
       <button class="lang-btn" onclick="setLang('en')" id="btn-en">EN</button>
     </div>
     <button class="nav-profile-btn" id="nav-profile-btn" onclick="toggleProfileMenu()" title="Perfil">👤</button>
-    <a href="https://signaledgeapp.com" class="btn-nav" id="btn-entrar" data-es="Entrar a la app" data-en="Open app">Entrar a la app</a>
+    <a href="https://signaledgeapp.com/app" class="btn-nav" id="btn-entrar" data-es="Entrar a la app" data-en="Open app">Entrar a la app</a>
   </div>
 </nav>
 
@@ -192,7 +192,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
       <div style="min-width:0"><div class="npm-name" id="npm-name">--</div><div class="npm-email" id="npm-email">--</div></div>
     </div>
     <div class="npm-section">
-      <a href="https://signaledgeapp.com" class="npm-item">
+      <a href="https://signaledgeapp.com/app" class="npm-item">
         <span class="npm-icon">📊</span><span>Ir al dashboard</span>
       </a>
     </div>
@@ -212,7 +212,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
   <p class="hero-sub">Señales de trading BTC/USDT en tiempo real basadas en OB, FVG y estructura de mercado. Gestión de capital integrada para operar con disciplina.</p>
   <div class="hero-cta">
     <!-- FIX: apunta a /app no a la landing -->
-    <a href="https://signaledgeapp.com" class="btn-primary">⚡ Empezar gratis</a>
+    <a href="https://signaledgeapp.com/app" class="btn-primary">⚡ Empezar gratis</a>
     <a href="#features" class="btn-secondary">Ver funciones →</a>
   </div>
   <div class="ticker-wrap">
@@ -352,7 +352,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
     <h2 class="cta-title">Empieza a operar<br>con ventaja.</h2>
     <p class="cta-sub">Gratuito. Sin tarjeta de crédito. Sin instalación.</p>
     <!-- FIX: apunta a /app -->
-    <a href="https://signaledgeapp.com" class="btn-primary" style="display:inline-flex;font-size:16px;padding:16px 48px;">
+    <a href="https://signaledgeapp.com/app" class="btn-primary" style="display:inline-flex;font-size:16px;padding:16px 48px;">
       ⚡ Abrir SignalEdge
     </a>
   </div>
@@ -420,7 +420,7 @@ async function initLandingAuth(){
 async function landingLoginGoogle(){
   if(!landingDb)return;
   document.getElementById('nav-profile-menu').classList.remove('open');
-  try{await landingDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com'}});}
+  try{await landingDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com/app'}});}
   catch(e){console.log('Login error:',e.message);}
 }
 async function landingLogout(){
