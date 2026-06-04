@@ -236,13 +236,13 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 
 <section class="hero">
   <div class="orb orb1"></div><div class="orb orb2"></div>
-  <div class="hero-badge"><div class="hero-badge-dot"></div><span>Señales en vivo · BTC/USDT</span></div>
-  <h1 class="hero-title"><span>Opera con</span><br><span class="line2">precisión.</span></h1>
+  <div class="hero-badge"><div class="hero-badge-dot"></div><span id="t-badge">Señales en vivo · BTC/USDT</span></div>
+  <h1 class="hero-title" id="t-title"><span id="t-title1">Opera con</span><br><span class="line2" id="t-title2">precisión.</span></h1>
   <p class="hero-sub" data-es="Señales de trading BTC/USDT en tiempo real basadas en OB, FVG y estructura de mercado. Gestión de capital integrada para operar con disciplina." data-en="Real-time BTC/USDT trading signals based on OB, FVG and market structure. Integrated capital management to trade with discipline.">Señales de trading BTC/USDT en tiempo real basadas en OB, FVG y estructura de mercado. Gestión de capital integrada para operar con disciplina.</p>
   <div class="hero-cta">
     <!-- FIX: apunta a /app no a la landing -->
-    <a href="https://signaledgeapp.com/app" class="btn-primary" data-es="⚡ Empezar gratis" data-en="⚡ Get started free">⚡ Empezar gratis</a>
-    <a href="#features" class="btn-secondary" data-es="Ver funciones →" data-en="See features →">Ver funciones →</a>
+    <a href="https://signaledgeapp.com/app" class="btn-primary" data-es="⚡ Empezar gratis" data-en="⚡ Get started free" id="btn-empezar">⚡ Empezar gratis</a>
+    <a href="#features" class="btn-secondary" data-es="Ver funciones →" data-en="See features →" id="btn-verfunc">Ver funciones →</a>
   </div>
   <div class="ticker-wrap">
     <div class="ticker">
@@ -286,36 +286,36 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 
 <section class="features" id="features">
   <div class="reveal">
-    <span class="section-label">Funciones</span>
+    <span class="section-label" id="t-s1">Funciones</span>
     <h2 class="section-title">Todo lo que necesitas<br>para operar mejor.</h2>
     <p class="section-sub">Herramientas profesionales accesibles para cualquier trader, sin coste.</p>
   </div>
   <div class="features-grid">
     <div class="feat-card reveal">
       <div class="feat-icon blue">⚡</div>
-      <div class="feat-title">Señales en tiempo real</div>
-      <p class="feat-desc">OB, FVG y Retest detectados automáticamente. Con puntuación de confluencia multi-timeframe y alertas push.</p>
+      <div class="feat-title" id="t-f1">Señales en tiempo real</div>
+      <p class="feat-desc" id="t-fd1">OB, FVG y Retest detectados automáticamente. Con puntuación de confluencia multi-timeframe y alertas push.</p>
     </div>
     <div class="feat-card reveal">
       <div class="feat-icon green">💰</div>
-      <div class="feat-title">Gestión de capital</div>
-      <p class="feat-desc">Calcula automáticamente el tamaño de posición, riesgo por trade y escenarios TP/SL según tu capital disponible.</p>
+      <div class="feat-title" id="t-f2">Gestión de capital</div>
+      <p class="feat-desc" id="t-fd2">Calcula automáticamente el tamaño de posición, riesgo por trade y escenarios TP/SL según tu capital disponible.</p>
     </div>
     <div class="feat-card reveal">
       <div class="feat-icon orange">📊</div>
-      <div class="feat-title">Historial y estadísticas</div>
-      <p class="feat-desc">Registra todos tus trades, calcula win rate, R:R medio y PnL acumulado. Exporta en CSV cuando quieras.</p>
+      <div class="feat-title" id="t-f3">Historial y estadísticas</div>
+      <p class="feat-desc" id="t-fd3">Registra todos tus trades, calcula win rate, R:R medio y PnL acumulado. Exporta en CSV cuando quieras.</p>
     </div>
     <div class="feat-card reveal">
       <div class="feat-icon purple">☁️</div>
-      <div class="feat-title">Sync PC + móvil</div>
-      <p class="feat-desc">Login con Google y sincronización en tiempo real. Abre una operación en el PC y gestíonala desde el móvil.</p>
+      <div class="feat-title" id="t-f4">Sync PC + móvil</div>
+      <p class="feat-desc" id="t-fd4">Login con Google y sincronización en tiempo real. Abre una operación en el PC y gestíonala desde el móvil.</p>
     </div>
     <!-- NOU: Análisis de mercado -->
     <div class="feat-card reveal">
       <div class="feat-icon teal">🌍</div>
-      <div class="feat-title">Análisis de mercado</div>
-      <p class="feat-desc">Semáforo de inversión basado en Fear &amp; Greed, MAs y tendencia. Ciclo de mercado, niveles clave y comparativa BTC/ETH/SOL.</p>
+      <div class="feat-title" id="t-f5">Análisis de mercado</div>
+      <p class="feat-desc" id="t-fd5">Semáforo de inversión basado en Fear &amp; Greed, MAs y tendencia. Ciclo de mercado, niveles clave y comparativa BTC/ETH/SOL.</p>
     </div>
   </div>
 </section>
@@ -323,7 +323,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 <!-- NOVA SECCIÓ: MERCADO -->
 <section class="mercado-section">
   <div class="reveal">
-    <span class="section-label">Análisis de mercado</span>
+    <span class="section-label" id="t-s2">Análisis de mercado</span>
     <h2 class="section-title">¿Es buen momento<br>para invertir?</h2>
     <p class="section-sub">No solo trades a corto plazo. SignalEdge también te dice cuándo el mercado está a tu favor para invertir a largo plazo.</p>
   </div>
@@ -351,7 +351,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 
 <section class="signals-section">
   <div class="reveal">
-    <span class="section-label">Ejemplo de señales</span>
+    <span class="section-label" id="t-s3">Ejemplo de señales</span>
     <h2 class="section-title">Así se ven<br>las señales.</h2>
   </div>
   <div class="signals-demo">
@@ -378,8 +378,8 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 
 <section class="cta-section">
   <div class="cta-box reveal">
-    <h2 class="cta-title">Empieza a operar<br>con ventaja.</h2>
-    <p class="cta-sub">Gratuito. Sin tarjeta de crédito. Sin instalación.</p>
+    <h2 class="cta-title" id="t-cta">Empieza a operar<br>con ventaja.</h2>
+    <p class="cta-sub" id="t-ctasub">Gratuito. Sin tarjeta de crédito. Sin instalación.</p>
     <!-- FIX: apunta a /app -->
     <a href="https://signaledgeapp.com/app" class="btn-primary" style="display:inline-flex;font-size:16px;padding:16px 48px;">
       ⚡ Abrir SignalEdge
@@ -395,15 +395,49 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 <script>
 let currentLang=localStorage.getItem('se_lang')||'es';
 window.addEventListener('DOMContentLoaded',()=>{if(currentLang!=='es')setLang(currentLang);});
+const TEXTS={
+  es:{
+    'btn-entrar':'Entrar a la app',
+    't-badge':'Señales en vivo · BTC/USDT',
+    't-title1':'Opera con','t-title2':'precisión.',
+    't-s1':'Funciones','t-s2':'Análisis de mercado','t-s3':'Ejemplo de señales',
+    't-f1':'Señales en tiempo real','t-fd1':'OB, FVG y Retest detectados automáticamente. Con puntuación de confluencia multi-timeframe y alertas push.',
+    't-f2':'Gestión de capital','t-fd2':'Calcula automáticamente el tamaño de posición, riesgo por trade y escenarios TP/SL según tu capital disponible.',
+    't-f3':'Historial y estadísticas','t-fd3':'Registra todos tus trades, calcula win rate, R:R medio y PnL acumulado. Exporta en CSV cuando quieras.',
+    't-f4':'Sync PC + móvil','t-fd4':'Login con Google y sincronización en tiempo real. Abre una operación en el PC y gestíonala desde el móvil.',
+    't-f5':'Análisis de mercado','t-fd5':'Semáforo de inversión basado en Fear & Greed, MAs y tendencia. Ciclo de mercado, niveles clave y comparativa BTC/ETH/SOL.',
+    't-cta':'Empieza a operar<br>con ventaja.','t-ctasub':'Gratuito. Sin tarjeta de crédito. Sin instalación.',
+    'hero-sub':'Señales de trading BTC/USDT en tiempo real basadas en OB, FVG y estructura de mercado. Gestión de capital integrada para operar con disciplina.',
+    'btn-empezar':'⚡ Empezar gratis','btn-verfunc':'Ver funciones →'
+  },
+  en:{
+    'btn-entrar':'Open app',
+    't-badge':'Live Signals · BTC/USDT',
+    't-title1':'Trade with','t-title2':'precision.',
+    't-s1':'Features','t-s2':'Market analysis','t-s3':'Signal examples',
+    't-f1':'Real-time signals','t-fd1':'OB, FVG and Retest detected automatically. With multi-timeframe confluence score and push alerts.',
+    't-f2':'Capital management','t-fd2':'Automatically calculates position size, risk per trade and TP/SL scenarios based on your available capital.',
+    't-f3':'History & statistics','t-fd3':'Record all your trades, calculate win rate, average R:R and cumulative PnL. Export to CSV anytime.',
+    't-f4':'PC + mobile sync','t-fd4':'Google login and real-time sync. Open a trade on PC and manage it from your phone.',
+    't-f5':'Market analysis','t-fd5':'Investment traffic light based on Fear & Greed, MAs and trend. Market cycle, key levels and BTC/ETH/SOL comparison.',
+    't-cta':'Start trading<br>with an edge.','t-ctasub':'Free. No credit card. No installation.',
+    'hero-sub':'Real-time BTC/USDT trading signals based on OB, FVG and market structure. Integrated capital management to trade with discipline.',
+    'btn-empezar':'⚡ Get started free','btn-verfunc':'See features →'
+  }
+};
 function setLang(lang){
   currentLang=lang;
   document.getElementById('btn-es').classList.toggle('active',lang==='es');
   document.getElementById('btn-en').classList.toggle('active',lang==='en');
-  // Traduir tots els elements amb data-es / data-en
-  document.querySelectorAll('[data-'+lang+']').forEach(el=>{
-    el.textContent=el.getAttribute('data-'+lang);
+  const t=TEXTS[lang];
+  if(!t)return;
+  Object.entries(t).forEach(([id,val])=>{
+    const el=document.getElementById(id);
+    if(el)el.innerHTML=val;
   });
-  // Guardar preferència
+  // hero-sub per classe
+  const sub=document.querySelector('.hero-sub');
+  if(sub)sub.textContent=t['hero-sub'];
   localStorage.setItem('se_lang',lang);
 }
 function toggleProfileMenu(){
