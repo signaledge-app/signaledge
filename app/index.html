@@ -517,6 +517,15 @@ body.dark .bm-copy-field{background:#1a1d2e;border-color:#3a3d50;color:#aaa}
 .bm-btn-copy-all.copied{background:#26a69a}
 .bm-hint{font-size:9px;color:#bbb;text-align:center;line-height:1.4}
 body.dark .bm-hint{color:#666}
+
+/* ── Cookie Banner ── */
+#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#161b22;border-top:1px solid #30363d;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;z-index:99999;font-size:11px;color:#c9d1d9;transform:translateY(100%);transition:transform .3s ease;}
+#cookie-banner.visible{transform:translateY(0);}
+#cookie-banner a{color:#2962ff;text-decoration:none;}
+.cookie-btns{display:flex;gap:6px;flex-shrink:0;}
+.cookie-accept{background:#2962ff;color:#fff;border:none;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:500;}
+.cookie-reject{background:transparent;color:#8b949e;border:1px solid #30363d;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:11px;}
+
 </style>
 </head>
 <body>
@@ -2123,6 +2132,25 @@ function exportPDF(){
   <tbody>${tradesHTML}</tbody>
 </table>
 <div class="footer">SignalEdge · signaledge-app.github.io · No es asesoramiento financiero</div>
+
+<!-- Cookie Banner -->
+<div id="cookie-banner">
+  <span>🍪 Usamos cookies y Google Analytics para mejorar la app. <a href="/privacy.html" target="_blank">Política de privacidad</a></span>
+  <div class="cookie-btns">
+    <button class="cookie-reject" onclick="cookieReject()">Solo esenciales</button>
+    <button class="cookie-accept" onclick="cookieAccept()">Aceptar</button>
+  </div>
+</div>
+<script>
+(function(){
+  var consent=localStorage.getItem('se_cookie_consent');
+  if(!consent){setTimeout(function(){var b=document.getElementById('cookie-banner');if(b)b.classList.add('visible');},2000);}
+  else if(consent==='rejected'){window['ga-disable-G-HDDSLP9JW0']=true;}
+})();
+function cookieAccept(){localStorage.setItem('se_cookie_consent','accepted');var b=document.getElementById('cookie-banner');if(b)b.classList.remove('visible');}
+function cookieReject(){localStorage.setItem('se_cookie_consent','rejected');window['ga-disable-G-HDDSLP9JW0']=true;var b=document.getElementById('cookie-banner');if(b)b.classList.remove('visible');}
+</script>
+
 </body>
 </html>`;
 
@@ -3625,6 +3653,25 @@ function renderMercado(d){
 
   document.getElementById('mkt-updated').textContent='Act. '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
 }
+</script>
+
+
+<!-- Cookie Banner -->
+<div id="cookie-banner">
+  <span>🍪 Usamos cookies y Google Analytics para mejorar la app. <a href="/privacy.html" target="_blank">Política de privacidad</a></span>
+  <div class="cookie-btns">
+    <button class="cookie-reject" onclick="cookieReject()">Solo esenciales</button>
+    <button class="cookie-accept" onclick="cookieAccept()">Aceptar</button>
+  </div>
+</div>
+<script>
+(function(){
+  var consent=localStorage.getItem('se_cookie_consent');
+  if(!consent){setTimeout(function(){var b=document.getElementById('cookie-banner');if(b)b.classList.add('visible');},2000);}
+  else if(consent==='rejected'){window['ga-disable-G-HDDSLP9JW0']=true;}
+})();
+function cookieAccept(){localStorage.setItem('se_cookie_consent','accepted');var b=document.getElementById('cookie-banner');if(b)b.classList.remove('visible');}
+function cookieReject(){localStorage.setItem('se_cookie_consent','rejected');window['ga-disable-G-HDDSLP9JW0']=true;var b=document.getElementById('cookie-banner');if(b)b.classList.remove('visible');}
 </script>
 
 </body>
