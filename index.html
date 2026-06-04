@@ -267,9 +267,9 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
       </div>
       <div class="preview-content">
         <div class="preview-card"><div class="preview-card-title">Win Rate</div><div class="preview-card-val green">63%</div><div class="preview-card-sub">23 trades</div></div>
-        <div class="preview-card"><div class="preview-card-title">PnL acumulado</div><div class="preview-card-val green">+9.08%</div><div class="preview-card-sub">R:R medio 2.7</div></div>
-        <div class="preview-card"><div class="preview-card-title">Señal activa</div><div class="preview-card-val blue">⚡ FVG</div><div class="preview-card-sub">R:R 3.7 · LONG</div></div>
-        <div class="preview-chart"><div class="preview-chart-title">BTC/USDT · 1m</div><div class="preview-signal">⚡ Entrada fuerte</div><div class="candles" id="demo-candles"></div></div>
+        <div class="preview-card"><div class="preview-card-title" id="t-pc1">PnL acumulado</div><div class="preview-card-val green">+9.08%</div><div class="preview-card-sub">R:R medio 2.7</div></div>
+        <div class="preview-card"><div class="preview-card-title" id="t-pc2">Señal activa</div><div class="preview-card-val blue">⚡ FVG</div><div class="preview-card-sub">R:R 3.7 · LONG</div></div>
+        <div class="preview-chart"><div class="preview-chart-title">BTC/USDT · 1m</div><div class="preview-signal" id="t-psig">⚡ Entrada fuerte</div><div class="candles" id="demo-candles"></div></div>
       </div>
     </div>
   </div>
@@ -277,18 +277,18 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 
 <section class="stats">
   <div class="stats-grid">
-    <div class="reveal"><div class="stat-val">3+</div><div class="stat-label">Tipos de señal</div></div>
-    <div class="reveal"><div class="stat-val">1m</div><div class="stat-label">Actualización</div></div>
-    <div class="reveal"><div class="stat-val">100%</div><div class="stat-label">Gratuito</div></div>
-    <div class="reveal"><div class="stat-val">☁️</div><div class="stat-label">Sync PC + móvil</div></div>
+    <div class="reveal"><div class="stat-val">3+</div><div class="stat-label" id="t-st1">Tipos de señal</div></div>
+    <div class="reveal"><div class="stat-val">1m</div><div class="stat-label" id="t-st2">Actualización</div></div>
+    <div class="reveal"><div class="stat-val">100%</div><div class="stat-label" id="t-st3">Gratuito</div></div>
+    <div class="reveal"><div class="stat-val">☁️</div><div class="stat-label" id="t-st4">Sync PC + móvil</div></div>
   </div>
 </section>
 
 <section class="features" id="features">
   <div class="reveal">
     <span class="section-label" id="t-s1">Funciones</span>
-    <h2 class="section-title">Todo lo que necesitas<br>para operar mejor.</h2>
-    <p class="section-sub">Herramientas profesionales accesibles para cualquier trader, sin coste.</p>
+    <h2 class="section-title" id="t-feat-h">Todo lo que necesitas<br>para operar mejor.</h2>
+    <p class="section-sub" id="t-feat-sub">Herramientas profesionales accesibles para cualquier trader, sin coste.</p>
   </div>
   <div class="features-grid">
     <div class="feat-card reveal">
@@ -324,26 +324,26 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 <section class="mercado-section">
   <div class="reveal">
     <span class="section-label" id="t-s2">Análisis de mercado</span>
-    <h2 class="section-title">¿Es buen momento<br>para invertir?</h2>
-    <p class="section-sub">No solo trades a corto plazo. SignalEdge también te dice cuándo el mercado está a tu favor para invertir a largo plazo.</p>
+    <h2 class="section-title" id="t-mkt-h">¿Es buen momento<br>para invertir?</h2>
+    <p class="section-sub" id="t-mkt-sub">No solo trades a corto plazo. SignalEdge también te dice cuándo el mercado está a tu favor para invertir a largo plazo.</p>
   </div>
   <div class="mercado-preview reveal">
     <div class="mp-item">
       <div class="mp-icon">🔴</div>
-      <div class="mp-title">Semáforo de inversión</div>
-      <div class="mp-desc">Análisis automático basado en Fear &amp; Greed, medias móviles (MA20/50/200) y tendencia mensual.</div>
-      <span class="mp-badge red">No es buen momento</span>
+      <div class="mp-title" id="t-mp1">Semáforo de inversión</div>
+      <div class="mp-desc" id="t-mpd1">Análisis automático basado en Fear &amp; Greed, medias móviles (MA20/50/200) y tendencia mensual.</div>
+      <span class="mp-badge red" id="t-mpb1">No es buen momento</span>
     </div>
     <div class="mp-item">
       <div class="mp-icon">📈</div>
-      <div class="mp-title">Ciclo de mercado</div>
-      <div class="mp-desc">¿Estamos en acumulación, subida, distribución o bajada? Visualiza en qué fase del ciclo está BTC ahora.</div>
+      <div class="mp-title" id="t-mp2">Ciclo de mercado</div>
+      <div class="mp-desc" id="t-mpd2">¿Estamos en acumulación, subida, distribución o bajada? Visualiza en qué fase del ciclo está BTC ahora.</div>
       <span class="mp-badge orange">Distribución</span>
     </div>
     <div class="mp-item">
       <div class="mp-icon">🏆</div>
-      <div class="mp-title">Comparativa 30d</div>
-      <div class="mp-desc">¿BTC, ETH o SOL lo ha hecho mejor este mes? Ranking automático para saber dónde poner tu capital.</div>
+      <div class="mp-title" id="t-mp3">Comparativa 30d</div>
+      <div class="mp-desc" id="t-mpd3">¿BTC, ETH o SOL lo ha hecho mejor este mes? Ranking automático para saber dónde poner tu capital.</div>
       <span class="mp-badge green">₿ BTC 🥇</span>
     </div>
   </div>
@@ -352,7 +352,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 <section class="signals-section">
   <div class="reveal">
     <span class="section-label" id="t-s3">Ejemplo de señales</span>
-    <h2 class="section-title">Así se ven<br>las señales.</h2>
+    <h2 class="section-title" id="t-sig-h">Así se ven<br>las señales.</h2>
   </div>
   <div class="signals-demo">
     <div class="sig-card long reveal">
@@ -381,7 +381,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
     <h2 class="cta-title" id="t-cta">Empieza a operar<br>con ventaja.</h2>
     <p class="cta-sub" id="t-ctasub">Gratuito. Sin tarjeta de crédito. Sin instalación.</p>
     <!-- FIX: apunta a /app -->
-    <a href="https://signaledgeapp.com/app" class="btn-primary" style="display:inline-flex;font-size:16px;padding:16px 48px;">
+    <a href="https://signaledgeapp.com/app" class="btn-primary" style="display:inline-flex;font-size:16px;padding:16px 48px;" id="btn-abrir">
       ⚡ Abrir SignalEdge
     </a>
   </div>
@@ -389,7 +389,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 
 <footer>
   <div class="footer-logo">SignalEdge</div>
-  <div class="footer-text">BTC/USDT · Señales en tiempo real · No es asesoramiento financiero · <a href="/privacy.html" style="color:inherit;text-decoration:underline" target="_blank">Privacidad</a></div>
+  <div class="footer-text" id="t-footer">BTC/USDT · Señales en tiempo real · No es asesoramiento financiero · <a href="/privacy.html" style="color:inherit;text-decoration:underline" target="_blank">Privacidad</a></div>
 </footer>
 
 <script>
@@ -397,32 +397,50 @@ let currentLang=localStorage.getItem('se_lang')||'es';
 window.addEventListener('DOMContentLoaded',()=>{if(currentLang!=='es')setLang(currentLang);});
 const TEXTS={
   es:{
-    'btn-entrar':'Entrar a la app',
+    'btn-entrar':'Entrar a la app','btn-empezar':'⚡ Empezar gratis','btn-verfunc':'Ver funciones →','btn-abrir':'⚡ Abrir SignalEdge',
     't-badge':'Señales en vivo · BTC/USDT',
     't-title1':'Opera con','t-title2':'precisión.',
+    'hero-sub':'Señales de trading BTC/USDT en tiempo real basadas en OB, FVG y estructura de mercado. Gestión de capital integrada para operar con disciplina.',
+    't-st1':'Tipos de señal','t-st2':'Actualización','t-st3':'Gratuito','t-st4':'Sync PC + móvil',
     't-s1':'Funciones','t-s2':'Análisis de mercado','t-s3':'Ejemplo de señales',
+    't-feat-h':'Todo lo que necesitas<br>para operar mejor.','t-feat-sub':'Herramientas profesionales accesibles para cualquier trader, sin coste.',
     't-f1':'Señales en tiempo real','t-fd1':'OB, FVG y Retest detectados automáticamente. Con puntuación de confluencia multi-timeframe y alertas push.',
     't-f2':'Gestión de capital','t-fd2':'Calcula automáticamente el tamaño de posición, riesgo por trade y escenarios TP/SL según tu capital disponible.',
     't-f3':'Historial y estadísticas','t-fd3':'Registra todos tus trades, calcula win rate, R:R medio y PnL acumulado. Exporta en CSV cuando quieras.',
     't-f4':'Sync PC + móvil','t-fd4':'Login con Google y sincronización en tiempo real. Abre una operación en el PC y gestíonala desde el móvil.',
     't-f5':'Análisis de mercado','t-fd5':'Semáforo de inversión basado en Fear & Greed, MAs y tendencia. Ciclo de mercado, niveles clave y comparativa BTC/ETH/SOL.',
+    't-pc1':'PnL acumulado','t-pc2':'Señal activa','t-psig':'⚡ Entrada fuerte',
+    't-mkt-h':'¿Es buen momento<br>para invertir?','t-mkt-sub':'No solo trades a corto plazo. SignalEdge también te dice cuándo el mercado está a tu favor para invertir a largo plazo.',
+    't-mp1':'Semáforo de inversión','t-mpd1':'Análisis automático basado en Fear & Greed, medias móviles (MA20/50/200) y tendencia mensual.','t-mpb1':'No es buen momento',
+    't-mp2':'Ciclo de mercado','t-mpd2':'¿Estamos en acumulación, subida, distribución o bajada? Visualiza en qué fase del ciclo está BTC ahora.',
+    't-mp3':'Comparativa 30d','t-mpd3':'¿BTC, ETH o SOL lo ha hecho mejor este mes? Ranking automático para saber dónde poner tu capital.',
+    't-sig-h':'Así se ven<br>las señales.',
     't-cta':'Empieza a operar<br>con ventaja.','t-ctasub':'Gratuito. Sin tarjeta de crédito. Sin instalación.',
-    'hero-sub':'Señales de trading BTC/USDT en tiempo real basadas en OB, FVG y estructura de mercado. Gestión de capital integrada para operar con disciplina.',
-    'btn-empezar':'⚡ Empezar gratis','btn-verfunc':'Ver funciones →'
+    't-footer':'BTC/USDT · Señales en tiempo real · No es asesoramiento financiero ·',
+    't-ck-text':'🍪 Usamos cookies propias y de Google Analytics para mejorar la app.','t-ck-link':'Política de privacidad','t-ck-no':'Solo esenciales','t-ck-ok':'Aceptar'
   },
   en:{
-    'btn-entrar':'Open app',
+    'btn-entrar':'Open app','btn-empezar':'⚡ Get started free','btn-verfunc':'See features →','btn-abrir':'⚡ Open SignalEdge',
     't-badge':'Live Signals · BTC/USDT',
     't-title1':'Trade with','t-title2':'precision.',
+    'hero-sub':'Real-time BTC/USDT trading signals based on OB, FVG and market structure. Integrated capital management to trade with discipline.',
+    't-st1':'Signal types','t-st2':'Update rate','t-st3':'Free','t-st4':'PC + mobile sync',
     't-s1':'Features','t-s2':'Market analysis','t-s3':'Signal examples',
+    't-feat-h':'Everything you need<br>to trade better.','t-feat-sub':'Professional tools accessible to any trader, at no cost.',
     't-f1':'Real-time signals','t-fd1':'OB, FVG and Retest detected automatically. With multi-timeframe confluence score and push alerts.',
     't-f2':'Capital management','t-fd2':'Automatically calculates position size, risk per trade and TP/SL scenarios based on your available capital.',
     't-f3':'History & statistics','t-fd3':'Record all your trades, calculate win rate, average R:R and cumulative PnL. Export to CSV anytime.',
     't-f4':'PC + mobile sync','t-fd4':'Google login and real-time sync. Open a trade on PC and manage it from your phone.',
     't-f5':'Market analysis','t-fd5':'Investment traffic light based on Fear & Greed, MAs and trend. Market cycle, key levels and BTC/ETH/SOL comparison.',
+    't-pc1':'Cumulative PnL','t-pc2':'Active signal','t-psig':'⚡ Strong entry',
+    't-mkt-h':'Is now a good time<br>to invest?','t-mkt-sub':'Not just short-term trades. SignalEdge also tells you when the market is in your favor for long-term investing.',
+    't-mp1':'Investment traffic light','t-mpd1':'Automatic analysis based on Fear & Greed, moving averages (MA20/50/200) and monthly trend.','t-mpb1':'Not a good time',
+    't-mp2':'Market cycle','t-mpd2':'Are we in accumulation, uptrend, distribution or downtrend? See which phase BTC is in right now.',
+    't-mp3':'30d comparison','t-mpd3':'Which performed better this month — BTC, ETH or SOL? Auto-ranking to know where to put your capital.',
+    't-sig-h':'This is what<br>signals look like.',
     't-cta':'Start trading<br>with an edge.','t-ctasub':'Free. No credit card. No installation.',
-    'hero-sub':'Real-time BTC/USDT trading signals based on OB, FVG and market structure. Integrated capital management to trade with discipline.',
-    'btn-empezar':'⚡ Get started free','btn-verfunc':'See features →'
+    't-footer':'BTC/USDT · Real-time signals · Not financial advice ·',
+    't-ck-text':'🍪 We use cookies and Google Analytics to improve the app.','t-ck-link':'Privacy policy','t-ck-no':'Essential only','t-ck-ok':'Accept'
   }
 };
 function setLang(lang){
@@ -438,6 +456,10 @@ function setLang(lang){
   // hero-sub per classe
   const sub=document.querySelector('.hero-sub');
   if(sub)sub.textContent=t['hero-sub'];
+  // Cookie banner — reconstruir amb link
+  const ckText=document.getElementById('t-ck-text');
+  const ckLink=document.getElementById('t-ck-link');
+  if(ckText&&ckLink)ckLink.textContent=t['t-ck-link'];
   localStorage.setItem('se_lang',lang);
 }
 function toggleProfileMenu(){
@@ -542,10 +564,10 @@ document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 
 <!-- Cookie Banner -->
 <div id="cookie-banner">
-  <span>🍪 Usamos cookies propias y de Google Analytics para mejorar la app. <a href="/privacy.html" target="_blank">Política de privacidad</a></span>
+  <span id="t-ck-text">🍪 Usamos cookies propias y de Google Analytics para mejorar la app. <a href="/privacy.html" target="_blank" id="t-ck-link">Política de privacidad</a></span>
   <div class="cookie-btns">
-    <button class="cookie-reject" onclick="cookieReject()">Solo esenciales</button>
-    <button class="cookie-accept" onclick="cookieAccept()">Aceptar</button>
+    <button class="cookie-reject" onclick="cookieReject()" id="t-ck-no">Solo esenciales</button>
+    <button class="cookie-accept" onclick="cookieAccept()" id="t-ck-ok">Aceptar</button>
   </div>
 </div>
 <script>
