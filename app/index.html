@@ -3682,6 +3682,24 @@ function renderMercado(d){
 <script>
 // ── FEEDBACK MODAL ──
 function openFeedback(){
+  // Comprovar límit 24h
+  const lastSent=localStorage.getItem('se_feedback_sent');
+  const now=Date.now();
+  const cooldown=60*60*1000; // 1h
+  if(lastSent&&(now-parseInt(lastSent))<cooldown){
+    const minsLeft=Math.ceil((cooldown-(now-parseInt(lastSent)))/60000);
+    document.getElementById('fm-form-content').style.display='none';
+    document.getElementById('fm-success-content').style.display='block';
+    document.getElementById('fm-success-content').innerHTML=`
+      <div class="fm-success-icon">⏳</div>
+      <div class="fm-success-text">Ya enviaste una sugerencia</div>
+      <div class="fm-success-sub">Puedes enviar otra en ${minsLeft} minuto${minsLeft!==1?'s':''}.'` ¡Gracias por tu interés!</div>
+      <div class="fm-btns" style="margin-top:20px">
+        <button class="fm-send" onclick="closeFeedback()">Cerrar</button>
+      </div>`;
+    document.getElementById('feedback-overlay').classList.add('open');
+    return;
+  }
   document.getElementById('fm-text').value='';
   document.getElementById('fm-email').value='';
   document.getElementById('fm-form-content').style.display='block';
@@ -3713,6 +3731,7 @@ async function sendFeedback(){
       body:fd
     });
     if(res.ok){
+      localStorage.setItem('se_feedback_sent', Date.now().toString());
       document.getElementById('fm-form-content').style.display='none';
       document.getElementById('fm-success-content').style.display='block';
     } else {
