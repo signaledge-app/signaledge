@@ -3059,6 +3059,12 @@ function openBitunixModalSig(sig){
 }
 
 function openPushSettings(){
+  // Si el permís és granted però pushDisabled, netejar-ho
+  if(('Notification' in window)&&Notification.permission==='granted'){
+    localStorage.removeItem('pushDisabled');
+    if(typeof pushEnabled!=='undefined')pushEnabled=true;
+  }
+  
   // Crear modal de notificacions
   const existing=document.getElementById('push-modal-overlay');
   if(existing)existing.remove();
@@ -3167,11 +3173,16 @@ function togglePushTFModal(tf, btn){
 function updatePushMenuStatus(){
   const st=document.getElementById('pm-push-status');
   if(!st)return;
-  if(Notification.permission==='granted'&&localStorage.getItem('pushDisabled')!=='true'){
+  const perm=('Notification' in window)?Notification.permission:'unsupported';
+  const disabled=localStorage.getItem('pushDisabled')==='true';
+  if(perm==='granted'&&!disabled){
     st.textContent='✅ Activo';
     st.style.background='#e8f5e9';
     st.style.color='#1b5e20';
-  } else if(Notification.permission==='denied'){
+    st.style.borderColor='#a5d6a7';
+    // Assegurar que pushEnabled és true
+    if(typeof pushEnabled!=='undefined')pushEnabled=true;
+  } else if(perm==='denied'){
     st.textContent='❌ Bloqueado';
     st.style.background='#fce4ec';
     st.style.color='#880e4f';
@@ -3181,6 +3192,8 @@ function updatePushMenuStatus(){
     st.style.color='#5d4037';
   }
 }
+// Cridar en carregar per sincronitzar estat
+window.addEventListener('load',()=>setTimeout(updatePushMenuStatus,500));
 // Actualitzar estat en carregar
 window.addEventListener('DOMContentLoaded',()=>{updatePushMenuStatus();});
 
