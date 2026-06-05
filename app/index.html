@@ -517,6 +517,28 @@ body.dark .bm-copy-field{background:#1a1d2e;border-color:#3a3d50;color:#aaa}
 .bm-btn-copy-all.copied{background:#26a69a}
 .bm-hint{font-size:9px;color:#bbb;text-align:center;line-height:1.4}
 body.dark .bm-hint{color:#666}
+
+/* ── Feedback Modal ── */
+#feedback-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999999;align-items:center;justify-content:center;padding:20px;}
+#feedback-overlay.open{display:flex;}
+#feedback-modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:380px;box-shadow:0 16px 48px rgba(0,0,0,.4);}
+.fm-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+.fm-sub{font-size:12px;color:var(--text3);margin-bottom:20px;}
+.fm-label{font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.fm-textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text1);resize:none;height:100px;font-family:inherit;outline:none;box-sizing:border-box;}
+.fm-textarea:focus{border-color:#2962ff;}
+.fm-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text1);font-family:inherit;outline:none;box-sizing:border-box;margin-top:12px;}
+.fm-input:focus{border-color:#2962ff;}
+.fm-btns{display:flex;gap:8px;margin-top:16px;}
+.fm-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--text2);padding:10px;border-radius:8px;cursor:pointer;font-size:13px;}
+.fm-send{flex:2;background:#2962ff;color:#fff;border:none;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
+.fm-send:hover{background:#1a4fd6;}
+.fm-send:disabled{background:#555;cursor:not-allowed;}
+.fm-success{text-align:center;padding:20px 0;}
+.fm-success-icon{font-size:40px;margin-bottom:12px;}
+.fm-success-text{font-size:15px;font-weight:600;margin-bottom:6px;}
+.fm-success-sub{font-size:12px;color:var(--text3);}
+
 </style>
 </head>
 <body>
@@ -1964,10 +1986,9 @@ document.addEventListener('visibilitychange',()=>{
   document.addEventListener('touchend',e=>{
     const dx=e.changedTouches[0].clientX-startX;
     const dy=e.changedTouches[0].clientY-startY;
-    if(Math.abs(dx)<90||Math.abs(dy)>Math.abs(dx)*0.5)return;
+    if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
     const target=e.target;
     if(target.closest('#trade-detail-overlay,#tutorial-overlay,#price-alerts-panel,#bitunix-modal-overlay,#tab-mercado'))return;
-    if(target.closest('#cc,.chart-wrapper,.chart-main,.chart-vol,canvas'))return;
     const activeBtn=document.querySelector('.tab-btn.active');
     if(!activeBtn)return;
     const currentTab=activeBtn.dataset.tab;
@@ -1986,7 +2007,7 @@ document.addEventListener('visibilitychange',()=>{
     mktEl.addEventListener('touchend',e=>{
       const dx=e.changedTouches[0].clientX-mktStartX;
       const dy=e.changedTouches[0].clientY-mktStartY;
-      if(Math.abs(dx)<90||Math.abs(dy)>Math.abs(dx)*0.5)return;
+      if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
       // Swipe dreta → tornar a Historial
       if(dx>0){
         const histBtn=document.querySelector('.tab-btn[data-tab="historial"]');
@@ -3022,6 +3043,11 @@ document.addEventListener('click',function(e){
     <span class="pm-icon">📖</span>
     <span>Tutorial</span>
   </button>
+  <div class="pm-divider"></div>
+  <button class="pm-item" onclick="document.getElementById('se-profile-menu').style.display='none';openFeedback()">
+    <span class="pm-icon">💬</span>
+    <span>Sugerencias</span>
+  </button>
 </div>
 <!-- Banner d'alertes de proximitat -->
 <div id="auto-alert-banner" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99990;min-width:280px;max-width:90vw"></div>
@@ -3628,6 +3654,79 @@ function renderMercado(d){
 }
 </script>
 
+
+<!-- Feedback Modal -->
+<div id="feedback-overlay">
+  <div id="feedback-modal">
+    <div id="fm-form-content">
+      <div class="fm-title">💬 Sugerencias</div>
+      <div class="fm-sub">Tu opinión nos ayuda a mejorar SignalEdge</div>
+      <div class="fm-label">¿Qué mejorarías o añadirías?</div>
+      <textarea class="fm-textarea" id="fm-text" placeholder="Escribe tu sugerencia aquí..."></textarea>
+      <input class="fm-input" id="fm-email" type="email" placeholder="Tu email (opcional, para responderte)">
+      <div class="fm-btns">
+        <button class="fm-cancel" onclick="closeFeedback()">Cancelar</button>
+        <button class="fm-send" id="fm-send-btn" onclick="sendFeedback()">Enviar ✉️</button>
+      </div>
+    </div>
+    <div id="fm-success-content" class="fm-success" style="display:none">
+      <div class="fm-success-icon">🎉</div>
+      <div class="fm-success-text">¡Gracias por tu sugerencia!</div>
+      <div class="fm-success-sub">La revisaremos y la tendremos en cuenta para mejorar la app.</div>
+      <div class="fm-btns" style="margin-top:20px">
+        <button class="fm-send" onclick="closeFeedback()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// ── FEEDBACK MODAL ──
+function openFeedback(){
+  document.getElementById('fm-text').value='';
+  document.getElementById('fm-email').value='';
+  document.getElementById('fm-form-content').style.display='block';
+  document.getElementById('fm-success-content').style.display='none';
+  document.getElementById('fm-send-btn').disabled=false;
+  document.getElementById('fm-send-btn').textContent='Enviar ✉️';
+  document.getElementById('feedback-overlay').classList.add('open');
+}
+function closeFeedback(){
+  document.getElementById('feedback-overlay').classList.remove('open');
+}
+async function sendFeedback(){
+  const text=document.getElementById('fm-text').value.trim();
+  if(!text){document.getElementById('fm-text').focus();return;}
+  const email=document.getElementById('fm-email').value.trim();
+  const btn=document.getElementById('fm-send-btn');
+  btn.disabled=true;
+  btn.textContent='Enviando...';
+  try{
+    const res=await fetch('https://formspree.io/f/mzdqzyyr',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({
+        sugerencia:text,
+        email:email||'Anónimo',
+        usuario:seUser?.email||'No logueado',
+        fecha:new Date().toLocaleString('es',{timeZone:'Europe/Madrid'})
+      })
+    });
+    if(res.ok){
+      document.getElementById('fm-form-content').style.display='none';
+      document.getElementById('fm-success-content').style.display='block';
+    } else {
+      btn.disabled=false;
+      btn.textContent='Error, reintentar';
+    }
+  }catch(e){
+    btn.disabled=false;
+    btn.textContent='Error, reintentar';
+  }
+}
+document.getElementById('feedback-overlay').addEventListener('click',function(e){
+  if(e.target===this)closeFeedback();
+});
+</script>
 
 <style>#ck{position:fixed;bottom:0;left:0;right:0;background:#161b22;border-top:1px solid #30363d;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:999999;font-size:11px;color:#8b949e;transform:translateY(100%);transition:transform .3s ease;}#ck.show{transform:translateY(0);}#ck a{color:#2962ff;text-decoration:none;}#ck-btns{display:flex;gap:8px;flex-shrink:0;}#ck-ok{background:#2962ff;color:#fff;border:none;padding:6px 16px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;}#ck-no{background:transparent;color:#8b949e;border:1px solid #30363d;padding:6px 16px;border-radius:6px;cursor:pointer;font-size:11px;}</style>
 <div id="ck"><span>🍪 Usamos cookies propias y de Google Analytics para mejorar la app. <a href="/privacy.html" target="_blank">Política de privacidad</a></span><div id="ck-btns"><button id="ck-no">Solo esenciales</button><button id="ck-ok">Aceptar</button></div></div>
