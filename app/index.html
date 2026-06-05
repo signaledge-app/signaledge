@@ -3829,7 +3829,7 @@ function renderMercado(d){
 <script>
 (function(){
 function openFeedback(){
-  const cooldown=60*60*1000;
+  const cooldown=60*1000; // 1 minut per proves
   const lastSent=localStorage.getItem('se_feedback_sent');
   const now=Date.now();
   if(lastSent&&(now-parseInt(lastSent))<cooldown){
