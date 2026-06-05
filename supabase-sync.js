@@ -25,7 +25,7 @@ window.addEventListener('load',()=>{
 async function seLoginGoogle(){
   if(!seDb)return;
   try{
-    await seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com'}});
+    await seDb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://signaledgeapp.com/app'}});
   }catch(e){console.log('SE Login error:',e.message);}
 }
 async function seLogout(){
@@ -72,7 +72,6 @@ function seSubscribeRealtime(userId){
   seDb.channel('prefs-changes-'+userId)
     .on('postgres_changes',{event:'*',schema:'public',table:'user_prefs',filter:`user_id=eq.${userId}`},payload=>{
       if(payload.new&&payload.new.user_id!==seUser?.id)return;
-      if(window._seUserEditing){console.log('SE Realtime: prefs ignorades (usuari editant)');return;}
       console.log('SE Realtime: prefs actualitzades');
       seApplyPrefs(payload.new);
     }).subscribe();
@@ -118,9 +117,25 @@ function seSubscribeRealtime(userId){
         if(typeof saveHistory==='function')saveHistory();
         if(typeof renderHistorial==='function')renderHistorial();
         if(typeof updateHistCount==='function')updateHistCount();
-        if(typeof trade!=='undefined'&&trade&&trade.histId===t.id&&t.result!=='open'){
-          trade=null;
-          if(typeof drawTradeLines==='function')drawTradeLines(null);
+        if(typeof trade!=='undefined'&&trade&&trade.histId===t.id){
+          if(t.result!=='open'){
+            // Trade tancat des d'un altre dispositiu
+            trade=null;
+            if(typeof drawTradeLines==='function')drawTradeLines(null);
+            if(typeof renderOpenTrade==='function')renderOpenTrade();
+          } else {
+            // Trade actualitzat (TP1 marcat, SL mogut, etc.) — sincronitzar trade actiu
+            trade.partialDone=t.partial_done||false;
+            trade.partialPct=t.partial_pct||null;
+            trade.partialPnlPct=t.partial_pnl_pct||null;
+            trade.breakevenSL=t.breakeven_sl||null;
+            if(t.partial_done&&t.breakeven_sl)trade.sl=t.breakeven_sl;
+            trade.sl=t.sl||trade.sl;
+            if(typeof drawTradeLines==='function')drawTradeLines(trade);
+            if(typeof renderOpenTrade==='function')renderOpenTrade();
+            if(typeof partialExecuted!=='undefined')partialExecuted=t.partial_done||false;
+            console.log('SE Realtime: trade actiu sincronitzat (partialDone:'+trade.partialDone+')');
+          }
         }
       }
     }).subscribe(status=>{console.log('SE Realtime status:',status);});
@@ -350,7 +365,6 @@ function seInterceptSave(userId){
 
   let lastPriceAlerts=localStorage.getItem('btc_price_alerts');
 
-  // Detectar quan l'usuari està editant camps de prefs — ignorar Realtime mentre edita
   const _prefFields=['calc-capital','calc-capital-usar','calc-riesgo'];
   _prefFields.forEach(id=>{
     const el=document.getElementById(id);
