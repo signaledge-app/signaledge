@@ -3088,9 +3088,18 @@ function openPushSettings(){
       <div style="font-size:16px;font-weight:700;margin-bottom:4px">🔔 Alertas push</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:20px">Recibe una notificación cuando aparezca una señal fuerte</div>
       
-      ${isDenied?`
+      ${perm==='unsupported'?`
+        <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:14px;font-size:12px;color:#5d4037;margin-bottom:16px;line-height:1.6">
+          <strong>📱 Para activar en iPhone:</strong><br>
+          1. Toca <strong>Compartir</strong> (icono □↑) en Safari<br>
+          2. Selecciona <strong>"Añadir a pantalla de inicio"</strong><br>
+          3. Abre la app desde la pantalla de inicio<br>
+          4. Vuelve a intentar activar las alertas<br><br>
+          Requiere iOS 16.4 o superior.
+        </div>
+      `:isDenied?`
         <div style="background:#fce4ec;border:1px solid #f48fb1;border-radius:8px;padding:12px;font-size:12px;color:#880e4f;margin-bottom:16px">
-          🔕 Notificaciones bloqueadas. Actívalas desde la configuración del navegador.
+          🔕 Notificaciones bloqueadas. Actívalas desde Configuración → Safari → Notificaciones.
         </div>
       `:`
         <div style="margin-bottom:16px">
