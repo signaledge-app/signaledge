@@ -517,28 +517,6 @@ body.dark .bm-copy-field{background:#1a1d2e;border-color:#3a3d50;color:#aaa}
 .bm-btn-copy-all.copied{background:#26a69a}
 .bm-hint{font-size:9px;color:#bbb;text-align:center;line-height:1.4}
 body.dark .bm-hint{color:#666}
-
-/* ── Feedback Modal ── */
-#feedback-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999999;align-items:center;justify-content:center;padding:20px;}
-#feedback-overlay.open{display:flex;}
-#feedback-modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:380px;box-shadow:0 16px 48px rgba(0,0,0,.4);}
-.fm-title{font-size:16px;font-weight:700;margin-bottom:4px;}
-.fm-sub{font-size:12px;color:var(--text3);margin-bottom:20px;}
-.fm-label{font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
-.fm-textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text1);resize:none;height:100px;font-family:inherit;outline:none;box-sizing:border-box;}
-.fm-textarea:focus{border-color:#2962ff;}
-.fm-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text1);font-family:inherit;outline:none;box-sizing:border-box;margin-top:12px;}
-.fm-input:focus{border-color:#2962ff;}
-.fm-btns{display:flex;gap:8px;margin-top:16px;}
-.fm-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--text2);padding:10px;border-radius:8px;cursor:pointer;font-size:13px;}
-.fm-send{flex:2;background:#2962ff;color:#fff;border:none;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
-.fm-send:hover{background:#1a4fd6;}
-.fm-send:disabled{background:#555;cursor:not-allowed;}
-.fm-success{text-align:center;padding:20px 0;}
-.fm-success-icon{font-size:40px;margin-bottom:12px;}
-.fm-success-text{font-size:15px;font-weight:600;margin-bottom:6px;}
-.fm-success-sub{font-size:12px;color:var(--text3);}
-
 </style>
 </head>
 <body>
@@ -3043,11 +3021,6 @@ document.addEventListener('click',function(e){
     <span class="pm-icon">📖</span>
     <span>Tutorial</span>
   </button>
-  <div class="pm-divider"></div>
-  <button class="pm-item" onclick="document.getElementById('se-profile-menu').style.display='none';openFeedback()">
-    <span class="pm-icon">💬</span>
-    <span>Sugerencias</span>
-  </button>
 </div>
 <!-- Banner d'alertes de proximitat -->
 <div id="auto-alert-banner" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99990;min-width:280px;max-width:90vw"></div>
@@ -3055,11 +3028,11 @@ document.addEventListener('click',function(e){
 <script>
 // ── AUTO-CLOSE I ALERTES SL/TP ───────────────────────────────
 let autoClosePending=false;
-let slWarnSent=false,tp1WarnSent=false,tp2WarnSent=false;
+let slWarnSent=false,tp1WarnSent=false,tp2WarnSent=false,tp1Ignored=false;
 
 function resetTradeAlerts(){
   autoClosePending=false;
-  slWarnSent=false;tp1WarnSent=false;tp2WarnSent=false;
+  slWarnSent=false;tp1WarnSent=false;tp2WarnSent=false;tp1Ignored=false;
 }
 
 function vibrate(pattern){
@@ -3115,8 +3088,8 @@ function autoCheckLevels(){
     const totalDistTP1=Math.abs(ep-tp1);
     if(totalDistTP1>0){
       const distTP1=Math.abs(price-tp1)/totalDistTP1;
-      if(distTP1<0.20&&!tp1WarnSent){tp1WarnSent=true;showProximityAlert('tp1',tp1,distTP1);notify('🎯 TP1 molt proper!',`Queda ${(distTP1*100).toFixed(0)}% fins TP1 $${ff(tp1)}`,'warn-tp1');vibrate([200,100,200]);}
-      else if(distTP1>=0.35)tp1WarnSent=false;
+      if(distTP1<0.20&&!tp1WarnSent&&!tp1Ignored){tp1WarnSent=true;showProximityAlert('tp1',tp1,distTP1);notify('🎯 TP1 molt proper!',`Queda ${(distTP1*100).toFixed(0)}% fins TP1 $${ff(tp1)}`,'warn-tp1');vibrate([200,100,200]);}
+      else if(distTP1>=0.35&&!tp1Ignored)tp1WarnSent=false;
     }
   }
 
@@ -3196,7 +3169,7 @@ function showAutoTP1Modal(tp1Price){
         <button onclick="confirmAutoTP1(100,${tp1Price})" style="padding:.5rem;border-radius:8px;border:1px solid #26a69a;background:#26a69a18;color:#26a69a;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">100%</button>
       </div>
       <div style="font-size:9px;color:#aaa;text-align:center;margin-bottom:.5rem">50% mou el SL a Breakeven automàticament</div>
-      <button onclick="cancelAutoClose()" style="width:100%;padding:.4rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:inherit">Ignorar (continua cap a TP2)</button>
+      <button onclick="cancelAutoClose(true)" style="width:100%;padding:.4rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:inherit">Ignorar (continua cap a TP2)</button>
     </div>
   </div>`;
   document.body.appendChild(m);
@@ -3207,10 +3180,11 @@ function confirmAutoClose(result,closePrice){
   closeTrade_dashboard(result);
   autoClosePending=false;
 }
-function cancelAutoClose(){
+function cancelAutoClose(ignore){
   const m1=document.getElementById('auto-close-modal');if(m1)m1.remove();
   const m2=document.getElementById('auto-tp1-modal');if(m2)m2.remove();
   autoClosePending=false;
+  if(ignore){tp1Ignored=true;tp1WarnSent=true;console.log('TP1 ignorat — no tornarem a avisar');}
 }
 function confirmAutoTP1(pct,tp1Price){
   const m=document.getElementById('auto-tp1-modal');if(m)m.remove();
@@ -3654,107 +3628,6 @@ function renderMercado(d){
 }
 </script>
 
-
-<!-- Feedback Modal -->
-<div id="feedback-overlay">
-  <div id="feedback-modal">
-    <div id="fm-form-content">
-      <div class="fm-title">💬 Sugerencias</div>
-      <div class="fm-sub">Tu opinión nos ayuda a mejorar SignalEdge</div>
-      <div class="fm-label">¿Qué mejorarías o añadirías?</div>
-      <textarea class="fm-textarea" id="fm-text" placeholder="Escribe tu sugerencia aquí..."></textarea>
-      <input class="fm-input" id="fm-email" type="email" placeholder="Tu email (opcional, para responderte)">
-      <div class="fm-btns">
-        <button class="fm-cancel" onclick="closeFeedback()">Cancelar</button>
-        <button class="fm-send" id="fm-send-btn" onclick="sendFeedback()">Enviar ✉️</button>
-      </div>
-    </div>
-    <div id="fm-success-content" class="fm-success" style="display:none">
-      <div class="fm-success-icon">🎉</div>
-      <div class="fm-success-text">¡Gracias por tu sugerencia!</div>
-      <div class="fm-success-sub">La revisaremos y la tendremos en cuenta para mejorar la app.</div>
-      <div class="fm-btns" style="margin-top:20px">
-        <button class="fm-send" onclick="closeFeedback()">Cerrar</button>
-      </div>
-    </div>
-  </div>
-</div>
-<script>
-// ── FEEDBACK MODAL ──
-function openFeedback(){
-  // Comprovar límit 24h
-  const lastSent=localStorage.getItem('se_feedback_sent');
-  const now=Date.now();
-  const cooldown=60*60*1000; // 1h
-  if(lastSent&&(now-parseInt(lastSent))<cooldown){
-    const minsLeft=Math.ceil((cooldown-(now-parseInt(lastSent)))/60000);
-    document.getElementById('fm-form-content').style.display='none';
-    document.getElementById('fm-success-content').style.display='block';
-    document.getElementById('fm-success-content').innerHTML=`
-      <div class="fm-success-icon">⏳</div>
-      <div class="fm-success-text">Ya enviaste una sugerencia</div>
-      <div class="fm-success-sub">Puedes enviar otra en ${minsLeft} minuto${minsLeft!==1?'s':''}. ¡Gracias por tu interés!</div>
-      <div class="fm-btns" style="margin-top:20px">
-        <button class="fm-send" onclick="closeFeedback()">Cerrar</button>
-      </div>`;
-    document.getElementById('feedback-overlay').classList.add('open');
-    return;
-  }
-  document.getElementById('fm-text').value='';
-  document.getElementById('fm-email').value='';
-  document.getElementById('fm-form-content').style.display='block';
-  document.getElementById('fm-success-content').style.display='none';
-  document.getElementById('fm-send-btn').disabled=false;
-  document.getElementById('fm-send-btn').textContent='Enviar ✉️';
-  document.getElementById('feedback-overlay').classList.add('open');
-}
-function closeFeedback(){
-  document.getElementById('feedback-overlay').classList.remove('open');
-}
-async function sendFeedback(){
-  const text=document.getElementById('fm-text').value.trim();
-  if(!text){document.getElementById('fm-text').focus();return;}
-  const email=document.getElementById('fm-email').value.trim();
-  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-    const inp=document.getElementById('fm-email');
-    inp.style.borderColor='#ef5350';
-    inp.placeholder='Email no válido — revísalo';
-    inp.focus();
-    setTimeout(()=>{inp.style.borderColor='';inp.placeholder='Tu email (opcional, para responderte)';},3000);
-    return;
-  }
-  const btn=document.getElementById('fm-send-btn');
-  btn.disabled=true;
-  btn.textContent='Enviando...';
-  try{
-    const fd=new FormData();
-    fd.append('access_key','b0950e26-165f-4b8c-927a-a60e26e33aeb');
-    fd.append('subject','Nueva sugerencia SignalEdge');
-    fd.append('sugerencia',text);
-    fd.append('email',email||'Anónimo');
-    fd.append('usuario',seUser?.email||'No logueado');
-    fd.append('fecha',new Date().toLocaleString('es',{timeZone:'Europe/Madrid'}));
-    const res=await fetch('https://api.web3forms.com/submit',{
-      method:'POST',
-      body:fd
-    });
-    if(res.ok){
-      localStorage.setItem('se_feedback_sent', Date.now().toString());
-      document.getElementById('fm-form-content').style.display='none';
-      document.getElementById('fm-success-content').style.display='block';
-    } else {
-      btn.disabled=false;
-      btn.textContent='Error, reintentar';
-    }
-  }catch(e){
-    btn.disabled=false;
-    btn.textContent='Error, reintentar';
-  }
-}
-document.getElementById('feedback-overlay').addEventListener('click',function(e){
-  if(e.target===this)closeFeedback();
-});
-</script>
 
 <style>#ck{position:fixed;bottom:0;left:0;right:0;background:#161b22;border-top:1px solid #30363d;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:999999;font-size:11px;color:#8b949e;transform:translateY(100%);transition:transform .3s ease;}#ck.show{transform:translateY(0);}#ck a{color:#2962ff;text-decoration:none;}#ck-btns{display:flex;gap:8px;flex-shrink:0;}#ck-ok{background:#2962ff;color:#fff;border:none;padding:6px 16px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;}#ck-no{background:transparent;color:#8b949e;border:1px solid #30363d;padding:6px 16px;border-radius:6px;cursor:pointer;font-size:11px;}</style>
 <div id="ck"><span>🍪 Usamos cookies propias y de Google Analytics para mejorar la app. <a href="/privacy.html" target="_blank">Política de privacidad</a></span><div id="ck-btns"><button id="ck-no">Solo esenciales</button><button id="ck-ok">Aceptar</button></div></div>
