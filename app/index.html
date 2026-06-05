@@ -3867,9 +3867,9 @@ async function sendFeedback(){
     const fd=new FormData();
     fd.append('access_key','b0950e26-165f-4b8c-927a-a60e26e33aeb');
     fd.append('subject','Nueva sugerencia SignalEdge');
-    fd.append('sugerencia',text);
-    fd.append('email',email||'Anónimo');
-    fd.append('usuario',(typeof seUser!=='undefined'&&seUser?.email)||'No logueado');
+    fd.append('message',text);
+    fd.append('from_name',(typeof seUser!=='undefined'&&seUser?.email)||'Anónimo');
+    fd.append('email',email||'signaledge.app@gmail.com');
     fd.append('fecha',new Date().toLocaleString('es',{timeZone:'Europe/Madrid'}));
     const res=await fetch('https://api.web3forms.com/submit',{method:'POST',body:fd});
     const data=await res.json();
