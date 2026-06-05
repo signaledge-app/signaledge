@@ -3715,6 +3715,14 @@ async function sendFeedback(){
   const text=document.getElementById('fm-text').value.trim();
   if(!text){document.getElementById('fm-text').focus();return;}
   const email=document.getElementById('fm-email').value.trim();
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    const inp=document.getElementById('fm-email');
+    inp.style.borderColor='#ef5350';
+    inp.placeholder='Email no válido — revísalo';
+    inp.focus();
+    setTimeout(()=>{inp.style.borderColor='';inp.placeholder='Tu email (opcional, para responderte)';},3000);
+    return;
+  }
   const btn=document.getElementById('fm-send-btn');
   btn.disabled=true;
   btn.textContent='Enviando...';
