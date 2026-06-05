@@ -2094,9 +2094,10 @@ document.addEventListener('visibilitychange',()=>{
   document.addEventListener('touchend',e=>{
     const dx=e.changedTouches[0].clientX-startX;
     const dy=e.changedTouches[0].clientY-startY;
-    if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
+    if(Math.abs(dx)<90||Math.abs(dy)>Math.abs(dx)*0.5)return;
     const target=e.target;
     if(target.closest('#trade-detail-overlay,#tutorial-overlay,#price-alerts-panel,#bitunix-modal-overlay,#tab-mercado'))return;
+    if(target.closest('#cc,.chart-wrapper,.chart-main,.chart-vol,canvas,#chart-main-panel'))return;
     const activeBtn=document.querySelector('.tab-btn.active');
     if(!activeBtn)return;
     const currentTab=activeBtn.dataset.tab;
@@ -2115,7 +2116,7 @@ document.addEventListener('visibilitychange',()=>{
     mktEl.addEventListener('touchend',e=>{
       const dx=e.changedTouches[0].clientX-mktStartX;
       const dy=e.changedTouches[0].clientY-mktStartY;
-      if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
+      if(Math.abs(dx)<90||Math.abs(dy)>Math.abs(dx)*0.5)return;
       // Swipe dreta → tornar a Historial
       if(dx>0){
         const histBtn=document.querySelector('.tab-btn[data-tab="historial"]');
