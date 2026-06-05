@@ -672,7 +672,7 @@ body.dark .bm-hint{color:#666}
     <span>Margen: <strong id="margepct">--</strong></span>
     <span id="levwarn"></span>
   </div>
-  <div class="push-bar default" id="push-bar">
+  <div class="push-bar default" id="push-bar" style="display:none">
     <span style="font-size:16px">🔔</span>
     <span id="push-text">Activa las alertas push para recibir notificaciones cuando aparezca 🚀 Entra Ya</span>
     <button class="push-btn" id="push-btn" onclick="requestPushPermission()">Activar</button>
@@ -2522,6 +2522,12 @@ const TUTORIAL_STEPS=[
     tip:'💡 Al cerrar un trade, el siguiente se activa automáticamente en el gráfico.'
   },
   {
+    title:'🔔 Activa las notificaciones',
+    subtitle:'Recibe alertas cuando aparezca una señal fuerte',
+    highlight:'Para no perderte ninguna señal:\n\n1️⃣ Toca tu <strong>avatar</strong> (arriba a la derecha)\n2️⃣ Selecciona <strong>Alertas push</strong>\n3️⃣ Toca <strong>Activar</strong> y acepta el permiso\n4️⃣ Elige en qué timeframes quieres recibir alertas',
+    tip:'💡 Las alertas funcionan aunque tengas el móvil en silencio. Imprescindible para no perder entradas.'
+  },
+  {
     title:'⚠️ Importante — Ejecución manual',
     subtitle:'SignalEdge no ejecuta trades automáticamente',
     highlight:'📋 Cuando veas una señal, debes introducirla <strong>manualmente</strong> en tu exchange (Binance, Bybit, Bitunix...):\n\n1️⃣ Copia el precio de <strong>Entrada</strong>\n2️⃣ Copia el <strong>SL</strong> (Stop Loss)\n3️⃣ Copia el <strong>TP1</strong> y <strong>TP2</strong>\n4️⃣ Abre la orden en tu exchange',
@@ -3049,6 +3055,35 @@ function openBitunixModalSig(sig){
   if(btn){btn.style.background='#f57c00';document.getElementById('bm-copy-all-icon').textContent='📋';}
   document.getElementById('bitunix-modal-overlay').classList.add('open');
 }
+
+function openPushSettings(){
+  const bar=document.getElementById('push-bar');
+  if(!bar)return;
+  bar.style.display='flex';
+  bar.scrollIntoView({behavior:'smooth',block:'center'});
+  // Actualitzar estat al menú
+  updatePushMenuStatus();
+}
+function updatePushMenuStatus(){
+  const st=document.getElementById('pm-push-status');
+  if(!st)return;
+  if(Notification.permission==='granted'){
+    st.textContent='✅ Activo';
+    st.style.background='#e8f5e9';
+    st.style.color='#1b5e20';
+  } else if(Notification.permission==='denied'){
+    st.textContent='❌ Bloqueado';
+    st.style.background='#fce4ec';
+    st.style.color='#880e4f';
+  } else {
+    st.textContent='Activar';
+    st.style.background='#fff8e1';
+    st.style.color='#5d4037';
+  }
+}
+// Actualitzar estat en carregar
+window.addEventListener('DOMContentLoaded',()=>{updatePushMenuStatus();});
+
 function closeBitunixModal(){
   document.getElementById('bitunix-modal-overlay').classList.remove('open');
 }
@@ -3183,6 +3218,11 @@ document.addEventListener('click',function(e){
   <button class="pm-item" id="pm-login-btn" onclick="seMenuLoginAction()">
     <span class="pm-icon">🔑</span>
     <span id="pm-login-label">Iniciar sesión con Google</span>
+  </button>
+  <button class="pm-item" onclick="document.getElementById('se-profile-menu').style.display='none';openPushSettings()">
+    <span class="pm-icon">🔔</span>
+    <span id="pm-push-label">Alertas push</span>
+    <span id="pm-push-status" style="margin-left:auto;font-size:10px;padding:2px 7px;border-radius:10px;background:#e8f5e9;color:#1b5e20">Activar</span>
   </button>
   <button class="pm-item" onclick="document.getElementById('se-profile-menu').style.display='none';startTutorial()">
     <span class="pm-icon">📖</span>
