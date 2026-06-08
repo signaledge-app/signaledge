@@ -1680,6 +1680,7 @@ function drawTradeLines(t){if(!chart||!cSeries||!candles.length||!t)return;clear
   if(lev>1)al(liq(t.e,t.dir,lev),'rgba(239,83,80,0.5)','⚡ Liq',3,1);
 }
 function enterTrade(sig){
+  if(!price||price<=0){lg('⚠ Esperando precio — inténtalo de nuevo en unos segundos');return;}
   const openTrades=tradeHistory.filter(t=>t.result==='open');
   if(openTrades.length>=3){lg('⚠ Máximo 3 trades simultáneos');return;}const l=sig.lvls;
   clearPreview();
@@ -1870,7 +1871,7 @@ function update(){
   if(typeof drawPriceAlertLines==='function')drawPriceAlertLines();
 }
 // ✅ PATCH P3c: auto-close check al WS
-function connectWS(t){if(ws){try{ws.close();}catch(e){}}candles=[];price=0;ws=new WebSocket('wss://stream.binance.com:9443/ws/'+currentPair.toLowerCase()+'@kline_'+t);ws.onopen=()=>{document.getElementById('dot').className='dot';document.getElementById('clbl').textContent='En vivo · '+t;lg('Conectado · '+t);loadHist2(t);};ws.onmessage=e=>{const k=JSON.parse(e.data).k;const c={time:+k.t,open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v,closed:k.x};if(candles.length&&candles[candles.length-1].time===c.time)candles[candles.length-1]=c;else{candles.push(c);if(candles.length>1100)candles=candles.slice(-1100);}price=c.close;if(c.closed)lg('Vela '+tf+' '+(c.close>=c.open?'▲':'▼')+' $'+ff(c.close));updPrice();if(cSeries){try{cSeries.update({time:Math.floor(c.time/1000),open:c.open,high:c.high,low:c.low,close:c.close});}catch(e){}if(volSeries){try{volSeries.update({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'});}catch(e){}}}update();if(trade&&!autoClosePending)setTimeout(()=>autoCheckLevels(),100);if(typeof checkPriceAlerts==='function')checkPriceAlerts();};ws.onerror=()=>{document.getElementById('clbl').textContent='Error';document.getElementById('dot').className='dot off';};ws.onclose=()=>{document.getElementById('dot').className='dot off';};}
+function connectWS(t){if(ws){try{ws.close();}catch(e){}}candles=[];price=0;ws=new WebSocket('wss://stream.binance.com:9443/ws/'+currentPair.toLowerCase()+'@kline_'+t);ws.onopen=()=>{document.getElementById('dot').className='dot';document.getElementById('clbl').textContent='En vivo · '+t;lg('Conectado · '+t);loadHist2(t);};ws.onmessage=e=>{const k=JSON.parse(e.data).k;const c={time:+k.t,open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v,closed:k.x};if(candles.length&&candles[candles.length-1].time===c.time)candles[candles.length-1]=c;else{candles.push(c);if(candles.length>1100)candles=candles.slice(-1100);}price=c.close;if(c.closed)lg('Vela '+tf+' '+(c.close>=c.open?'▲':'▼')+' $'+ff(c.close));updPrice();if(cSeries){try{cSeries.update({time:Math.floor(c.time/1000),open:c.open,high:c.high,low:c.low,close:c.close});}catch(e){}if(volSeries){try{volSeries.update({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'});}catch(e){}}}update();if(trade&&!autoClosePending&&price>0){const tp=trade.pair||(tradeHistory.find(t=>t.id===trade.histId)||{}).pair||'BTCUSDT';if(tp===currentPair)setTimeout(()=>autoCheckLevels(),100);}if(typeof checkPriceAlerts==='function')checkPriceAlerts();};ws.onerror=()=>{document.getElementById('clbl').textContent='Error';document.getElementById('dot').className='dot off';};ws.onclose=()=>{document.getElementById('dot').className='dot off';};}
 function connectTicker(){twS=new WebSocket('wss://stream.binance.com:9443/ws/'+currentPair.toLowerCase()+'@ticker');twS.onmessage=e=>{const d=JSON.parse(e.data);open24=+d.o;document.getElementById('mo').textContent='$'+ff(+d.o);document.getElementById('mh').textContent='$'+ff(+d.h);document.getElementById('ml2').textContent='$'+ff(+d.l);document.getElementById('mv').textContent=fk(+d.v)+' '+currentPair.replace('USDT','');updPrice();};}
 function updPrice(){if(!price)return;document.getElementById('pel').textContent='$'+ff(price);if(open24){const c=((price-open24)/open24*100);document.getElementById('chg').textContent=(c>=0?'+':'')+c.toFixed(2)+'%';document.getElementById('pel').className='price-big '+(c>=0?'price-up':'price-down');document.getElementById('chg').className='badge '+(c>=0?'badge-up':'badge-down');}}
 async function loadHist2(t){try{const cfg=TFCFG[t];lg('Cargando '+cfg.lim+' velas · '+t+'...');const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair}&interval=${t}&limit=${cfg.lim}`);const d=await r.json();candles=d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closed:true}));price=candles[candles.length-1].close;const dias=Math.round((candles[candles.length-1].time-candles[0].time)/1000/86400);lg('✓ '+candles.length+' velas · '+dias+' días · $'+ff(price));updPrice();setData();update();updateCandleTimer();
@@ -2679,12 +2680,6 @@ const TUTORIAL_STEPS=[
     subtitle:'SignalEdge no ejecuta trades automáticamente',
     highlight:'📋 Cuando veas una señal, debes introducirla <strong>manualmente</strong> en tu exchange (Binance, Bybit, Bitunix...):\n\n1️⃣ Copia el precio de <strong>Entrada</strong>\n2️⃣ Copia el <strong>SL</strong> (Stop Loss)\n3️⃣ Copia el <strong>TP1</strong> y <strong>TP2</strong>\n4️⃣ Abre la orden en tu exchange',
     tip:'💡 SignalEdge es una herramienta de análisis y gestión. La decisión y ejecución final siempre es tuya.'
-  },
-  {
-    title:'📋 Gestiona todos tus trades',
-    subtitle:'Desde el Historial, sin cambiar de par',
-    highlight:'En la pestaña <strong>Historial</strong> puedes ver y gestionar todos los trades abiertos de todos los pares a la vez:\n\n🟠 <strong>BTC</strong> · 🔵 <strong>ETH</strong> · 🟣 <strong>SOL</strong> — cada uno con su badge de color\n\n✅ Ejecutar TP1 parcial\n✅ Cerrar en TP2 o SL\n✅ Activar parcial automático\n✅ Ver PnL en tiempo real de cada par',
-    tip:'💡 Al cerrar un trade de otro par, la app obtiene el precio actual de Binance automáticamente.'
   },
   {
     title:'Sync en la nube ☁️',
