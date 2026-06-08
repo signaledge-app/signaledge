@@ -256,7 +256,7 @@ body.dark .lev-badge{background:#252836;color:#9294a0;border-color:#3a3d50}
 .stat-lbl{font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.05em}
 .stat-card.green .stat-val{color:#26a69a}.stat-card.red .stat-val{color:#ef5350}
 .stat-card.blue .stat-val{color:#2962ff}.stat-card.orange .stat-val{color:#f57c00}
-.open-trade-card{border-radius:10px;padding:.875rem;margin-bottom:10px;border:1.5px solid #2962ff;background:var(--card)}
+.open-trade-card{border-radius:8px;padding:.875rem;margin-bottom:.75rem;border:2px solid #2962ff;background:#f0f4ff}
 .open-trade-title{font-size:12px;font-weight:700;color:#2962ff;margin-bottom:.5rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .open-trade-pnl{font-size:18px;font-weight:700;margin-left:auto}
 .otl-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:.625rem}
@@ -2679,6 +2679,12 @@ const TUTORIAL_STEPS=[
     subtitle:'SignalEdge no ejecuta trades automáticamente',
     highlight:'📋 Cuando veas una señal, debes introducirla <strong>manualmente</strong> en tu exchange (Binance, Bybit, Bitunix...):\n\n1️⃣ Copia el precio de <strong>Entrada</strong>\n2️⃣ Copia el <strong>SL</strong> (Stop Loss)\n3️⃣ Copia el <strong>TP1</strong> y <strong>TP2</strong>\n4️⃣ Abre la orden en tu exchange',
     tip:'💡 SignalEdge es una herramienta de análisis y gestión. La decisión y ejecución final siempre es tuya.'
+  },
+  {
+    title:'📋 Gestiona todos tus trades',
+    subtitle:'Desde el Historial, sin cambiar de par',
+    highlight:'En la pestaña <strong>Historial</strong> puedes ver y gestionar todos los trades abiertos de todos los pares a la vez:\n\n🟠 <strong>BTC</strong> · 🔵 <strong>ETH</strong> · 🟣 <strong>SOL</strong> — cada uno con su badge de color\n\n✅ Ejecutar TP1 parcial\n✅ Cerrar en TP2 o SL\n✅ Activar parcial automático\n✅ Ver PnL en tiempo real de cada par',
+    tip:'💡 Al cerrar un trade de otro par, la app obtiene el precio actual de Binance automáticamente.'
   },
   {
     title:'Sync en la nube ☁️',
