@@ -556,6 +556,11 @@ body.dark .bm-hint{color:#666}
 .fm-success-text{font-size:15px;font-weight:600;margin-bottom:6px;}
 .fm-success-sub{font-size:12px;color:var(--text3);}
 
+
+/* ── Pair Selector ── */
+.pair-opt:hover{background:var(--bg3)!important;}
+.active-pair{background:var(--bg2)!important;font-weight:600;}
+
 </style>
 </head>
 <body>
@@ -632,7 +637,27 @@ body.dark .bm-hint{color:#666}
 <div class="dash">
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:8px">
-      <span class="pair">BTC / USDT</span>
+      <div style="position:relative;display:inline-block">
+        <button id="pair-selector-btn" onclick="togglePairDropdown()" style="display:flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;padding:0;font-family:inherit">
+          <span id="pair-icon" style="width:22px;height:22px;border-radius:50%;background:#f7931a;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="11" height="11" viewBox="0 0 24 24" fill="white"><path d="M23.6 14.8c-1.6 6.4-8.1 10.3-14.5 8.7C2.7 21.9-1.2 15.4.4 9 2 2.6 8.5-1.3 14.9.3c6.4 1.6 10.3 8.1 8.7 14.5z"/><path d="M17.3 10.3c.3-1.8-1.1-2.8-3-3.4l.6-2.4-1.5-.4-.6 2.3-1.2-.3.6-2.3-1.5-.4-.6 2.4-1-.2v-.1l-2-.5-.4 1.6s1.1.3 1.1.3c.6.2.7.6.7.9l-.7 2.9c0 .1.1.1.1.1h-.1l-1 3.9c-.1.2-.3.5-.8.4 0 0-1.1-.3-1.1-.3l-.8 1.7 1.9.5 1 .3-.6 2.4 1.5.4.6-2.4 1.2.3-.6 2.4 1.5.4.6-2.4c2.5.5 4.4.3 5.2-2 .6-1.8 0-2.8-1.3-3.5.9-.2 1.6-.8 1.7-2zm-3 4.2c-.5 1.8-3.5.8-4.5.6l.8-3.2c1 .2 4.2.7 3.7 2.6zm.5-4.2c-.4 1.6-3 .8-3.8.6l.7-2.9c.8.2 3.5.6 3.1 2.3z" fill="#f7931a"/></svg></span>
+          <span class="pair" id="pair-label">BTC / USDT</span>
+          <span style="font-size:10px;color:#999">▼</span>
+        </button>
+        <div id="pair-dropdown" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:9999;min-width:180px;overflow:hidden">
+          <button onclick="selectPair('BTCUSDT')" id="pair-opt-BTCUSDT" class="pair-opt active-pair" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:13px;color:var(--text1)">
+            <span style="width:26px;height:26px;border-radius:50%;background:#f7931a;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M23.6 14.8c-1.6 6.4-8.1 10.3-14.5 8.7C2.7 21.9-1.2 15.4.4 9 2 2.6 8.5-1.3 14.9.3c6.4 1.6 10.3 8.1 8.7 14.5z"/><path d="M17.3 10.3c.3-1.8-1.1-2.8-3-3.4l.6-2.4-1.5-.4-.6 2.3-1.2-.3.6-2.3-1.5-.4-.6 2.4-1-.2v-.1l-2-.5-.4 1.6s1.1.3 1.1.3c.6.2.7.6.7.9l-.7 2.9c0 .1.1.1.1.1h-.1l-1 3.9c-.1.2-.3.5-.8.4 0 0-1.1-.3-1.1-.3l-.8 1.7 1.9.5 1 .3-.6 2.4 1.5.4.6-2.4 1.2.3-.6 2.4 1.5.4.6-2.4c2.5.5 4.4.3 5.2-2 .6-1.8 0-2.8-1.3-3.5.9-.2 1.6-.8 1.7-2zm-3 4.2c-.5 1.8-3.5.8-4.5.6l.8-3.2c1 .2 4.2.7 3.7 2.6zm.5-4.2c-.4 1.6-3 .8-3.8.6l.7-2.9c.8.2 3.5.6 3.1 2.3z" fill="#f7931a"/></svg></span>
+            <div style="text-align:left"><div style="font-weight:600;font-size:12px">BTCUSDT</div><div style="font-size:10px;color:var(--text3)">Bitcoin / TetherUS</div></div>
+          </button>
+          <button onclick="selectPair('ETHUSDT')" id="pair-opt-ETHUSDT" class="pair-opt" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:13px;color:var(--text1)">
+            <span style="width:26px;height:26px;border-radius:50%;background:#627eea;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="18" viewBox="0 0 12 18" fill="none"><path d="M6 0L0 9.2 6 12.5 12 9.2 6 0z" fill="white" opacity=".6"/><path d="M0 9.2L6 12.5V6.8L0 9.2z" fill="white" opacity=".45"/><path d="M6 6.8v5.7l6-3.3L6 6.8z" fill="white" opacity=".8"/><path d="M6 13.6L0 10.3l6 7.7 6-7.7-6 3.3z" fill="white" opacity=".45"/><path d="M0 10.3L6 13.6V7.9l-6 2.4z" fill="white" opacity=".45"/></svg></span>
+            <div style="text-align:left"><div style="font-weight:600;font-size:12px">ETHUSDT <span style="font-size:9px;background:#ff9800;color:#fff;padding:1px 5px;border-radius:4px">BETA</span></div><div style="font-size:10px;color:var(--text3)">Ethereum / TetherUS</div></div>
+          </button>
+          <button onclick="selectPair('SOLUSDT')" id="pair-opt-SOLUSDT" class="pair-opt" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:13px;color:var(--text1)">
+            <span style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#9945ff,#14f195);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 8h10.5l1.5-1.5H2.5L1 8z" fill="white"/><path d="M1 5.5h10.5L13 4H2.5L1 5.5z" fill="white"/><path d="M1 3h10.5L13 1.5H2.5L1 3z" fill="white"/></svg></span>
+            <div style="text-align:left"><div style="font-weight:600;font-size:12px">SOLUSDT <span style="font-size:9px;background:#ff9800;color:#fff;padding:1px 5px;border-radius:4px">BETA</span></div><div style="font-size:10px;color:var(--text3)">Solana / TetherUS</div></div>
+          </button>
+        </div>
+      </div>
       <span class="dot off" id="dot"></span>
       <span style="font-size:10px;color:#999" id="clbl">Conectando...</span>
     </div>
@@ -1170,7 +1195,7 @@ function editEntryPrice(id){
 }
 function addTradeToHistory(sig){
   const l=sig.lvls;
-  const t={id:genId(),ts:Date.now(),date:new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),dir:sig.dir,source:sig.source,et:sig.et,tf,lev,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,r1:l.r1,r2:l.r2,sp:l.sp,ep:price,result:'open',pnl:null,pnlPct:null,closePrice:null,closeTs:null,duration:null,note:'',levelType:sig.levelType||null,partialDone:false,partialPnlPct:null,breakevenSL:null,openedAt:new Date().toISOString()};
+  const t={id:genId(),ts:Date.now(),date:new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),dir:sig.dir,source:sig.source,et:sig.et,tf,lev,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,r1:l.r1,r2:l.r2,sp:l.sp,ep:price,result:'open',pnl:null,pnlPct:null,closePrice:null,closeTs:null,duration:null,note:'',levelType:sig.levelType||null,partialDone:false,partialPnlPct:null,breakevenSL:null,openedAt:new Date().toISOString(),pair:currentPair||'BTCUSDT'};
   tradeHistory.unshift(t);saveHistory();renderHistorial();updateHistCount();
   // Sync directe a Supabase
   const _u=typeof seUser!=='undefined'?seUser:window.seUser;if(_u&&typeof seSaveTrade==='function')seSaveTrade(_u.id,t);
@@ -1344,7 +1369,7 @@ function renderHistList(){
     return`<div class="trade-row ${rowCls}" onclick="showTradeDetail('${t.id}')" style="cursor:pointer">
       <div class="tr-dir ${t.dir}">${t.dir==='long'?'▲L':'▼S'}</div>
       <div class="tr-info">
-        <div class="tr-main">${srcI[t.source]||'📦'} ${t.source.toUpperCase()} · ${t.tf} · ${t.lev}x · R:R ${t.r1} · ${t.et}${t.partialDone?'<span class="partial-badge">🎯 Parcial</span>':''}</div>
+        <div class="tr-main"><span style="font-size:9px;background:#1c2128;border:1px solid #30363d;color:#aaa;padding:1px 5px;border-radius:4px;margin-right:3px">${(t.pair||'BTCUSDT').replace('USDT','')}</span> ${srcI[t.source]||'📦'} ${t.source.toUpperCase()} · ${t.tf} · ${t.lev}x · R:R ${t.r1} · ${t.et}${t.partialDone?'<span class="partial-badge">🎯 Parcial</span>':''}</div>
         <div class="tr-sub">
           <span>🕐 ${t.openedAt?new Date(t.openedAt).toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):t.date}</span>
           ${!isOpen&&t.closedAt?`<span style="margin-left:6px">→ ${new Date(t.closedAt).toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'})}</span>`:''}
@@ -1622,7 +1647,7 @@ function renderMTF(analyses,conf){const sl={confirmed:'✓',zone:'◎',weak:'~',
     }
   }
   lastConf=conf;renderTrendMain(analyses);}
-async function fetchMTF(){if(mtfBusy||!price)return;const cacheKey=tf,now=Date.now();if(mtfCache[cacheKey]&&(now-mtfCache[cacheKey].ts)<MTF_CACHE_MS){renderMTF(mtfCache[cacheKey].analyses,mtfCache[cacheKey].conf);return;}mtfBusy=true;document.getElementById('mtfst').textContent='Actualizando...';const tfs=MTFM[tf]||['15m','1h','4h'];try{const res=[];for(const t of tfs){const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${t}&limit=${(TFCFG[t]||{lim:100}).lim}`);if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();res.push(analyzeTF(t,d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4]})),price));await new Promise(r=>setTimeout(r,300));}const conf=getConf(res);mtfCache[cacheKey]={analyses:res,conf,ts:now};renderMTF(res,conf);lg('MTF → '+lastConf.l);}catch(e){document.getElementById('mtfst').textContent='Error';}mtfBusy=false;}
+async function fetchMTF(){if(mtfBusy||!price)return;const cacheKey=tf,now=Date.now();if(mtfCache[cacheKey]&&(now-mtfCache[cacheKey].ts)<MTF_CACHE_MS){renderMTF(mtfCache[cacheKey].analyses,mtfCache[cacheKey].conf);return;}mtfBusy=true;document.getElementById('mtfst').textContent='Actualizando...';const tfs=MTFM[tf]||['15m','1h','4h'];try{const res=[];for(const t of tfs){const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair}&interval=${t}&limit=${(TFCFG[t]||{lim:100}).lim}`);if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();res.push(analyzeTF(t,d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4]})),price));await new Promise(r=>setTimeout(r,300));}const conf=getConf(res);mtfCache[cacheKey]={analyses:res,conf,ts:now};renderMTF(res,conf);lg('MTF → '+lastConf.l);}catch(e){document.getElementById('mtfst').textContent='Error';}mtfBusy=false;}
 
 function renderSigs(sigs,pats){const el=document.getElementById('sel');document.getElementById('tfl').textContent=tf;lastSigs=sigs;for(const idx of actSigs){if(idx>=sigs.length)actSigs.delete(idx);}renderAlert(sigs);updSigBar(sigs);drawZones(sigs);if(trade)checkPartialTrigger();if(tradeHistory.some(t=>t.result==='open'))renderHistorial();
   if(trade){
@@ -1736,7 +1761,13 @@ function initChartDivider(){
   document.addEventListener('touchend',()=>{dragging=false;});
 }
 function setData(){if(!cSeries||!candles.length)return;const d=candles.map(c=>({time:Math.floor(c.time/1000),open:c.open,high:c.high,low:c.low,close:c.close}));cSeries.setData(d);
-  if(volSeries&&volChart){try{const vd=candles.map(c=>({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'}));volSeries.setData(vd);volChart.timeScale().setVisibleRange({from:vd[Math.max(0,vd.length-TFCFG[tf].vis)].time,to:vd[vd.length-1].time});}catch(e){}}chart.timeScale().setVisibleRange({from:d[Math.max(0,d.length-TFCFG[tf].vis)].time,to:d[d.length-1].time});}
+  if(volSeries&&volChart){try{const vd=candles.map(c=>({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'}));volSeries.setData(vd);volChart.timeScale().setVisibleRange({from:vd[Math.max(0,vd.length-TFCFG[tf].vis)].time,to:vd[vd.length-1].time});}catch(e){}}chart.timeScale().setVisibleRange({from:d[Math.max(0,d.length-TFCFG[tf].vis)].time,to:d[d.length-1].time});
+  // Auto-fit sempre que es carreguen noves dades
+  try{
+    chart.timeScale().fitContent();
+    if(volChart)volChart.timeScale().fitContent();
+  }catch(e){}
+}
 function update(){
   if(!candles.length)return;
   if(!price&&candles.length)price=candles[candles.length-1].close;
@@ -1752,10 +1783,14 @@ function update(){
   if(typeof drawPriceAlertLines==='function')drawPriceAlertLines();
 }
 // ✅ PATCH P3c: auto-close check al WS
-function connectWS(t){if(ws){try{ws.close();}catch(e){}}candles=[];price=0;ws=new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_'+t);ws.onopen=()=>{document.getElementById('dot').className='dot';document.getElementById('clbl').textContent='En vivo · '+t;lg('Conectado · '+t);loadHist2(t);};ws.onmessage=e=>{const k=JSON.parse(e.data).k;const c={time:+k.t,open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v,closed:k.x};if(candles.length&&candles[candles.length-1].time===c.time)candles[candles.length-1]=c;else{candles.push(c);if(candles.length>1100)candles=candles.slice(-1100);}price=c.close;if(c.closed)lg('Vela '+tf+' '+(c.close>=c.open?'▲':'▼')+' $'+ff(c.close));updPrice();if(cSeries){try{cSeries.update({time:Math.floor(c.time/1000),open:c.open,high:c.high,low:c.low,close:c.close});}catch(e){}if(volSeries){try{volSeries.update({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'});}catch(e){}}}update();if(trade&&!autoClosePending)setTimeout(()=>autoCheckLevels(),100);if(typeof checkPriceAlerts==='function')checkPriceAlerts();};ws.onerror=()=>{document.getElementById('clbl').textContent='Error';document.getElementById('dot').className='dot off';};ws.onclose=()=>{document.getElementById('dot').className='dot off';};}
-function connectTicker(){twS=new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@ticker');twS.onmessage=e=>{const d=JSON.parse(e.data);open24=+d.o;document.getElementById('mo').textContent='$'+ff(+d.o);document.getElementById('mh').textContent='$'+ff(+d.h);document.getElementById('ml2').textContent='$'+ff(+d.l);document.getElementById('mv').textContent=fk(+d.v)+' BTC';updPrice();};}
+function connectWS(t){if(ws){try{ws.close();}catch(e){}}candles=[];price=0;ws=new WebSocket('wss://stream.binance.com:9443/ws/'+currentPair.toLowerCase()+'@kline_'+t);ws.onopen=()=>{document.getElementById('dot').className='dot';document.getElementById('clbl').textContent='En vivo · '+t;lg('Conectado · '+t);loadHist2(t);};ws.onmessage=e=>{const k=JSON.parse(e.data).k;const c={time:+k.t,open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v,closed:k.x};if(candles.length&&candles[candles.length-1].time===c.time)candles[candles.length-1]=c;else{candles.push(c);if(candles.length>1100)candles=candles.slice(-1100);}price=c.close;if(c.closed)lg('Vela '+tf+' '+(c.close>=c.open?'▲':'▼')+' $'+ff(c.close));updPrice();if(cSeries){try{cSeries.update({time:Math.floor(c.time/1000),open:c.open,high:c.high,low:c.low,close:c.close});}catch(e){}if(volSeries){try{volSeries.update({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'});}catch(e){}}}update();if(trade&&!autoClosePending)setTimeout(()=>autoCheckLevels(),100);if(typeof checkPriceAlerts==='function')checkPriceAlerts();};ws.onerror=()=>{document.getElementById('clbl').textContent='Error';document.getElementById('dot').className='dot off';};ws.onclose=()=>{document.getElementById('dot').className='dot off';};}
+function connectTicker(){twS=new WebSocket('wss://stream.binance.com:9443/ws/'+currentPair.toLowerCase()+'@ticker');twS.onmessage=e=>{const d=JSON.parse(e.data);open24=+d.o;document.getElementById('mo').textContent='$'+ff(+d.o);document.getElementById('mh').textContent='$'+ff(+d.h);document.getElementById('ml2').textContent='$'+ff(+d.l);document.getElementById('mv').textContent=fk(+d.v)+' '+currentPair.replace('USDT','');updPrice();};}
 function updPrice(){if(!price)return;document.getElementById('pel').textContent='$'+ff(price);if(open24){const c=((price-open24)/open24*100);document.getElementById('chg').textContent=(c>=0?'+':'')+c.toFixed(2)+'%';document.getElementById('pel').className='price-big '+(c>=0?'price-up':'price-down');document.getElementById('chg').className='badge '+(c>=0?'badge-up':'badge-down');}}
-async function loadHist2(t){try{const cfg=TFCFG[t];lg('Cargando '+cfg.lim+' velas · '+t+'...');const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${t}&limit=${cfg.lim}`);const d=await r.json();candles=d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closed:true}));price=candles[candles.length-1].close;const dias=Math.round((candles[candles.length-1].time-candles[0].time)/1000/86400);lg('✓ '+candles.length+' velas · '+dias+' días · $'+ff(price));updPrice();setData();update();updateCandleTimer();if(mtfInt)clearInterval(mtfInt);setTimeout(fetchMTF,800);mtfInt=setInterval(fetchMTF,180000);}catch(e){lg('Error: '+e.message);}}
+async function loadHist2(t){try{const cfg=TFCFG[t];lg('Cargando '+cfg.lim+' velas · '+t+'...');const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair}&interval=${t}&limit=${cfg.lim}`);const d=await r.json();candles=d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closed:true}));price=candles[candles.length-1].close;const dias=Math.round((candles[candles.length-1].time-candles[0].time)/1000/86400);lg('✓ '+candles.length+' velas · '+dias+' días · $'+ff(price));updPrice();setData();update();updateCandleTimer();
+    // Forçar fitContent després de carregar noves dades
+    setTimeout(()=>{try{if(chart)chart.timeScale().fitContent();if(volChart)volChart.timeScale().fitContent();}catch(e){}},200);
+    setTimeout(()=>{try{if(chart)chart.timeScale().fitContent();}catch(e){}},800);
+    if(mtfInt)clearInterval(mtfInt);setTimeout(fetchMTF,800);mtfInt=setInterval(fetchMTF,180000);}catch(e){lg('Error: '+e.message);}}
 
 // EVENTS
 document.querySelectorAll('.tf').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.tf').forEach(x=>x.classList.remove('active'));b.classList.add('active');tf=b.dataset.tf;updTFinfo();if(mtfInt)clearInterval(mtfInt);mtfCache={};connectWS(tf);savePrefs();setTimeout(fetchExtLevels,1500);});});
@@ -1926,7 +1961,7 @@ async function fetchExtLevelsTF(extTf){
   try{
     const limitMap={'1h':200,'4h':200,'1d':500,'1w':100};
     const limit=limitMap[extTf]||100;
-    const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${extTf}&limit=${limit}`);
+    const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair}&interval=${extTf}&limit=${limit}`);
     if(!r.ok){console.log('ExtLevels HTTP error',extTf,r.status);return;}
     const d=await r.json();
     if(!d?.length){console.log('ExtLevels no data',extTf);return;}
@@ -2019,7 +2054,7 @@ function loadSigToCalc(sig){calcActiveSig=sig;calcManualSig=true;calcSigStale=fa
 function copyOrder(sig){
   const l=sig.lvls;
   const dir=sig.dir==='long'?'LONG':'SHORT';
-  const text=`📊 ${dir} BTCUSDT\n━━━━━━━━━━━━━━━━━\nTipo:      ${sig.et}\nEntrada:   $${ff(l.e)}\nStop Loss: $${ff(l.sl)} (-${l.sp}%)\nTP1:       $${ff(l.tp1)} (+${l.r1}R)\nTP2:       $${ff(l.tp2)} (+${l.r2}R)\n━━━━━━━━━━━━━━━━━\nLeverage:  ${lev}x\nTF:        ${tf}\nFuente:    ${sig.source.toUpperCase()}\nLiquidación: $${ff(l.lq)}`;
+  const text=`📊 ${dir} ${currentPair}\n━━━━━━━━━━━━━━━━━\nTipo:      ${sig.et}\nEntrada:   $${ff(l.e)}\nStop Loss: $${ff(l.sl)} (-${l.sp}%)\nTP1:       $${ff(l.tp1)} (+${l.r1}R)\nTP2:       $${ff(l.tp2)} (+${l.r2}R)\n━━━━━━━━━━━━━━━━━\nLeverage:  ${lev}x\nTF:        ${tf}\nFuente:    ${sig.source.toUpperCase()}\nLiquidación: $${ff(l.lq)}`;
   copyToClipboard(text, event.target);
 }
 
@@ -2067,6 +2102,23 @@ function savePrefs(){try{localStorage.setItem(PREFS_KEY,JSON.stringify({lev,tf,u
 function loadPrefs(){try{const raw=localStorage.getItem(PREFS_KEY);const p=raw?JSON.parse(raw):{};lev=p.lev||2;tf=p.tf||'1m';document.querySelectorAll('.lev-btn').forEach(b=>b.classList.toggle('active',+b.dataset.lev===lev));document.querySelectorAll('.tf').forEach(b=>b.classList.toggle('active',b.dataset.tf===tf));if(p.useOB!==undefined){useOB=p.useOB;document.getElementById('cob').checked=useOB;document.getElementById('lob').className='ecb'+(useOB?' ob-on':'');}if(p.useFVG!==undefined){useFVG=p.useFVG;document.getElementById('cfvg').checked=useFVG;document.getElementById('lfvg').className='ecb'+(useFVG?' fvg-on':'');}if(p.useRT!==undefined){useRT=p.useRT;document.getElementById('crt').checked=useRT;document.getElementById('lrt').className='ecb'+(useRT?' rt-on':'');}if(p.extTFs&&Array.isArray(p.extTFs)){activExtTFs=new Set(p.extTFs);document.querySelectorAll('.ext-tf-btn').forEach(b=>{const active=activExtTFs.has(b.dataset.tf);b.style.opacity=active?'1':'.5';b.style.background=active?(EXT_TF_COLORS[b.dataset.tf]||'#888')+'22':'transparent';});}if(p.capital)document.getElementById('calc-capital').value=p.capital;if(p.capitalUsar)document.getElementById('calc-capital-usar').value=p.capitalUsar;else if(p.capital)document.getElementById('calc-capital-usar').value=p.capital;if(p.riesgo){const rv=parseFloat(p.riesgo);document.querySelectorAll('.calc-pct-btn').forEach(b=>{const bv=parseFloat(b.textContent);b.classList.toggle('active',bv===rv);});}if(p.riesgo)document.getElementById('calc-riesgo').value=p.riesgo;if(p.margenFix)document.getElementById('calc-margen-fix').value=p.margenFix;}catch(e){lev=2;tf='1m';document.querySelectorAll('.lev-btn').forEach(b=>b.classList.toggle('active',+b.dataset.lev===2));document.querySelectorAll('.tf').forEach(b=>b.classList.toggle('active',b.dataset.tf==='1m'));}}
 
 window.addEventListener('load',()=>{
+// Inicialitzar selector de parell
+(function(){
+  const icons={
+    BTCUSDT:'<svg width="11" height="11" viewBox="0 0 24 24" fill="white"><path d="M23.6 14.8c-1.6 6.4-8.1 10.3-14.5 8.7C2.7 21.9-1.2 15.4.4 9 2 2.6 8.5-1.3 14.9.3c6.4 1.6 10.3 8.1 8.7 14.5z"/><path d="M17.3 10.3c.3-1.8-1.1-2.8-3-3.4l.6-2.4-1.5-.4-.6 2.3-1.2-.3.6-2.3-1.5-.4-.6 2.4-1-.2v-.1l-2-.5-.4 1.6s1.1.3 1.1.3c.6.2.7.6.7.9l-.7 2.9c0 .1.1.1.1.1h-.1l-1 3.9c-.1.2-.3.5-.8.4 0 0-1.1-.3-1.1-.3l-.8 1.7 1.9.5 1 .3-.6 2.4 1.5.4.6-2.4 1.2.3-.6 2.4 1.5.4.6-2.4c2.5.5 4.4.3 5.2-2 .6-1.8 0-2.8-1.3-3.5.9-.2 1.6-.8 1.7-2zm-3 4.2c-.5 1.8-3.5.8-4.5.6l.8-3.2c1 .2 4.2.7 3.7 2.6zm.5-4.2c-.4 1.6-3 .8-3.8.6l.7-2.9c.8.2 3.5.6 3.1 2.3z" fill="#f7931a"/></svg>',
+    ETHUSDT:'<svg width="10" height="15" viewBox="0 0 12 18" fill="none"><path d="M6 0L0 9.2 6 12.5 12 9.2 6 0z" fill="white" opacity=".6"/><path d="M0 9.2L6 12.5V6.8L0 9.2z" fill="white" opacity=".45"/><path d="M6 6.8v5.7l6-3.3L6 6.8z" fill="white" opacity=".8"/><path d="M6 13.6L0 10.3l6 7.7 6-7.7-6 3.3z" fill="white" opacity=".45"/></svg>',
+    SOLUSDT:'<svg width="12" height="9" viewBox="0 0 14 10" fill="none"><path d="M1 8h10.5l1.5-1.5H2.5L1 8z" fill="white"/><path d="M1 5.5h10.5L13 4H2.5L1 5.5z" fill="white"/><path d="M1 3h10.5L13 1.5H2.5L1 3z" fill="white"/></svg>'
+  };
+  const bgs={BTCUSDT:'#f7931a',ETHUSDT:'#627eea',SOLUSDT:'linear-gradient(135deg,#9945ff,#14f195)'};
+  const names={BTCUSDT:'BTC / USDT',ETHUSDT:'ETH / USDT',SOLUSDT:'SOL / USDT'};
+  const lbl=document.getElementById('pair-label');
+  const ico=document.getElementById('pair-icon');
+  if(lbl)lbl.textContent=names[currentPair]||currentPair;
+  if(ico){ico.style.background=bgs[currentPair]||'#888';ico.innerHTML=icons[currentPair]||'';}
+  document.querySelectorAll('.pair-opt').forEach(b=>b.classList.remove('active-pair'));
+  const active=document.getElementById('pair-opt-'+currentPair);
+  if(active)active.classList.add('active-pair');
+})();
 loadHistory();loadPrefs();loadPushTFs();loadPinned();syncCB();updLev();updTFinfo();updatePushBar();initChart();connectWS(tf);connectTicker();renderHistorial();updateHistCount();calcUpdate();setTimeout(fetchExtLevels,2000);startExtLevelsInterval();
 // ── OPTIMITZACIÓ RENDIMENT: alentir quan pestanya oculta ─────
 document.addEventListener('visibilitychange',()=>{
@@ -2524,6 +2576,12 @@ const TUTORIAL_STEPS=[
     tip:'💡 Al cerrar un trade, el siguiente se activa automáticamente en el gráfico.'
   },
   {
+    title:'₿ Múltiples pares de trading',
+    subtitle:'BTC, ETH y SOL en tiempo real',
+    highlight:'Cambia de par desde el selector en la barra superior:\n\n<span style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="width:22px;height:22px;border-radius:50%;background:#f7931a;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">₿</span><strong>BTC/USDT</strong> — Bitcoin</span><span style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="width:22px;height:22px;border-radius:50%;background:#627eea;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">Ξ</span><strong>ETH/USDT</strong> — Ethereum <span style="background:#ff9800;color:#fff;padding:1px 5px;border-radius:4px;font-size:9px">BETA</span></span><span style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#9945ff,#14f195);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">◎</span><strong>SOL/USDT</strong> — Solana <span style="background:#ff9800;color:#fff;padding:1px 5px;border-radius:4px;font-size:9px">BETA</span></span>\n\nCada par tiene sus propias señales, niveles y gráfico.',
+    tip:'💡 ETH y SOL están en fase beta. Las señales funcionan igual que BTC pero pueden necesitar ajustes.'
+  },
+  {
     title:'🔔 Activa las notificaciones',
     subtitle:'Recibe alertas cuando aparezca una señal fuerte',
     highlight:'Para no perderte ninguna señal:\n\n1️⃣ Toca tu <strong>avatar</strong> (arriba a la derecha)\n2️⃣ Selecciona <strong>Alertas push</strong>\n3️⃣ Toca <strong>Activar</strong> y acepta el permiso\n4️⃣ Elige en qué timeframes quieres recibir alertas',
@@ -2719,7 +2777,7 @@ updatePriceAlertsCount();
       <div class="tdm-subtitle" id="tdm-subtitle">--</div>
     </div>
     <div class="tdm-body">
-      <div class="tdm-row"><span class="tdm-lbl">Par</span><span class="tdm-val">BTCUSDT</span></div>
+      <div class="tdm-row"><span class="tdm-lbl">Par</span><span class="tdm-val" id="tdm-pair-val">BTCUSDT</span></div>
       <div class="tdm-row"><span class="tdm-lbl">Precio de entrada</span><span class="tdm-val" id="tdm-entry">--</span></div>
       <div class="tdm-row"><span class="tdm-lbl">Stop Loss</span><span class="tdm-val" id="tdm-sl">--</span></div>
       <div class="tdm-row"><span class="tdm-lbl">TP1</span><span class="tdm-val" id="tdm-tp1">--</span></div>
@@ -3023,7 +3081,7 @@ function openBitunixModal(sigData){
   const slPct=entry>0?((sl-entry)/entry*100*levVal*(isLong?-1:1)).toFixed(1):0;
   const badge=document.getElementById('bm-dir-badge');
   if(badge){badge.textContent=isLong?'▲ LONG':'▼ SHORT';badge.className='bm-dir-badge '+(isLong?'long':'short');}
-  document.getElementById('bm-pair').textContent=`BTCUSDT · ${openT.et||'LIMIT'} · ${levVal}x`;
+  document.getElementById('bm-pair').textContent=`${currentPair} · ${openT.et||'LIMIT'} · ${levVal}x`;
   document.getElementById('bm-entry').textContent=ff(entry);
   document.getElementById('bm-sl').textContent=ff(sl)+'  (−'+slPct+'%)';
   document.getElementById('bm-tp1').textContent=ff(tp1)+'  (+'+tp1Pct+'%)';
@@ -3046,7 +3104,7 @@ function openBitunixModalSig(sig){
   const slPct=entry>0?((l.sl-entry)/entry*100*levVal*(isLong?-1:1)).toFixed(1):0;
   const badge=document.getElementById('bm-dir-badge');
   if(badge){badge.textContent=isLong?'▲ LONG':'▼ SHORT';badge.className='bm-dir-badge '+(isLong?'long':'short');}
-  document.getElementById('bm-pair').textContent=`BTCUSDT · ${sig.et||'LIMIT'} · ${levVal}x`;
+  document.getElementById('bm-pair').textContent=`${currentPair} · ${sig.et||'LIMIT'} · ${levVal}x`;
   document.getElementById('bm-entry').textContent=ff(entry);
   document.getElementById('bm-sl').textContent=ff(l.sl)+'  (−'+slPct+'%)';
   document.getElementById('bm-tp1').textContent=ff(l.tp1)+'  (+'+tp1Pct+'%)';
@@ -3197,6 +3255,26 @@ window.addEventListener('load',()=>setTimeout(updatePushMenuStatus,500));
 // Actualitzar estat en carregar
 window.addEventListener('DOMContentLoaded',()=>{updatePushMenuStatus();});
 
+
+function togglePairDropdown(){
+  const dd=document.getElementById('pair-dropdown');
+  dd.style.display=dd.style.display==='none'?'block':'none';
+}
+function selectPair(symbol){
+  if(symbol===currentPair){document.getElementById('pair-dropdown').style.display='none';return;}
+  // Guardar parell i recarregar pàgina
+  localStorage.setItem('se_pair',symbol);
+  window.location.reload();
+}
+// Tancar dropdown en clicar fora
+document.addEventListener('click',function(e){
+  const dd=document.getElementById('pair-dropdown');
+  const btn=document.getElementById('pair-selector-btn');
+  if(dd&&btn&&!dd.contains(e.target)&&!btn.contains(e.target)){
+    dd.style.display='none';
+  }
+});
+
 function closeBitunixModal(){
   document.getElementById('bitunix-modal-overlay').classList.remove('open');
 }
@@ -3212,7 +3290,7 @@ function copyAllBitunix(){
   const tp2=document.getElementById('bm-tp2').textContent.split('(')[0].trim();
   const dir=document.getElementById('bm-dir-badge').textContent.replace('▲','').replace('▼','').trim();
   const par=document.getElementById('bm-pair').textContent;
-  const text=`BTCUSDT ${dir}\n━━━━━━━━━━━━━━━━━━━━━━\n${par}\nEntrada: ${entry}\nSL:      ${sl}\nTP1:     ${tp1}\nTP2:     ${tp2}\n━━━━━━━━━━━━━━━━━━━━━━`;
+  const text=`${currentPair} ${dir}\n━━━━━━━━━━━━━━━━━━━━━━\n${par}\nEntrada: ${entry}\nSL:      ${sl}\nTP1:     ${tp1}\nTP2:     ${tp2}\n━━━━━━━━━━━━━━━━━━━━━━`;
   const btn=document.getElementById('bm-copy-all-btn');
   copyToClipboard(text,btn);
   if(btn){setTimeout(()=>{btn.style.background='#f57c00';document.getElementById('bm-copy-all-icon').textContent='📋';},2000);}
@@ -3354,6 +3432,12 @@ document.addEventListener('click',function(e){
 // ── AUTO-CLOSE I ALERTES SL/TP ───────────────────────────────
 let autoClosePending=false;
 let slWarnSent=false,tp1WarnSent=false,tp2WarnSent=false,tp1Ignored=false;
+let currentPair=localStorage.getItem('se_pair')||'BTCUSDT'; // Parell actiu
+const PAIRS={
+  BTCUSDT:{symbol:'BTCUSDT',name:'BTC / USDT',icon:'₿',coincap:'bitcoin',beta:false},
+  ETHUSDT:{symbol:'ETHUSDT',name:'ETH / USDT',icon:'Ξ',coincap:'ethereum',beta:true},
+  SOLUSDT:{symbol:'SOLUSDT',name:'SOL / USDT',icon:'◎',coincap:'solana',beta:true},
+};
 let activeTradeId=null; // ID del trade que es mostra al gràfic
 
 function resetTradeAlerts(){
