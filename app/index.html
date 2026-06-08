@@ -3874,35 +3874,65 @@ function renderMercado(d){
     }
   }else if(trendEl){trendEl.textContent='Calculando...';if(masEl)masEl.textContent='';}
 
-  // ── SEMÀFOR D'INVERSIÓ ────────────────────────────────────
+  // ── SEMÀFOR D'INVERSIÓ (lògica per a compra a llarg termini) ───
   let score=0; // -6 a +6
   const indicators=[];
+  const rsiD=d.rsiDaily||50;
+  const rsiW=d.rsiWeekly||50;
 
-  // Indicators en castellà
-  if(fgVal<=25){score-=2;indicators.push({label:'F&G: Miedo extremo',color:'#ef5350',icon:'🔴'});}
-  else if(fgVal<=45){score-=1;indicators.push({label:'F&G: Miedo',color:'#ff9800',icon:'🟠'});}
+  // Fear & Greed — per a inversió, por extrema = oportunitat
+  if(fgVal<=15){score+=2;indicators.push({label:'F&G: Miedo extremo — zona de compra histórica',color:'#26a69a',icon:'🟢'});}
+  else if(fgVal<=30){score+=1;indicators.push({label:'F&G: Miedo — zona favorable',color:'#8bc34a',icon:'🟢'});}
   else if(fgVal<=55){indicators.push({label:'F&G: Neutral',color:'#ffc107',icon:'🟡'});}
-  else if(fgVal<=75){score+=1;indicators.push({label:'F&G: Codicia',color:'#8bc34a',icon:'🟢'});}
-  else{score+=2;indicators.push({label:'F&G: Codicia extrema',color:'#26a69a',icon:'🟢'});}
+  else if(fgVal<=75){score-=1;indicators.push({label:'F&G: Codicia — precaución',color:'#ff9800',icon:'🟠'});}
+  else{score-=2;indicators.push({label:'F&G: Codicia extrema — riesgo de corrección',color:'#ef5350',icon:'🔴'});}
 
+  // RSI — sobrevenut és oportunitat per a inversió
+  if(rsiD<=25){score+=2;indicators.push({label:'RSI diario: '+rsiD+' — muy sobrevendido (oportunidad)',color:'#26a69a',icon:'🟢'});}
+  else if(rsiD<=35){score+=1;indicators.push({label:'RSI diario: '+rsiD+' — sobrevendido',color:'#8bc34a',icon:'🟢'});}
+  else if(rsiD<=65){indicators.push({label:'RSI diario: '+rsiD+' — zona neutral',color:'#ffc107',icon:'🟡'});}
+  else if(rsiD<=75){score-=1;indicators.push({label:'RSI diario: '+rsiD+' — sobrecomprado',color:'#ff9800',icon:'🟠'});}
+  else{score-=2;indicators.push({label:'RSI diario: '+rsiD+' — muy sobrecomprado',color:'#ef5350',icon:'🔴'});}
+
+  // MAs — per a inversió, per sota pot ser zona d'acumulació
   if(d.ma20){
-    if(bullCount===3){score+=2;indicators.push({label:'MAs: Todas alcistas',color:'#26a69a',icon:'🟢'});}
-    else if(bullCount===2){score+=1;indicators.push({label:'MAs: Mayoría alcistas',color:'#8bc34a',icon:'🟡'});}
-    else if(bullCount===1){score-=1;indicators.push({label:'MAs: Mayoría bajistas',color:'#ff9800',icon:'🟠'});}
-    else{score-=2;indicators.push({label:'MAs: Todas bajistas',color:'#ef5350',icon:'🔴'});}
+    if(bullCount===3){score+=1;indicators.push({label:'MAs: Tendencia alcista confirmada',color:'#26a69a',icon:'🟢'});}
+    else if(bullCount===2){indicators.push({label:'MAs: Señales mixtas',color:'#ffc107',icon:'🟡'});}
+    else if(bullCount===1){score+=1;indicators.push({label:'MAs: Por debajo — posible zona de acumulación',color:'#8bc34a',icon:'🟢'});}
+    else{score+=2;indicators.push({label:'MAs: Muy por debajo — zona de acumulación potencial',color:'#26a69a',icon:'🟢'});}
   }
 
-  if(d.change30>15){score+=2;indicators.push({label:'30d: +'+d.change30.toFixed(0)+'% muy positivo',color:'#26a69a',icon:'🟢'});}
-  else if(d.change30>0){score+=1;indicators.push({label:'30d: +'+d.change30.toFixed(0)+'% positivo',color:'#8bc34a',icon:'🟡'});}
-  else if(d.change30>-15){score-=1;indicators.push({label:'30d: '+d.change30.toFixed(0)+'% negativo',color:'#ff9800',icon:'🟠'});}
-  else{score-=2;indicators.push({label:'30d: '+d.change30.toFixed(0)+'% muy negativo',color:'#ef5350',icon:'🔴'});}
+  // Variació 30d — caiguda forta = oportunitat
+  if(d.change30>20){score-=2;indicators.push({label:'30d: +'+d.change30.toFixed(0)+'% — posible sobrecompra',color:'#ef5350',icon:'🔴'});}
+  else if(d.change30>5){score-=1;indicators.push({label:'30d: +'+d.change30.toFixed(0)+'% — tendencia positiva',color:'#ff9800',icon:'🟠'});}
+  else if(d.change30>-10){indicators.push({label:'30d: '+d.change30.toFixed(0)+'% — movimiento moderado',color:'#ffc107',icon:'🟡'});}
+  else if(d.change30>-25){score+=1;indicators.push({label:'30d: '+d.change30.toFixed(0)+'% — caída significativa (oportunidad DCA)',color:'#8bc34a',icon:'🟢'});}
+  else{score+=2;indicators.push({label:'30d: '+d.change30.toFixed(0)+'% — caída fuerte (zona de acumulación)',color:'#26a69a',icon:'🟢'});}
 
-  // Semàfor final
+  // Semàfor final — perspectiva inversió llarg termini
   let semEmoji,semTitle,semDesc,semBg,semBorder;
-  if(score>=4){semEmoji='🟢';semTitle='Buen momento para invertir';semDesc='El mercado muestra señales alcistas. Fear & Greed positivo, precio por encima de las MAs y tendencia favorable. Considera entradas graduales (DCA).';semBg='rgba(38,166,154,0.08)';semBorder='#a5d6a7';}
-  else if(score>=2){semEmoji='🟡';semTitle='Momento aceptable — con cautela';semDesc='El mercado tiene señales mixtas. Algunos indicadores positivos pero no todos alineados. Si inviertes, hazlo en pequeñas porciones.';semBg='rgba(255,193,7,0.08)';semBorder='#ffe082';}
-  else if(score>=0){semEmoji='🟠';semTitle='Espera — mercado incierto';semDesc='No es el mejor momento. El mercado no tiene una dirección clara. Mejor esperar confirmación de una tendencia alcista antes de entrar.';semBg='rgba(255,152,0,0.08)';semBorder='#ffcc80';}
-  else{semEmoji='🔴';semTitle='No es buen momento para invertir';semDesc=`BTC está por debajo de las MAs (MA20, MA50, MA200), el sentimiento es de miedo (${fgVal}/100) y la tendencia mensual es negativa (${d.change30.toFixed(1)}%). Espera recuperación de la MA20 ($${d.ma20?Math.round(d.ma20).toLocaleString('en-US'):'--'}) antes de considerar entrada.`;semBg='rgba(239,83,80,0.08)';semBorder='#f48fb1';}
+  const ma20str=d.ma20?'$'+Math.round(d.ma20).toLocaleString('en-US'):'--';
+  if(score>=5){
+    semEmoji='🟢';semTitle='Zona de acumulación — muy favorable';
+    semDesc=`Múltiples indicadores apuntan a una zona de compra histórica. Fear & Greed en ${fgVal}/100, RSI sobrevendido (${rsiD}) y precio muy por debajo de las MAs. Históricamente estas zonas han generado buenos retornos a largo plazo. Considera DCA gradual.`;
+    semBg='rgba(38,166,154,0.08)';semBorder='#a5d6a7';
+  } else if(score>=3){
+    semEmoji='🟢';semTitle='Momento favorable para invertir';
+    semDesc=`El mercado muestra señales de posible acumulación. RSI en zona baja (${rsiD}) y sentimiento negativo (${fgVal}/100) — condiciones que históricamente han precedido recuperaciones. Gestiona el riesgo con entradas graduales.`;
+    semBg='rgba(38,166,154,0.06)';semBorder='#80cbc4';
+  } else if(score>=1){
+    semEmoji='🟡';semTitle='Zona neutral — espera confirmación';
+    semDesc='Las condiciones son mixtas. Algunos indicadores favorables pero sin señal clara de acumulación. Si decides entrar, hazlo con pequeñas porciones y gestiona bien el riesgo.';
+    semBg='rgba(255,193,7,0.08)';semBorder='#ffe082';
+  } else if(score>=-1){
+    semEmoji='🟠';semTitle='Precaución — mercado en zona de riesgo';
+    semDesc=`El mercado no muestra señales claras ni de acumulación ni de techo. Fear & Greed en ${fgVal}/100. Espera una señal más clara antes de entrar con capital significativo.`;
+    semBg='rgba(255,152,0,0.08)';semBorder='#ffcc80';
+  } else{
+    semEmoji='🔴';semTitle='Alto riesgo — posible techo de mercado';
+    semDesc=`Señales de posible sobrecompra: Fear & Greed en ${fgVal}/100 y RSI en ${rsiD}. El mercado podría estar cerca de un techo. No es el mejor momento para nuevas entradas de largo plazo. Considera esperar o reducir exposición.`;
+    semBg='rgba(239,83,80,0.08)';semBorder='#f48fb1';
+  }
 
   const semDiv=document.getElementById('mkt-semaforo');
   if(semDiv)semDiv.style.cssText=`background:${semBg};border:2px solid ${semBorder};border-radius:10px;padding:.75rem .875rem;margin-bottom:.625rem;display:flex;align-items:center;gap:16px;flex-wrap:wrap`;
