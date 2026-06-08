@@ -3362,6 +3362,8 @@ function resetTradeAlerts(){
 }
 
 function vibrate(pattern){
+  // Vibració desactivada
+  return;
   try{if(navigator.vibrate)navigator.vibrate(pattern);}catch(e){}
 }
 
