@@ -1237,7 +1237,8 @@ function editEntryPrice(id){
 }
 function addTradeToHistory(sig){
   const l=sig.lvls;
-  const t={id:genId(),ts:Date.now(),date:new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),dir:sig.dir,source:sig.source,et:sig.et,tf,lev,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,r1:l.r1,r2:l.r2,sp:l.sp,ep:price,result:'open',pnl:null,pnlPct:null,closePrice:null,closeTs:null,duration:null,note:'',levelType:sig.levelType||null,partialDone:false,partialPnlPct:null,breakevenSL:null,openedAt:new Date().toISOString(),pair:localStorage.getItem('se_pair')||currentPair||'BTCUSDT'};
+  const tradePair=localStorage.getItem('se_pair')||(typeof currentPair!=='undefined'?currentPair:'BTCUSDT');
+  const t={id:genId(),ts:Date.now(),date:new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),dir:sig.dir,source:sig.source,et:sig.et,tf,lev,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,r1:l.r1,r2:l.r2,sp:l.sp,ep:price,result:'open',pnl:null,pnlPct:null,closePrice:null,closeTs:null,duration:null,note:'',levelType:sig.levelType||null,partialDone:false,partialPnlPct:null,breakevenSL:null,openedAt:new Date().toISOString(),pair:tradePair};
   tradeHistory.unshift(t);saveHistory();renderHistorial();updateHistCount();
   // Sync directe a Supabase
   const _u=typeof seUser!=='undefined'?seUser:window.seUser;if(_u&&typeof seSaveTrade==='function')seSaveTrade(_u.id,t);
@@ -1478,6 +1479,12 @@ function renderHistorial(){renderStats();renderOpenTrade();renderDashTrades();re
 const _prefsRaw=localStorage.getItem('btc_dashboard_prefs_v1');
 const _prefs=_prefsRaw?JSON.parse(_prefsRaw):{};
 let candles=[],ws=null,twS=null,tf=_prefs.tf||'1m',price=0,open24=0,lev=_prefs.lev||2;
+let currentPair=localStorage.getItem('se_pair')||'BTCUSDT'; // Parell actiu — declarat aquí per estar disponible a totes les funcions
+const PAIRS={
+  BTCUSDT:{symbol:'BTCUSDT',name:'BTC / USDT',icon:'₿',coincap:'bitcoin',beta:false},
+  ETHUSDT:{symbol:'ETHUSDT',name:'ETH / USDT',icon:'Ξ',coincap:'ethereum',beta:true},
+  SOLUSDT:{symbol:'SOLUSDT',name:'SOL / USDT',icon:'◎',coincap:'solana',beta:true},
+};
 let calcMode=_prefs.calcMode||'pct';
 let chart=null,cSeries=null,volSeries=null,volChart=null,sigL=[],trL=[],patL=[],fvgL=[],bosL=[],rtL=[];
 window.chart=null;window.volChart=null;
@@ -1929,13 +1936,16 @@ function initChartDivider(){
   document.addEventListener('mouseup',()=>{dragging=false;document.body.style.cursor='';});
   document.addEventListener('touchend',()=>{dragging=false;});
 }
-function setData(){if(!cSeries||!candles.length)return;const d=candles.map(c=>({time:Math.floor(c.time/1000),open:c.open,high:c.high,low:c.low,close:c.close}));cSeries.setData(d);
-  if(volSeries&&volChart){try{const vd=candles.map(c=>({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'}));volSeries.setData(vd);volChart.timeScale().setVisibleRange({from:vd[Math.max(0,vd.length-TFCFG[tf].vis)].time,to:vd[vd.length-1].time});}catch(e){}}chart.timeScale().setVisibleRange({from:d[Math.max(0,d.length-TFCFG[tf].vis)].time,to:d[d.length-1].time});
-  // Auto-fit sempre que es carreguen noves dades
-  try{
-    chart.timeScale().fitContent();
-    if(volChart)volChart.timeScale().fitContent();
-  }catch(e){}
+function setData(){
+  if(!cSeries||!candles.length)return;
+  // Netejar series per evitar conflictes de timestamps entre parells
+  try{cSeries.setData([]);}catch(e){}
+  if(volSeries){try{volSeries.setData([]);}catch(e){}}
+  const d=candles.map(c=>({time:Math.floor(c.time/1000),open:c.open,high:c.high,low:c.low,close:c.close}));
+  cSeries.setData(d);
+  if(volSeries&&volChart){try{const vd=candles.map(c=>({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'}));volSeries.setData(vd);volChart.timeScale().setVisibleRange({from:vd[Math.max(0,vd.length-TFCFG[tf].vis)].time,to:vd[vd.length-1].time});}catch(e){}}
+  chart.timeScale().setVisibleRange({from:d[Math.max(0,d.length-TFCFG[tf].vis)].time,to:d[d.length-1].time});
+  try{chart.timeScale().fitContent();if(volChart)volChart.timeScale().fitContent();}catch(e){}
 }
 function update(){
   // Guardar lastPrice als trades oberts del parell actiu
@@ -1963,10 +1973,7 @@ function update(){
 function connectWS(t){if(ws){try{ws.close();}catch(e){}}candles=[];price=0;ws=new WebSocket('wss://stream.binance.com:9443/ws/'+currentPair.toLowerCase()+'@kline_'+t);ws.onopen=()=>{document.getElementById('dot').className='dot';document.getElementById('clbl').textContent='En vivo · '+t;lg('Conectado · '+t);loadHist2(t);};ws.onmessage=e=>{const k=JSON.parse(e.data).k;const c={time:+k.t,open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v,closed:k.x};if(candles.length&&candles[candles.length-1].time===c.time)candles[candles.length-1]=c;else{candles.push(c);if(candles.length>1100)candles=candles.slice(-1100);}price=c.close;if(c.closed)lg('Vela '+tf+' '+(c.close>=c.open?'▲':'▼')+' $'+ff(c.close));updPrice();if(cSeries){try{cSeries.update({time:Math.floor(c.time/1000),open:c.open,high:c.high,low:c.low,close:c.close});}catch(e){}if(volSeries){try{volSeries.update({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'});}catch(e){}}}update();if(trade&&!autoClosePending&&price>0){const tp=trade.pair||(tradeHistory.find(t=>t.id===trade.histId)||{}).pair||'BTCUSDT';if(tp===currentPair)setTimeout(()=>autoCheckLevels(),100);}if(typeof checkPriceAlerts==='function')checkPriceAlerts();};ws.onerror=()=>{document.getElementById('clbl').textContent='Error';document.getElementById('dot').className='dot off';};ws.onclose=()=>{document.getElementById('dot').className='dot off';};}
 function connectTicker(){twS=new WebSocket('wss://stream.binance.com:9443/ws/'+currentPair.toLowerCase()+'@ticker');twS.onmessage=e=>{const d=JSON.parse(e.data);open24=+d.o;document.getElementById('mo').textContent='$'+ff(+d.o);document.getElementById('mh').textContent='$'+ff(+d.h);document.getElementById('ml2').textContent='$'+ff(+d.l);document.getElementById('mv').textContent=fk(+d.v)+' '+currentPair.replace('USDT','');updPrice();};}
 function updPrice(){if(!price)return;document.getElementById('pel').textContent='$'+ff(price);if(open24){const c=((price-open24)/open24*100);document.getElementById('chg').textContent=(c>=0?'+':'')+c.toFixed(2)+'%';document.getElementById('pel').className='price-big '+(c>=0?'price-up':'price-down');document.getElementById('chg').className='badge '+(c>=0?'badge-up':'badge-down');}}
-async function loadHist2(t){try{const cfg=TFCFG[t];lg('Cargando '+cfg.lim+' velas · '+t+'...');const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair}&interval=${t}&limit=${cfg.lim}`);const d=await r.json();candles=d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closed:true}));price=candles[candles.length-1].close;const dias=Math.round((candles[candles.length-1].time-candles[0].time)/1000/86400);lg('✓ '+candles.length+' velas · '+dias+' días · $'+ff(price));updPrice();
-    // Reinicialitzar chart per evitar conflictes de timestamps entre parells
-    initChart();
-    setData();update();updateCandleTimer();
+async function loadHist2(t){try{const cfg=TFCFG[t];lg('Cargando '+cfg.lim+' velas · '+t+'...');const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair}&interval=${t}&limit=${cfg.lim}`);const d=await r.json();candles=d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closed:true}));price=candles[candles.length-1].close;const dias=Math.round((candles[candles.length-1].time-candles[0].time)/1000/86400);lg('✓ '+candles.length+' velas · '+dias+' días · $'+ff(price));updPrice();setData();update();updateCandleTimer();
     // Forçar fitContent després de carregar noves dades
     setTimeout(()=>{try{if(chart)chart.timeScale().fitContent();if(volChart)volChart.timeScale().fitContent();}catch(e){}},200);
     setTimeout(()=>{try{if(chart)chart.timeScale().fitContent();}catch(e){}},800);
@@ -3589,12 +3596,6 @@ document.addEventListener('click',function(e){
 // ── AUTO-CLOSE I ALERTES SL/TP ───────────────────────────────
 let autoClosePending=false;
 let slWarnSent=false,tp1WarnSent=false,tp2WarnSent=false,tp1Ignored=false;
-let currentPair=localStorage.getItem('se_pair')||'BTCUSDT'; // Parell actiu
-const PAIRS={
-  BTCUSDT:{symbol:'BTCUSDT',name:'BTC / USDT',icon:'₿',coincap:'bitcoin',beta:false},
-  ETHUSDT:{symbol:'ETHUSDT',name:'ETH / USDT',icon:'Ξ',coincap:'ethereum',beta:true},
-  SOLUSDT:{symbol:'SOLUSDT',name:'SOL / USDT',icon:'◎',coincap:'solana',beta:true},
-};
 let activeTradeId=null; // ID del trade que es mostra al gràfic
 
 function resetTradeAlerts(){
