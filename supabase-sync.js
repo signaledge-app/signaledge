@@ -37,7 +37,7 @@ async function seLogout(){
 async function seOnLogin(user){
   console.log('SE Sync: Login ✓',user.email);
   seUser=user;
-  window.seUser=user; // exposar globalment
+  window.seUser=user;
   seUpdateLoginBtn(true,user);
   if(typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(user);
   seShowIndicator(true);
@@ -47,6 +47,22 @@ async function seOnLogin(user){
   await seLoadPriceAlerts(user.id);
   seInterceptSave(user.id);
   seSubscribeRealtime(user.id);
+  // ── EMAIL DE BENVINGUDA (primer login) ────────────────────
+  const firstKey='se_welcomed_'+user.id;
+  if(!localStorage.getItem(firstKey)){
+    localStorage.setItem(firstKey,'1');
+    try{
+      await fetch('https://aivhwxixdjfyckvplimt.supabase.co/functions/v1/send-welcome-email',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SE_SUPA_KEY},
+        body:JSON.stringify({
+          email:user.email,
+          name:user.user_metadata?.name||user.user_metadata?.full_name||''
+        })
+      });
+      console.log('SE Sync: Email benvinguda enviat ✓');
+    }catch(e){console.log('SE Sync: Error email benvinguda',e.message);}
+  }
 }
 
 // ── REALTIME ──────────────────────────────────────────────────
@@ -68,7 +84,6 @@ function seSubscribeRealtime(userId){
       setTimeout(()=>{if(typeof lastSigs!=='undefined'&&lastSigs&&typeof renderSigs==='function')renderSigs(lastSigs);},100);
     }).subscribe();
 
-  // Subscripció a canvis de preferències en temps real
   seDb.channel('prefs-changes-'+userId)
     .on('postgres_changes',{event:'*',schema:'public',table:'user_prefs',filter:`user_id=eq.${userId}`},payload=>{
       if(payload.new&&payload.new.user_id!==seUser?.id)return;
@@ -76,7 +91,6 @@ function seSubscribeRealtime(userId){
       seApplyPrefs(payload.new);
     }).subscribe();
 
-  // Subscripció Realtime alertes de preu
   seDb.channel('alerts-changes-'+userId)
     .on('postgres_changes',{event:'*',schema:'public',table:'price_alerts',filter:`user_id=eq.${userId}`},async()=>{
       await seLoadPriceAlerts(userId);
@@ -119,12 +133,10 @@ function seSubscribeRealtime(userId){
         if(typeof updateHistCount==='function')updateHistCount();
         if(typeof trade!=='undefined'&&trade&&trade.histId===t.id){
           if(t.result!=='open'){
-            // Trade tancat des d'un altre dispositiu
             trade=null;
             if(typeof drawTradeLines==='function')drawTradeLines(null);
             if(typeof renderOpenTrade==='function')renderOpenTrade();
           } else {
-            // Trade actualitzat (TP1 marcat, SL mogut, etc.) — sincronitzar trade actiu
             trade.partialDone=t.partial_done||false;
             trade.partialPct=t.partial_pct||null;
             trade.partialPnlPct=t.partial_pnl_pct||null;
@@ -184,35 +196,29 @@ function seUpdateLoginBtn(loggedIn,user){
 // ── APLICAR PREFERÈNCIES AL DOM ───────────────────────────────
 function seApplyPrefs(data){
   if(!data)return;
-  // Apalancament
   if(data.lev&&typeof lev!=='undefined'){
     lev=data.lev;
     document.querySelectorAll('.lev-btn').forEach(b=>b.classList.toggle('active',+b.dataset.lev===lev));
     if(typeof updLev==='function')updLev();
   }
-  // Timeframe
   if(data.tf&&typeof tf!=='undefined'&&data.tf!==tf){
     tf=data.tf;
     document.querySelectorAll('.tf').forEach(b=>b.classList.toggle('active',b.dataset.tf===tf));
     if(typeof updTFinfo==='function')updTFinfo();
     if(typeof connectWS==='function')connectWS(tf);
   }
-  // Capital disponible
   if(data.capital){
     const el=document.getElementById('calc-capital');
     if(el){el.value=data.capital;}
   }
-  // Capital a usar
   if(data.capital_usar){
     const el=document.getElementById('calc-capital-usar');
     if(el){el.value=data.capital_usar;}
   }
-  // Risc per trade
   if(data.riesgo){
     const el=document.getElementById('calc-riesgo');
     if(el){el.value=data.riesgo;}
   }
-  // Filtres OB/FVG/Retest
   if(typeof data.use_ob!=='undefined'&&typeof useOB!=='undefined'){
     useOB=!!data.use_ob;
     const cb=document.getElementById('cob');
@@ -228,7 +234,6 @@ function seApplyPrefs(data){
     const cb=document.getElementById('crt');
     if(cb){cb.checked=useRT;document.getElementById('lrt').className='ecb'+(useRT?' rt-on':'');}
   }
-  // Recalcular
   if(typeof calcUpdate==='function')calcUpdate();
   if(typeof update==='function')setTimeout(update,100);
   console.log('SE Sync: Preferencias aplicadas ✓');
@@ -362,7 +367,6 @@ function seInterceptSave(userId){
   let lastHistoryStr=localStorage.getItem('btc_trade_history_v1');
   let lastTradesMap=seParseTradesMap(lastHistoryStr);
   let lastPinned=localStorage.getItem('btc_pinned_sigs');
-
   let lastPriceAlerts=localStorage.getItem('btc_price_alerts');
 
   const _prefFields=['calc-capital','calc-capital-usar','calc-riesgo'];
