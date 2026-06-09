@@ -1339,11 +1339,11 @@ async function renderOpenTrade(){
         <span class="open-trade-pnl" style="color:${!tradePrice?'#999':limitExec?(p>=0?'#26a69a':'#ef5350'):'#999'}">${!tradePrice?'--':limitExec?(p>=0?'+':'')+p.toFixed(2)+'%':'⏳ $'+ff(openT.ep)}</span>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px;margin-top:.4rem">
-        <span style="color:#2962ff">E $${ff(openT.e)} · <span style="cursor:pointer;text-decoration:underline;font-size:9px" onclick="editEntryPrice('${openT.id}')">ep: $${ff(openT.ep)} ✏️</span></span>
+        <span style="color:#2962ff">E $${ff(openT.e||openT.ep)} · <span style="cursor:pointer;text-decoration:underline;font-size:9px" onclick="editEntryPrice('${openT.id}')">ep: $${ff(openT.ep)} ✏️</span></span>
         <span style="color:#ef5350">SL $${ff(currentSL)}${openT.partialDone?' 🔒BE':''}</span>
         ${!openT.partialDone?`<span style="color:#f57c00">TP1 $${ff(openT.tp1)}</span>`:''}
         <span style="color:#26a69a">TP2 $${ff(openT.tp2)}</span>
-        <span style="color:#999">${openT.date}</span>
+        <span style="color:#999">${openT.openedAt?new Date(openT.openedAt).toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):(openT.date||'--')}</span>
       </div>
       ${partialInfo}
       <div class="otl-btns">
@@ -1455,12 +1455,12 @@ function renderHistList(){
       <div class="tr-info">
         <div class="tr-main"><span style="font-size:9px;background:${(t.pair||'BTCUSDT')==='BTCUSDT'?'#f7931a':(t.pair||'')==='ETHUSDT'?'#627eea':'#9945ff'};color:#fff;padding:1px 5px;border-radius:4px;margin-right:3px;font-weight:600">${(t.pair||'BTCUSDT').replace('USDT','')}</span> ${srcI[t.source]||'📦'} ${t.source.toUpperCase()} · ${t.tf} · ${t.lev}x · R:R ${t.r1} · ${t.et}${t.partialDone?'<span class="partial-badge">🎯 Parcial</span>':''}</div>
         <div class="tr-sub">
-          <span>🕐 ${t.openedAt?new Date(t.openedAt).toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):t.date}</span>
+          <span>🕐 ${t.openedAt?new Date(t.openedAt).toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):(t.date||'--')}</span>
           ${!isOpen&&t.closedAt?`<span style="margin-left:6px">→ ${new Date(t.closedAt).toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'})}</span>`:''}
           <span style="margin-left:6px;color:#aaa">${isOpen?'En curso':'⏱ '+dur}</span>
         </div>
         <div class="tr-levels">
-          <span>E $${ff(t.e)}</span>
+          <span>E $${ff(t.e||t.ep)}</span>
           <span style="color:#ef5350">SL $${ff(currentSL)}${t.partialDone?' 🔒':''}</span>
           ${!t.partialDone?`<span style="color:#f57c00">TP1 $${ff(t.tp1)}</span>`:''}
           <span style="color:#26a69a">TP2 $${ff(t.tp2)}</span>
