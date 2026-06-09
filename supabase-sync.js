@@ -70,8 +70,12 @@ let seRealtimeChannel=null;
 function seSubscribeRealtime(userId){
   if(!seDb)return;
   if(seRealtimeChannel){seDb.removeChannel(seRealtimeChannel);seRealtimeChannel=null;}
-  const existingPinned=seDb.getChannels().find(c=>c.topic.includes('pinned-changes'));
-  if(existingPinned)seDb.removeChannel(existingPinned);
+  // Eliminar canals existents per evitar duplicats
+  seDb.getChannels().forEach(c=>{
+    if(c.topic.includes('pinned-changes')||c.topic.includes('prefs-changes')||c.topic.includes('alerts-changes')){
+      seDb.removeChannel(c);
+    }
+  });
   seDb.channel('pinned-changes-'+userId)
     .on('postgres_changes',{event:'*',schema:'public',table:'pinned_sigs',filter:`user_id=eq.${userId}`},payload=>{
       const raw=payload.new?.sig_data||payload.new?.data;
