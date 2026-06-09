@@ -48,7 +48,7 @@ async function seOnLogin(user){
   seInterceptSave(user.id);
   seSubscribeRealtime(user.id);
   // ── EMAIL DE BENVINGUDA (primer login) ────────────────────
-  const firstKey='se_welcomed_'+user.id;
+  const firstKey='se_welcomed_'+user.email;
   if(!localStorage.getItem(firstKey)){
     localStorage.setItem(firstKey,'1');
     try{
@@ -149,6 +149,7 @@ function seSubscribeRealtime(userId){
             trade.sl=t.sl||trade.sl;
             if(typeof drawTradeLines==='function')drawTradeLines(trade);
             if(typeof renderOpenTrade==='function')renderOpenTrade();
+            if(typeof renderDashTrades==='function')renderDashTrades();
             if(typeof partialExecuted!=='undefined')partialExecuted=t.partial_done||false;
             console.log('SE Realtime: trade actiu sincronitzat (partialDone:'+trade.partialDone+')');
           }
