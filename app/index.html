@@ -1861,7 +1861,20 @@ function renderSigs(sigs,pats){const el=document.getElementById('sel');document.
     const isPinned=pinnedSigs.has(i);
     const eb=s.isAct?`<button class="btn cx" onclick="closeTrade_dashboard()">Cerrar</button>`:`<button class="btn" style="background:${col.h};color:#fff;border:none;font-weight:600;font-size:11px;padding:5px 12px;border-radius:6px;box-shadow:0 2px 6px ${col.h}88" onclick="enterTrade(window._S[${i}])">▶ Marcar ${s.et}</button><button class="btn" onclick="openBitunixModalSig(window._S[${i}])" title="Copiar orden" style="font-size:11px;padding:2px 8px">📋</button><button class="btn" onclick="loadSigToCalc(window._S[${i}])" title="Cargar en calculadora" style="font-size:11px;padding:2px 8px" id="calc-sig-btn-${i}">📊</button><button class="btn btn-preview ${previewIdx===i?'active':''}" onclick="drawPreviewLines(window._S[${i}],this)" title="Ver niveles en gráfico" style="font-size:11px;padding:2px 8px">${previewIdx===i?'👁✓':'👁'}</button><button class="btn pin-btn ${isPinned?'pinned':''}" onclick="pinSig(${i})" title="${isPinned?'Desanclar':'Anclar señal'}">📌</button>`;
     const isCalcActive=calcManualSig&&calcActiveSig&&calcActiveSig.source===s.source&&calcActiveSig.dir===s.dir&&Math.abs((calcActiveSig.lvls.e-l.e)/l.e)<0.001;
-    const isContraMTF=(lastConf.k==='ss'||lastConf.k==='ms')&&s.dir==='long'||(lastConf.k==='sl'||lastConf.k==='ml')&&s.dir==='short'||lastConf.k==='wk';
+    // Si MTF és fort/mig → col·lapsar senyals en contra
+    // Si MTF és wk (sin confluencia) → mirar el primer TF superior al actiu
+    let isContraMTF=false;
+    if(lastConf.k==='ss'||lastConf.k==='ms'){isContraMTF=s.dir==='long';}
+    else if(lastConf.k==='sl'||lastConf.k==='ml'){isContraMTF=s.dir==='short';}
+    else if(lastConf.k==='wk'){
+      // Mirar el primer TF de l'anàlisi MTF i col·lapsar si va en contra
+      const cacheData=mtfCache[tf];
+      if(cacheData&&cacheData.analyses&&cacheData.analyses.length>0){
+        const firstTF=cacheData.analyses[0]; // Primer TF (el més proper al actiu)
+        if(firstTF.dir==='bull'&&s.dir==='short')isContraMTF=true;
+        else if(firstTF.dir==='bear'&&s.dir==='long')isContraMTF=true;
+      }
+    }
     if(isContraMTF){
       const srcTagC=isRT?'🔁 Retest':isFVG?'⚡ FVG':'📦 OB';
       const dirC=s.dir==='long'?'▲ LONG':'▼ SHORT';
