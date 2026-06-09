@@ -1163,8 +1163,6 @@ function executePartial(id,pctNum=50){
   t.partialPnlPct=raw*100*t.lev*(pctNum/100);
   t.partialPct=pctNum;t.partialDone=true;t.breakevenSL=t.ep;t.partialTs=Date.now();
   saveHistory();
-  const _u=typeof seUser!=='undefined'?seUser:window.seUser;
-  if(_u&&typeof seSaveTrade==='function')seSaveTrade(_u.id,t);
   lg('🎯 Parcial '+pctNum+'% en TP1 $'+ff(t.tp1)+' (+'+t.partialPnlPct.toFixed(2)+'%) · SL → BE $'+ff(t.ep));
   return t;
 }
@@ -1351,9 +1349,8 @@ async function renderOpenTrade(){
         ${openT.partialDone
           ? `<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px;padding:5px 14px;border-radius:4px;cursor:pointer;font-weight:500;font-family:inherit" onclick="closeTrade_hist('${openT.id}','sl',${currentSL})">🔒 BE ($${ff(currentSL)})</button>`
           : `<button class="btn-sl" onclick="closeTrade_hist('${openT.id}','sl',${currentSL})">✗ SL ($${ff(currentSL)})</button>`}
-        <button class="btn-manual" onclick="showCloseModal('${openT.id}',${tradePrice||price})">◎ Cerrar</button>
+        <button class="btn-manual" onclick="closeTrade_hist('${openT.id}','manual',${tradePrice||price})">◎ Cerrar ${tradePrice?'($'+ff(tradePrice)+')':'(precio actual)'}</button>
         <button class="btn-bitunix" onclick="setActiveTrade('${openT.id}');openBitunixModal()">📋</button>
-        <button class="btn" onclick="shareOpenTrade('${openT.id}')" title="Compartir trade" style="font-size:10px;padding:5px 10px">📤</button>
         <div onclick="toggleTradePartial('${openT.id}')" style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:6px;background:var(--bg2);border:1px solid var(--border)" title="Parcial automático en TP1">
           <span style="font-size:10px;color:var(--text3)">Auto TP1</span>
           <div style="width:28px;height:15px;background:${openT.partialsEnabled?'#f57c00':'#ccc'};border-radius:20px;position:relative;transition:background .2s;flex-shrink:0">
@@ -1393,7 +1390,7 @@ function renderDashTrades(){
         ${!t.partialDone?`<button class="dot-btn tp1" onclick="manualPartial('${t.id}')">TP1</button>`:''}
         <button class="dot-btn tp2" onclick="closeTrade_hist('${t.id}','tp2',${t.tp2})">TP2</button>
         <button class="dot-btn sl" onclick="closeTrade_hist('${t.id}','sl',${currentSL})">SL</button>
-        <button class="dot-btn close" onclick="showCloseModal('${t.id}',${price})">✕</button>
+        <button class="dot-btn close" onclick="closeTrade_hist('${t.id}','manual',${price})">✕</button>
         <button class="dot-btn" style="background:#555;color:#fff" onclick="setActiveTrade('${t.id}');openBitunixModal()" title="Copiar orden">📋</button>
       </div>
     </div>`;
@@ -1857,7 +1854,7 @@ function renderSigs(sigs,pats){const el=document.getElementById('sel');document.
     const rtNote=isRT?`<div class="rt-info">🔁 <strong>Retest ${s.levelType} $${ff(s.levelPrice,0)}</strong> · ${s.confirmNote} · Orden Limit en $${ff(l.e)}</div>`:'';
     const tnote=!isRT&&s.isContra?`<div class="cn contra">⚠️ Contratendencia — ${lastStruct.label}</div>`:!isRT&&s.isCHoCH?`<div class="cn choch">🔄 CHoCH — Primera entrada en nueva dirección</div>`:'';
     const isPinned=pinnedSigs.has(i);
-    const eb=s.isAct?`<button class="btn cx" onclick="closeTrade_dashboard()">Cerrar</button>`:`<button class="btn" style="background:${col.h};color:#fff;border:none;font-weight:600;font-size:11px;padding:5px 12px;border-radius:6px;box-shadow:0 2px 6px ${col.h}88" onclick="enterTrade(window._S[${i}])">▶ Marcar ${s.et}</button><button class="btn" onclick="shareSig(window._S[${i}])" title="Compartir señal" style="font-size:11px;padding:2px 8px">📤</button><button class="btn" onclick="openBitunixModalSig(window._S[${i}])" title="Copiar orden" style="font-size:11px;padding:2px 8px">📋</button><button class="btn" onclick="loadSigToCalc(window._S[${i}])" title="Cargar en calculadora" style="font-size:11px;padding:2px 8px" id="calc-sig-btn-${i}">📊</button><button class="btn btn-preview ${previewIdx===i?'active':''}" onclick="drawPreviewLines(window._S[${i}],this)" title="Ver niveles en gráfico" style="font-size:11px;padding:2px 8px">${previewIdx===i?'👁✓':'👁'}</button><button class="btn pin-btn ${isPinned?'pinned':''}" onclick="pinSig(${i})" title="${isPinned?'Desanclar':'Anclar señal'}">📌</button>`;
+    const eb=s.isAct?`<button class="btn cx" onclick="closeTrade_dashboard()">Cerrar</button>`:`<button class="btn" style="background:${col.h};color:#fff;border:none;font-weight:600;font-size:11px;padding:5px 12px;border-radius:6px;box-shadow:0 2px 6px ${col.h}88" onclick="enterTrade(window._S[${i}])">▶ Marcar ${s.et}</button><button class="btn" onclick="openBitunixModalSig(window._S[${i}])" title="Copiar orden" style="font-size:11px;padding:2px 8px">📋</button><button class="btn" onclick="loadSigToCalc(window._S[${i}])" title="Cargar en calculadora" style="font-size:11px;padding:2px 8px" id="calc-sig-btn-${i}">📊</button><button class="btn btn-preview ${previewIdx===i?'active':''}" onclick="drawPreviewLines(window._S[${i}],this)" title="Ver niveles en gráfico" style="font-size:11px;padding:2px 8px">${previewIdx===i?'👁✓':'👁'}</button><button class="btn pin-btn ${isPinned?'pinned':''}" onclick="pinSig(${i})" title="${isPinned?'Desanclar':'Anclar señal'}">📌</button>`;
     const isCalcActive=calcManualSig&&calcActiveSig&&calcActiveSig.source===s.source&&calcActiveSig.dir===s.dir&&Math.abs((calcActiveSig.lvls.e-l.e)/l.e)<0.001;
     const isContraMTF=(lastConf.k==='ss'||lastConf.k==='ms')&&s.dir==='long'||(lastConf.k==='sl'||lastConf.k==='ml')&&s.dir==='short'||lastConf.k==='wk';
     if(isContraMTF){
@@ -1966,7 +1963,10 @@ function update(){
 function connectWS(t){if(ws){try{ws.close();}catch(e){}}candles=[];price=0;ws=new WebSocket('wss://stream.binance.com:9443/ws/'+currentPair.toLowerCase()+'@kline_'+t);ws.onopen=()=>{document.getElementById('dot').className='dot';document.getElementById('clbl').textContent='En vivo · '+t;lg('Conectado · '+t);loadHist2(t);};ws.onmessage=e=>{const k=JSON.parse(e.data).k;const c={time:+k.t,open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v,closed:k.x};if(candles.length&&candles[candles.length-1].time===c.time)candles[candles.length-1]=c;else{candles.push(c);if(candles.length>1100)candles=candles.slice(-1100);}price=c.close;if(c.closed)lg('Vela '+tf+' '+(c.close>=c.open?'▲':'▼')+' $'+ff(c.close));updPrice();if(cSeries){try{cSeries.update({time:Math.floor(c.time/1000),open:c.open,high:c.high,low:c.low,close:c.close});}catch(e){}if(volSeries){try{volSeries.update({time:Math.floor(c.time/1000),value:c.volume||0,color:c.close>=c.open?'rgba(38,166,154,0.5)':'rgba(239,83,80,0.5)'});}catch(e){}}}update();if(trade&&!autoClosePending&&price>0){const tp=trade.pair||(tradeHistory.find(t=>t.id===trade.histId)||{}).pair||'BTCUSDT';if(tp===currentPair)setTimeout(()=>autoCheckLevels(),100);}if(typeof checkPriceAlerts==='function')checkPriceAlerts();};ws.onerror=()=>{document.getElementById('clbl').textContent='Error';document.getElementById('dot').className='dot off';};ws.onclose=()=>{document.getElementById('dot').className='dot off';};}
 function connectTicker(){twS=new WebSocket('wss://stream.binance.com:9443/ws/'+currentPair.toLowerCase()+'@ticker');twS.onmessage=e=>{const d=JSON.parse(e.data);open24=+d.o;document.getElementById('mo').textContent='$'+ff(+d.o);document.getElementById('mh').textContent='$'+ff(+d.h);document.getElementById('ml2').textContent='$'+ff(+d.l);document.getElementById('mv').textContent=fk(+d.v)+' '+currentPair.replace('USDT','');updPrice();};}
 function updPrice(){if(!price)return;document.getElementById('pel').textContent='$'+ff(price);if(open24){const c=((price-open24)/open24*100);document.getElementById('chg').textContent=(c>=0?'+':'')+c.toFixed(2)+'%';document.getElementById('pel').className='price-big '+(c>=0?'price-up':'price-down');document.getElementById('chg').className='badge '+(c>=0?'badge-up':'badge-down');}}
-async function loadHist2(t){try{const cfg=TFCFG[t];lg('Cargando '+cfg.lim+' velas · '+t+'...');const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair}&interval=${t}&limit=${cfg.lim}`);const d=await r.json();candles=d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closed:true}));price=candles[candles.length-1].close;const dias=Math.round((candles[candles.length-1].time-candles[0].time)/1000/86400);lg('✓ '+candles.length+' velas · '+dias+' días · $'+ff(price));updPrice();setData();update();updateCandleTimer();
+async function loadHist2(t){try{const cfg=TFCFG[t];lg('Cargando '+cfg.lim+' velas · '+t+'...');const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair}&interval=${t}&limit=${cfg.lim}`);const d=await r.json();candles=d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closed:true}));price=candles[candles.length-1].close;const dias=Math.round((candles[candles.length-1].time-candles[0].time)/1000/86400);lg('✓ '+candles.length+' velas · '+dias+' días · $'+ff(price));updPrice();
+    // Reinicialitzar chart per evitar conflictes de timestamps entre parells
+    initChart();
+    setData();update();updateCandleTimer();
     // Forçar fitContent després de carregar noves dades
     setTimeout(()=>{try{if(chart)chart.timeScale().fitContent();if(volChart)volChart.timeScale().fitContent();}catch(e){}},200);
     setTimeout(()=>{try{if(chart)chart.timeScale().fitContent();}catch(e){}},800);
