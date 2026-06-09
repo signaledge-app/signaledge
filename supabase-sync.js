@@ -47,22 +47,21 @@ async function seOnLogin(user){
   await seLoadPriceAlerts(user.id);
   seInterceptSave(user.id);
   seSubscribeRealtime(user.id);
-  // ── EMAIL DE BENVINGUDA (primer login) ────────────────────
-  const firstKey='se_welcomed_'+user.email;
-  if(!localStorage.getItem(firstKey)){
-    localStorage.setItem(firstKey,'1');
-    try{
+  // ── EMAIL DE BENVINGUDA (primer login, comprova Supabase) ─
+  try{
+    const{data:prefs}=await seDb.from('user_prefs').select('welcomed_at').eq('user_id',user.id).maybeSingle();
+    if(!prefs?.welcomed_at){
+      // Enviar email
       await fetch('https://aivhwxixdjfyckvplimt.supabase.co/functions/v1/send-welcome-email',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+SE_SUPA_KEY},
-        body:JSON.stringify({
-          email:user.email,
-          name:user.user_metadata?.name||user.user_metadata?.full_name||''
-        })
+        body:JSON.stringify({email:user.email,name:user.user_metadata?.name||user.user_metadata?.full_name||''})
       });
+      // Marcar com enviat a Supabase
+      await seDb.from('user_prefs').upsert({user_id:user.id,welcomed_at:new Date().toISOString()},{onConflict:'user_id'});
       console.log('SE Sync: Email benvinguda enviat ✓');
-    }catch(e){console.log('SE Sync: Error email benvinguda',e.message);}
-  }
+    }
+  }catch(e){console.log('SE Sync: Error email benvinguda',e.message);}
 }
 
 // ── REALTIME ──────────────────────────────────────────────────
