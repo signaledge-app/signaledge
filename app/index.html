@@ -1095,6 +1095,9 @@ function executePartial(id,pctNum=50){
   t.partialPnlPct=raw*100*t.lev*(pctNum/100);
   t.partialPct=pctNum;t.partialDone=true;t.breakevenSL=t.ep;t.partialTs=Date.now();
   saveHistory();
+  // Sync immediat a Supabase
+  const _u=typeof seUser!=='undefined'?seUser:window.seUser;
+  if(_u&&typeof seSaveTrade==='function')seSaveTrade(_u.id,t);
   lg('🎯 Parcial '+pctNum+'% en TP1 $'+ff(t.tp1)+' (+'+t.partialPnlPct.toFixed(2)+'%) · SL → BE $'+ff(t.ep));
   return t;
 }
