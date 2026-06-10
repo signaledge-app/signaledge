@@ -47,21 +47,22 @@ async function seOnLogin(user){
   await seLoadPriceAlerts(user.id);
   seInterceptSave(user.id);
   seSubscribeRealtime(user.id);
-  // ── EMAIL DE BENVINGUDA (primer login, comprova Supabase) ─
-  try{
-    const{data:prefs}=await seDb.from('user_prefs').select('welcomed_at').eq('user_id',user.id).maybeSingle();
-    if(!prefs?.welcomed_at){
-      // Enviar email
+  // ── EMAIL DE BENVINGUDA (primer login) ────────────────────
+  const firstKey='se_welcomed_'+user.email;
+  if(!localStorage.getItem(firstKey)){
+    localStorage.setItem(firstKey,'1');
+    try{
       await fetch('https://aivhwxixdjfyckvplimt.supabase.co/functions/v1/send-welcome-email',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+SE_SUPA_KEY},
-        body:JSON.stringify({email:user.email,name:user.user_metadata?.name||user.user_metadata?.full_name||''})
+        body:JSON.stringify({
+          email:user.email,
+          name:user.user_metadata?.name||user.user_metadata?.full_name||''
+        })
       });
-      // Marcar com enviat a Supabase
-      await seDb.from('user_prefs').upsert({user_id:user.id,welcomed_at:new Date().toISOString()},{onConflict:'user_id'});
       console.log('SE Sync: Email benvinguda enviat ✓');
-    }
-  }catch(e){console.log('SE Sync: Error email benvinguda',e.message);}
+    }catch(e){console.log('SE Sync: Error email benvinguda',e.message);}
+  }
 }
 
 // ── REALTIME ──────────────────────────────────────────────────
@@ -286,7 +287,9 @@ async function seLoadTrades(userId){
       sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
       closePrice:t.close_price,pnlPct:t.pnl_pct,
       partialDone:t.partial_done,partialPct:t.partial_pct,
-      notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
+      partialPnlPct:t.partial_pnl_pct||null,breakevenSL:t.breakeven_sl||null,
+      notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at,
+      pair:t.pair||'BTCUSDT',e:t.e||t.ep,date:t.date||null
     }));
     if(typeof tradeHistory!=='undefined'){
       let deletedIds=new Set();
@@ -321,7 +324,9 @@ async function seSaveTrade(userId,t){
       close_price:t.closePrice||null,pnl_pct:t.pnlPct||null,
       partial_done:t.partialDone||false,partial_pct:t.partialPct||null,
       partial_pnl_pct:t.partialPnlPct||null,breakeven_sl:t.breakevenSL||null,
-      notes:t.notes||null,opened_at:t.openedAt||new Date().toISOString(),closed_at:t.closedAt||null
+      notes:t.notes||null,opened_at:t.openedAt||new Date().toISOString(),
+      closed_at:t.closedAt||null,
+      pair:t.pair||'BTCUSDT',e:t.e||t.ep||null
     });
   }catch(e){console.log('SE seSaveTrade error:',e.message);}
 }
