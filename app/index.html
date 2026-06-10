@@ -1144,9 +1144,6 @@ function checkPartialTrigger(){
   const activeTrade=trade&&tradeHistory.find(x=>x.id===trade.histId);
   const tradePartialsEnabled=activeTrade?activeTrade.partialsEnabled:partialsEnabled;
   if(!trade||!tradePartialsEnabled||partialExecuted)return;
-  // Ignorar si el trade és d'un parell diferent al actiu
-  const tradePair=trade.pair||(tradeHistory.find(t=>t.id===trade.histId)||{}).pair||'BTCUSDT';
-  if(tradePair!==currentPair)return;
   const t=tradeHistory.find(x=>x.id===trade.histId);
   if(!t||t.partialDone)return;
   const tp1Touched=trade.dir==='long'?price>=trade.tp1:price<=trade.tp1;
@@ -1272,6 +1269,8 @@ function deleteTradeFromHistory(id){
   tradeHistory=tradeHistory.filter(x=>x.id!==id);
   try{const deleted=JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]');if(!deleted.includes(id)){deleted.push(id);localStorage.setItem('btc_deleted_trades',JSON.stringify(deleted));}}catch(e){}
   saveHistory();renderHistorial();updateHistCount();
+  const _u=typeof seUser!=='undefined'?seUser:window.seUser;
+  if(_u&&typeof seDeleteTrade==='function')seDeleteTrade(_u.id,id);
 }
 function updateTradeNote(id,note){
   const t=tradeHistory.find(x=>x.id===id);
