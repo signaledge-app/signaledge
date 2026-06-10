@@ -121,17 +121,37 @@ function seSubscribeRealtime(userId){
         const localExists=tradeHistory.some(x=>x.id===t.id);
         if(!localExists&&payload.eventType==='UPDATE'){return;}
         const idx=tradeHistory.findIndex(x=>x.id===t.id);
-        const mapped={
-          id:t.id,dir:t.dir,source:t.source,et:t.et,
-          tf:t.tf,lev:t.lev,ep:t.ep,sl:t.sl,tp1:t.tp1,tp2:t.tp2,
-          sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
-          closePrice:t.close_price,pnlPct:t.pnl_pct,
-          partialDone:t.partial_done,partialPct:t.partial_pct,
-          partialPnlPct:t.partial_pnl_pct||null,breakevenSL:t.breakeven_sl||null,
-          notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
-        };
-        if(idx>=0){tradeHistory[idx]=mapped;}
-        else{tradeHistory.unshift(mapped);}
+        if(idx>=0){
+          // Trade ja existeix localment — mantenir locals, actualitzar només estats
+          const local=tradeHistory[idx];
+          tradeHistory[idx]={
+            ...local,
+            result:t.result||local.result,
+            closePrice:t.close_price||local.closePrice,
+            pnlPct:t.pnl_pct||local.pnlPct,
+            partialDone:t.partial_done||local.partialDone,
+            partialPct:t.partial_pct||local.partialPct,
+            partialPnlPct:t.partial_pnl_pct||local.partialPnlPct,
+            breakevenSL:t.breakeven_sl||local.breakevenSL,
+            sl:t.sl||local.sl,
+            closedAt:t.closed_at||local.closedAt,
+            notes:t.notes||local.notes,
+            pair:local.pair&&local.pair!=='BTCUSDT'?local.pair:(t.pair||local.pair||'BTCUSDT'),
+            e:local.e||t.e||t.ep||null
+          };
+        }else{
+          tradeHistory.unshift({
+            id:t.id,dir:t.dir,source:t.source,et:t.et,
+            tf:t.tf,lev:t.lev,ep:t.ep,sl:t.sl,tp1:t.tp1,tp2:t.tp2,
+            sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
+            closePrice:t.close_price,pnlPct:t.pnl_pct,
+            partialDone:t.partial_done,partialPct:t.partial_pct,
+            partialPnlPct:t.partial_pnl_pct||null,breakevenSL:t.breakeven_sl||null,
+            notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at,
+            pair:t.pair||(typeof currentPair!=='undefined'?currentPair:'BTCUSDT'),
+            e:t.e||t.ep||null,date:t.date||null
+          });
+        }
         if(typeof saveHistory==='function')saveHistory();
         if(typeof renderHistorial==='function')renderHistorial();
         if(typeof updateHistCount==='function')updateHistCount();
@@ -287,54 +307,24 @@ async function seLoadTrades(userId){
       sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
       closePrice:t.close_price,pnlPct:t.pnl_pct,
       partialDone:t.partial_done,partialPct:t.partial_pct,
-      partialPnlPct:t.partial_pnl_pct||null,breakevenSL:t.breakeven_sl||null,
-      notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at,
-      pair:t.pair||'BTCUSDT',e:t.e||t.ep||null,date:t.date||null
+      notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
     }));
     if(typeof tradeHistory!=='undefined'){
       let deletedIds=new Set();
       try{deletedIds=new Set(JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]'));}catch(e){}
-      for(const id of [...deletedIds]){await seDeleteTrade(userId,id);}
+      for(const id of Object.keys(deletedIds)){await seDeleteTrade(userId,id);}
       const localIds=new Set(tradeHistory.map(t=>t.id));
-      // Només afegir trades que NO existeixen localment (nous d'altre dispositiu)
       const newTrades=cloudTrades.filter(t=>!localIds.has(t.id)&&!deletedIds.has(t.id));
-      // Per trades que SÍ existeixen localment, sincronitzar NOMÉS result/closePrice/pnl si han canviat
-      cloudTrades.forEach(ct=>{
-        if(deletedIds.has(ct.id))return;
-        const localIdx=tradeHistory.findIndex(t=>t.id===ct.id);
-        if(localIdx>=0){
-          const local=tradeHistory[localIdx];
-          // Actualitzar pair si el local no en té
-          if(!local.pair||local.pair==='BTCUSDT'&&ct.pair&&ct.pair!=='BTCUSDT'){
-            tradeHistory[localIdx].pair=ct.pair;
-          }
-          // Actualitzar e si falta
-          if(!local.e&&ct.e)tradeHistory[localIdx].e=ct.e;
-          // Actualitzar si s'ha tancat des d'un altre dispositiu
-          if(local.result==='open'&&ct.result!=='open'){
-            tradeHistory[localIdx].result=ct.result;
-            tradeHistory[localIdx].closePrice=ct.closePrice;
-            tradeHistory[localIdx].pnlPct=ct.pnlPct;
-            tradeHistory[localIdx].closedAt=ct.closedAt;
-          }
-        }
-      });
       if(newTrades.length>0){
         tradeHistory=[...tradeHistory,...newTrades].sort((a,b)=>new Date(b.openedAt||0)-new Date(a.openedAt||0));
+        if(typeof saveHistory==='function')saveHistory();
+        if(typeof renderHistorial==='function')renderHistorial();
+        if(typeof updateHistCount==='function')updateHistCount();
       }
-      if(typeof saveHistory==='function')saveHistory();
-      if(typeof renderHistorial==='function')renderHistorial();
-      if(typeof updateHistCount==='function')updateHistCount();
     }
     const openTrade=cloudTrades.find(t=>t.result==='open');
     if(openTrade&&typeof trade!=='undefined'&&!trade){
-      // Usar dades locals si existeixen (més completes)
-      const localT=typeof tradeHistory!=='undefined'?tradeHistory.find(t=>t.id===openTrade.id):null;
-      const src=localT||openTrade;
-      trade={dir:src.dir,e:src.e||src.ep,sl:src.sl,tp1:src.tp1,tp2:src.tp2,
-             lev:src.lev,tf:src.tf,ep:src.ep,sp:src.sp,r1:src.r1,r2:src.r2,
-             source:src.source,et:src.et,partialDone:src.partialDone||false,
-             breakevenSL:src.breakevenSL||null,histId:src.id,pair:src.pair||'BTCUSDT'};
+      trade={dir:openTrade.dir,e:openTrade.ep,sl:openTrade.sl,tp1:openTrade.tp1,tp2:openTrade.tp2,lev:openTrade.lev,tf:openTrade.tf,ep:openTrade.ep,sp:openTrade.sp,r1:openTrade.r1,r2:openTrade.r2,source:openTrade.source,et:openTrade.et,partialDone:openTrade.partialDone||false,histId:openTrade.id};
       setTimeout(()=>{if(typeof drawTradeLines==='function'&&trade)drawTradeLines(trade);if(typeof renderHistorial==='function')renderHistorial();},1000);
     }
     console.log('SE Sync: '+cloudTrades.length+' trades cargados ✓');
