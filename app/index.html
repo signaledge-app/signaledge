@@ -1266,64 +1266,9 @@ async function closeTrade_hist(id,result,closePrice){resetTradeAlerts();
   lg(`${em} [${result.toUpperCase()}] ${t.pnl>0?'+':''}${t.pnl}%${t.partialDone?' (incl. parcial)':''}`);
 }
 function deleteTradeFromHistory(id){
-  const t=tradeHistory.find(x=>x.id===id);
-  // Si el trade està obert, no permetre eliminar
-  if(t&&t.result==='open'){
-    let m=document.getElementById('delete-modal-overlay');if(m)m.remove();
-    m=document.createElement('div');
-    m.id='delete-modal-overlay';
-    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px';
-    m.innerHTML=`<div style="background:var(--card);border-radius:14px;max-width:300px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.4);overflow:hidden;border:1px solid var(--border)">
-      <div style="padding:1rem;border-bottom:1px solid var(--border)">
-        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">⚠️ Trade abierto</div>
-        <div style="font-size:12px;color:var(--text3)">Este trade sigue en curso</div>
-      </div>
-      <div style="padding:1rem">
-        <div style="font-size:12px;color:var(--text3);margin-bottom:12px;text-align:center">Cierra el trade antes de eliminarlo.</div>
-        <button onclick="document.getElementById('delete-modal-overlay').remove()" style="width:100%;padding:9px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Entendido</button>
-      </div>
-    </div>`;
-    m.addEventListener('click',e=>{if(e.target===m)m.remove();});
-    document.body.appendChild(m);
-    return;
-  }
-  const pair=(t?.pair||'BTCUSDT').replace('USDT','');
-  const dir=t?.dir==='long'?'▲ LONG':'▼ SHORT';
-  const label=t?`${dir} · ${pair} · ${t.tf}`:'este trade';
-  let m=document.getElementById('delete-modal-overlay');if(m)m.remove();
-  m=document.createElement('div');
-  m.id='delete-modal-overlay';
-  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px';
-  m.innerHTML=`<div style="background:var(--card);border-radius:14px;max-width:300px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.4);overflow:hidden;border:1px solid var(--border)">
-    <div style="padding:1rem;border-bottom:1px solid var(--border)">
-      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">🗑️ Eliminar trade</div>
-      <div style="font-size:12px;color:var(--text3)">${label}</div>
-    </div>
-    <div style="padding:1rem">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;text-align:center">Esta acción no se puede deshacer.</div>
-      <div style="display:flex;gap:8px">
-        <button onclick="document.getElementById('delete-modal-overlay').remove()" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:inherit;font-size:13px;cursor:pointer">Cancelar</button>
-        <button onclick="confirmDeleteTrade('${id}')" style="flex:1;padding:9px;border-radius:8px;border:none;background:#ef5350;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Eliminar</button>
-      </div>
-    </div>
-  </div>`;
-  m.addEventListener('click',e=>{if(e.target===m)m.remove();});
-  document.body.appendChild(m);
-}
-function confirmDeleteTrade(id){
-  document.getElementById('delete-modal-overlay')?.remove();
-  // Si és el trade actiu, netejar-lo
-  if(typeof trade!=='undefined'&&trade&&trade.histId===id){
-    trade=null;
-    if(typeof drawTradeLines==='function')drawTradeLines(null);
-    if(typeof renderOpenTrade==='function')renderOpenTrade();
-    if(typeof updAtb==='function')updAtb();
-  }
   tradeHistory=tradeHistory.filter(x=>x.id!==id);
   try{const deleted=JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]');if(!deleted.includes(id)){deleted.push(id);localStorage.setItem('btc_deleted_trades',JSON.stringify(deleted));}}catch(e){}
   saveHistory();renderHistorial();updateHistCount();
-  const _u=typeof seUser!=='undefined'?seUser:window.seUser;
-  if(_u&&typeof seDeleteTrade==='function')seDeleteTrade(_u.id,id);
 }
 function updateTradeNote(id,note){
   const t=tradeHistory.find(x=>x.id===id);
@@ -1404,7 +1349,7 @@ async function renderOpenTrade(){
         ${openT.partialDone
           ? `<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px;padding:5px 14px;border-radius:4px;cursor:pointer;font-weight:500;font-family:inherit" onclick="closeTrade_hist('${openT.id}','sl',${currentSL})">🔒 BE ($${ff(currentSL)})</button>`
           : `<button class="btn-sl" onclick="closeTrade_hist('${openT.id}','sl',${currentSL})">✗ SL ($${ff(currentSL)})</button>`}
-        <button class="btn-manual" onclick="showCloseModal('${openT.id}',${tradePrice||price})">◎ Cerrar</button>
+        <button class="btn-manual" onclick="closeTrade_hist('${openT.id}','manual',${tradePrice||price})">◎ Cerrar ${tradePrice?'($'+ff(tradePrice)+')':'(precio actual)'}</button>
         <button class="btn-bitunix" onclick="setActiveTrade('${openT.id}');openBitunixModal()">📋</button>
         <div onclick="toggleTradePartial('${openT.id}')" style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:6px;background:var(--bg2);border:1px solid var(--border)" title="Parcial automático en TP1">
           <span style="font-size:10px;color:var(--text3)">Auto TP1</span>
@@ -1445,7 +1390,7 @@ function renderDashTrades(){
         ${!t.partialDone?`<button class="dot-btn tp1" onclick="manualPartial('${t.id}')">TP1</button>`:''}
         <button class="dot-btn tp2" onclick="closeTrade_hist('${t.id}','tp2',${t.tp2})">TP2</button>
         <button class="dot-btn sl" onclick="closeTrade_hist('${t.id}','sl',${currentSL})">SL</button>
-        <button class="dot-btn close" onclick="showCloseModal('${t.id}',${price})">✕</button>
+        <button class="dot-btn close" onclick="closeTrade_hist('${t.id}','manual',${price})">✕</button>
         <button class="dot-btn" style="background:#555;color:#fff" onclick="setActiveTrade('${t.id}');openBitunixModal()" title="Copiar orden">📋</button>
       </div>
     </div>`;
@@ -1533,6 +1478,16 @@ function renderHistorial(){renderStats();renderOpenTrade();renderDashTrades();re
 const _prefsRaw=localStorage.getItem('btc_dashboard_prefs_v1');
 const _prefs=_prefsRaw?JSON.parse(_prefsRaw):{};
 let candles=[],ws=null,twS=null,tf=_prefs.tf||'1m',price=0,open24=0,lev=_prefs.lev||2;
+
+// ── MONETITZACIÓ ──────────────────────────────────────────────
+// Canvia PRO_ENABLED a true per activar les restriccions del pla Free
+const PRO_ENABLED = false;
+const LS_VARIANT_MONTHLY = 1772538;
+const LS_VARIANT_YEARLY  = 1772546;
+const LS_CHECKOUT_MONTHLY = 'https://signaledgeapp.lemonsqueezy.com/checkout/buy/'+LS_VARIANT_MONTHLY;
+const LS_CHECKOUT_YEARLY  = 'https://signaledgeapp.lemonsqueezy.com/checkout/buy/'+LS_VARIANT_YEARLY;
+// Pla Free: només BTC, últimes 3 senyals, historial 10 trades
+// Pla Pro: BTC+ETH+SOL, senyals il·limitades, historial il·limitat, alertes, MTF complet
 let calcMode=_prefs.calcMode||'pct';
 let chart=null,cSeries=null,volSeries=null,volChart=null,sigL=[],trL=[],patL=[],fvgL=[],bosL=[],rtL=[];
 window.chart=null;window.volChart=null;
@@ -1784,6 +1739,40 @@ function renderMTF(analyses,conf){const sl={confirmed:'✓',zone:'◎',weak:'~',
   lastConf=conf;renderTrendMain(analyses);}
 async function fetchMTF(){if(mtfBusy||!price)return;const cacheKey=tf,now=Date.now();if(mtfCache[cacheKey]&&(now-mtfCache[cacheKey].ts)<MTF_CACHE_MS){renderMTF(mtfCache[cacheKey].analyses,mtfCache[cacheKey].conf);return;}mtfBusy=true;document.getElementById('mtfst').textContent='Actualizando...';const tfs=MTFM[tf]||['15m','1h','4h'];try{const res=[];for(const t of tfs){const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair}&interval=${t}&limit=${(TFCFG[t]||{lim:100}).lim}`);if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();res.push(analyzeTF(t,d.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4]})),price));await new Promise(r=>setTimeout(r,300));}const conf=getConf(res);mtfCache[cacheKey]={analyses:res,conf,ts:now};renderMTF(res,conf);lg('MTF → '+lastConf.l);}catch(e){document.getElementById('mtfst').textContent='Error';}mtfBusy=false;}
 
+function isUserPro(){
+  if(!PRO_ENABLED)return true; // Tots Pro mentre PRO_ENABLED=false
+  const u=typeof seUser!=='undefined'?seUser:window.seUser;
+  if(!u)return false;
+  return window._userIsPro===true;
+}
+function showUpgradeModal(){
+  let m=document.getElementById('upgrade-modal-overlay');if(m)m.remove();
+  m=document.createElement('div');
+  m.id='upgrade-modal-overlay';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.innerHTML=`<div style="background:var(--card);border-radius:16px;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.5);overflow:hidden;border:1px solid var(--border)">
+    <div style="background:linear-gradient(135deg,#2962ff,#00d4ff);padding:24px;text-align:center">
+      <div style="font-size:32px;margin-bottom:8px">⚡</div>
+      <div style="font-size:20px;font-weight:800;color:#fff">SignalEdge Pro</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.8);margin-top:4px">Desbloquea todo el potencial</div>
+    </div>
+    <div style="padding:20px">
+      <div style="font-size:13px;color:var(--text3);margin-bottom:16px">
+        ✅ BTC + ETH + SOL<br>
+        ✅ Señales ilimitadas<br>
+        ✅ Historial ilimitado<br>
+        ✅ Alertas de precio<br>
+        ✅ Multi-timeframe completo<br>
+        ✅ Sincronización multi-dispositivo
+      </div>
+      <a href="${LS_CHECKOUT_MONTHLY}" target="_blank" style="display:block;text-align:center;background:linear-gradient(135deg,#2962ff,#00d4ff);color:#fff;font-weight:700;font-size:15px;padding:14px;border-radius:8px;text-decoration:none;margin-bottom:8px">€9.99/mes →</a>
+      <a href="${LS_CHECKOUT_YEARLY}" target="_blank" style="display:block;text-align:center;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-weight:600;font-size:13px;padding:12px;border-radius:8px;text-decoration:none;margin-bottom:16px">€79/año · Ahorra 34% 🎉</a>
+      <button onclick="document.getElementById('upgrade-modal-overlay').remove()" style="width:100%;padding:8px;border-radius:8px;border:none;background:transparent;color:var(--text3);font-family:inherit;font-size:12px;cursor:pointer">Continuar con el plan Free</button>
+    </div>
+  </div>`;
+  m.addEventListener('click',e=>{if(e.target===m)m.remove();});
+  document.body.appendChild(m);
+}
 function showShareMenu(btn,shareText){
   document.querySelectorAll('.share-menu-popup').forEach(m=>m.remove());
   if(navigator.share){
