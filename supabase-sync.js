@@ -47,22 +47,22 @@ async function seOnLogin(user){
   await seLoadPriceAlerts(user.id);
   seInterceptSave(user.id);
   seSubscribeRealtime(user.id);
-  // ── EMAIL DE BENVINGUDA (primer login) ────────────────────
-  const firstKey='se_welcomed_'+user.email;
-  if(!localStorage.getItem(firstKey)){
-    localStorage.setItem(firstKey,'1');
-    try{
-      await fetch('https://aivhwxixdjfyckvplimt.supabase.co/functions/v1/send-welcome-email',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SE_SUPA_KEY},
-        body:JSON.stringify({
-          email:user.email,
-          name:user.user_metadata?.name||user.user_metadata?.full_name||''
-        })
-      });
-      console.log('SE Sync: Email benvinguda enviat ✓');
-    }catch(e){console.log('SE Sync: Error email benvinguda',e.message);}
-  }
+  // ── EMAIL DE BENVINGUDA ────────────────────────────────────
+  // La Edge Function gestiona la deduplicació via UPDATE atòmic
+  try{
+    fetch('https://aivhwxixdjfyckvplimt.supabase.co/functions/v1/send-welcome-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SE_SUPA_KEY},
+      body:JSON.stringify({
+        email:user.email,
+        name:user.user_metadata?.name||user.user_metadata?.full_name||'',
+        user_id:user.id
+      })
+    }).then(r=>r.json()).then(d=>{
+      if(d.skipped)console.log('SE Sync: Email benvinguda ja enviat');
+      else if(d.sent)console.log('SE Sync: Email benvinguda enviat ✓');
+    });
+  }catch(e){console.log('SE Sync: Error email benvinguda',e.message);}
 }
 
 // ── REALTIME ──────────────────────────────────────────────────
@@ -121,37 +121,17 @@ function seSubscribeRealtime(userId){
         const localExists=tradeHistory.some(x=>x.id===t.id);
         if(!localExists&&payload.eventType==='UPDATE'){return;}
         const idx=tradeHistory.findIndex(x=>x.id===t.id);
-        if(idx>=0){
-          // Trade ja existeix localment — mantenir locals, actualitzar només estats
-          const local=tradeHistory[idx];
-          tradeHistory[idx]={
-            ...local,
-            result:t.result||local.result,
-            closePrice:t.close_price||local.closePrice,
-            pnlPct:t.pnl_pct||local.pnlPct,
-            partialDone:t.partial_done||local.partialDone,
-            partialPct:t.partial_pct||local.partialPct,
-            partialPnlPct:t.partial_pnl_pct||local.partialPnlPct,
-            breakevenSL:t.breakeven_sl||local.breakevenSL,
-            sl:t.sl||local.sl,
-            closedAt:t.closed_at||local.closedAt,
-            notes:t.notes||local.notes,
-            pair:local.pair&&local.pair!=='BTCUSDT'?local.pair:(t.pair||local.pair||'BTCUSDT'),
-            e:local.e||t.e||t.ep||null
-          };
-        }else{
-          tradeHistory.unshift({
-            id:t.id,dir:t.dir,source:t.source,et:t.et,
-            tf:t.tf,lev:t.lev,ep:t.ep,sl:t.sl,tp1:t.tp1,tp2:t.tp2,
-            sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
-            closePrice:t.close_price,pnlPct:t.pnl_pct,
-            partialDone:t.partial_done,partialPct:t.partial_pct,
-            partialPnlPct:t.partial_pnl_pct||null,breakevenSL:t.breakeven_sl||null,
-            notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at,
-            pair:t.pair||(typeof currentPair!=='undefined'?currentPair:'BTCUSDT'),
-            e:t.e||t.ep||null,date:t.date||null
-          });
-        }
+        const mapped={
+          id:t.id,dir:t.dir,source:t.source,et:t.et,
+          tf:t.tf,lev:t.lev,ep:t.ep,sl:t.sl,tp1:t.tp1,tp2:t.tp2,
+          sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
+          closePrice:t.close_price,pnlPct:t.pnl_pct,
+          partialDone:t.partial_done,partialPct:t.partial_pct,
+          partialPnlPct:t.partial_pnl_pct||null,breakevenSL:t.breakeven_sl||null,
+          notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
+        };
+        if(idx>=0){tradeHistory[idx]=mapped;}
+        else{tradeHistory.unshift(mapped);}
         if(typeof saveHistory==='function')saveHistory();
         if(typeof renderHistorial==='function')renderHistorial();
         if(typeof updateHistCount==='function')updateHistCount();
@@ -342,10 +322,7 @@ async function seSaveTrade(userId,t){
       close_price:t.closePrice||null,pnl_pct:t.pnlPct||null,
       partial_done:t.partialDone||false,partial_pct:t.partialPct||null,
       partial_pnl_pct:t.partialPnlPct||null,breakeven_sl:t.breakevenSL||null,
-      notes:t.notes||null,opened_at:t.openedAt||new Date().toISOString(),
-      closed_at:t.closedAt||null,
-      pair:t.pair||'BTCUSDT',
-      e:t.e||t.ep||null
+      notes:t.notes||null,opened_at:t.openedAt||new Date().toISOString(),closed_at:t.closedAt||null
     });
   }catch(e){console.log('SE seSaveTrade error:',e.message);}
 }
