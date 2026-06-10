@@ -128,7 +128,9 @@ function seSubscribeRealtime(userId){
           closePrice:t.close_price,pnlPct:t.pnl_pct,
           partialDone:t.partial_done,partialPct:t.partial_pct,
           partialPnlPct:t.partial_pnl_pct||null,breakevenSL:t.breakeven_sl||null,
-          notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
+          notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at,
+          pair:t.pair||(typeof currentPair!=='undefined'?currentPair:'BTCUSDT'),
+          e:t.e||t.ep||null,date:t.date||null
         };
         if(idx>=0){tradeHistory[idx]=mapped;}
         else{tradeHistory.unshift(mapped);}
