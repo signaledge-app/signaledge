@@ -342,7 +342,10 @@ async function seSaveTrade(userId,t){
       close_price:t.closePrice||null,pnl_pct:t.pnlPct||null,
       partial_done:t.partialDone||false,partial_pct:t.partialPct||null,
       partial_pnl_pct:t.partialPnlPct||null,breakeven_sl:t.breakevenSL||null,
-      notes:t.notes||null,opened_at:t.openedAt||new Date().toISOString(),closed_at:t.closedAt||null
+      notes:t.notes||null,opened_at:t.openedAt||new Date().toISOString(),
+      closed_at:t.closedAt||null,
+      pair:t.pair||'BTCUSDT',
+      e:t.e||t.ep||null
     });
   }catch(e){console.log('SE seSaveTrade error:',e.message);}
 }
