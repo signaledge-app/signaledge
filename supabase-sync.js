@@ -287,22 +287,41 @@ async function seLoadTrades(userId){
       sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
       closePrice:t.close_price,pnlPct:t.pnl_pct,
       partialDone:t.partial_done,partialPct:t.partial_pct,
-      partialPnlPct:t.partial_pnl_pct||null,breakevenSL:t.breakeven_sl||null,
-      notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at,
-      pair:t.pair||'BTCUSDT',e:t.e||t.ep,date:t.date||null
+      notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
     }));
     if(typeof tradeHistory!=='undefined'){
       let deletedIds=new Set();
       try{deletedIds=new Set(JSON.parse(localStorage.getItem('btc_deleted_trades')||'[]'));}catch(e){}
       for(const id of Object.keys(deletedIds)){await seDeleteTrade(userId,id);}
       const localIds=new Set(tradeHistory.map(t=>t.id));
+      // Afegir trades que estan al cloud però NO al local (nous des d'altre dispositiu)
       const newTrades=cloudTrades.filter(t=>!localIds.has(t.id)&&!deletedIds.has(t.id));
+      // Actualitzar trades locals amb dades del cloud NOMÉS si el local no té pair
+      cloudTrades.forEach(ct=>{
+        const localIdx=tradeHistory.findIndex(t=>t.id===ct.id);
+        if(localIdx>=0){
+          // El trade existeix localment — actualitzar pair i e si falten
+          if(!tradeHistory[localIdx].pair||tradeHistory[localIdx].pair==='BTCUSDT'&&ct.pair!=='BTCUSDT'){
+            tradeHistory[localIdx].pair=ct.pair;
+          }
+          if(!tradeHistory[localIdx].e&&ct.e){
+            tradeHistory[localIdx].e=ct.e;
+          }
+          // Actualitzar estat si ha canviat (tancat des d'altre dispositiu)
+          if(tradeHistory[localIdx].result==='open'&&ct.result!=='open'){
+            tradeHistory[localIdx].result=ct.result;
+            tradeHistory[localIdx].closePrice=ct.closePrice;
+            tradeHistory[localIdx].pnlPct=ct.pnlPct;
+            tradeHistory[localIdx].closedAt=ct.closedAt;
+          }
+        }
+      });
       if(newTrades.length>0){
         tradeHistory=[...tradeHistory,...newTrades].sort((a,b)=>new Date(b.openedAt||0)-new Date(a.openedAt||0));
-        if(typeof saveHistory==='function')saveHistory();
-        if(typeof renderHistorial==='function')renderHistorial();
-        if(typeof updateHistCount==='function')updateHistCount();
       }
+      if(typeof saveHistory==='function')saveHistory();
+      if(typeof renderHistorial==='function')renderHistorial();
+      if(typeof updateHistCount==='function')updateHistCount();
     }
     const openTrade=cloudTrades.find(t=>t.result==='open');
     if(openTrade&&typeof trade!=='undefined'&&!trade){
@@ -324,9 +343,7 @@ async function seSaveTrade(userId,t){
       close_price:t.closePrice||null,pnl_pct:t.pnlPct||null,
       partial_done:t.partialDone||false,partial_pct:t.partialPct||null,
       partial_pnl_pct:t.partialPnlPct||null,breakeven_sl:t.breakevenSL||null,
-      notes:t.notes||null,opened_at:t.openedAt||new Date().toISOString(),
-      closed_at:t.closedAt||null,
-      pair:t.pair||'BTCUSDT',e:t.e||t.ep||null
+      notes:t.notes||null,opened_at:t.openedAt||new Date().toISOString(),closed_at:t.closedAt||null
     });
   }catch(e){console.log('SE seSaveTrade error:',e.message);}
 }
