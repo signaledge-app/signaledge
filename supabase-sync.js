@@ -47,24 +47,20 @@ async function seOnLogin(user){
   await seLoadPriceAlerts(user.id);
   seInterceptSave(user.id);
   seSubscribeRealtime(user.id);
-  // ── EMAIL DE BENVINGUDA ────────────────────────────────────
-  // Debounce: window._welcomeEmailSent evita múltiples crides per sessió
-  if(!window._welcomeEmailSent){
-    window._welcomeEmailSent=true;
+  // ── EMAIL DE BENVINGUDA (primer login) ────────────────────
+  const firstKey='se_welcomed_'+user.email;
+  if(!localStorage.getItem(firstKey)){
+    localStorage.setItem(firstKey,'1');
     try{
-      fetch('https://aivhwxixdjfyckvplimt.supabase.co/functions/v1/send-welcome-email',{
+      await fetch('https://aivhwxixdjfyckvplimt.supabase.co/functions/v1/send-welcome-email',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+SE_SUPA_KEY},
         body:JSON.stringify({
           email:user.email,
-          name:user.user_metadata?.name||user.user_metadata?.full_name||'',
-          user_id:user.id
+          name:user.user_metadata?.name||user.user_metadata?.full_name||''
         })
-      }).then(r=>r.json()).then(d=>{
-        if(d.skipped)console.log('SE Sync: Email ja enviat anteriorment');
-        else if(d.sent)console.log('SE Sync: Email benvinguda enviat ✓');
-        else console.log('SE Sync: Email response:',JSON.stringify(d));
-      }).catch(e=>console.log('SE Sync: Error email',e.message));
+      });
+      console.log('SE Sync: Email benvinguda enviat ✓');
     }catch(e){console.log('SE Sync: Error email benvinguda',e.message);}
   }
 }
@@ -243,7 +239,10 @@ function seApplyPrefs(data){
     const cb=document.getElementById('crt');
     if(cb){cb.checked=useRT;document.getElementById('lrt').className='ecb'+(useRT?' rt-on':'');}
   }
-  if(typeof calcUpdate==='function')calcUpdate();
+  if(typeof data.is_pro!=='undefined'){
+    window._userIsPro=data.is_pro===true;
+    console.log('SE Sync: is_pro='+window._userIsPro);
+  }
   if(typeof update==='function')setTimeout(update,100);
   console.log('SE Sync: Preferencias aplicadas ✓');
 }
