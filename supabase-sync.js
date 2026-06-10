@@ -48,21 +48,25 @@ async function seOnLogin(user){
   seInterceptSave(user.id);
   seSubscribeRealtime(user.id);
   // ── EMAIL DE BENVINGUDA ────────────────────────────────────
-  // La Edge Function gestiona la deduplicació via UPDATE atòmic
-  try{
-    fetch('https://aivhwxixdjfyckvplimt.supabase.co/functions/v1/send-welcome-email',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SE_SUPA_KEY},
-      body:JSON.stringify({
-        email:user.email,
-        name:user.user_metadata?.name||user.user_metadata?.full_name||'',
-        user_id:user.id
-      })
-    }).then(r=>r.json()).then(d=>{
-      if(d.skipped)console.log('SE Sync: Email benvinguda ja enviat');
-      else if(d.sent)console.log('SE Sync: Email benvinguda enviat ✓');
-    });
-  }catch(e){console.log('SE Sync: Error email benvinguda',e.message);}
+  // Debounce: window._welcomeEmailSent evita múltiples crides per sessió
+  if(!window._welcomeEmailSent){
+    window._welcomeEmailSent=true;
+    try{
+      fetch('https://aivhwxixdjfyckvplimt.supabase.co/functions/v1/send-welcome-email',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SE_SUPA_KEY},
+        body:JSON.stringify({
+          email:user.email,
+          name:user.user_metadata?.name||user.user_metadata?.full_name||'',
+          user_id:user.id
+        })
+      }).then(r=>r.json()).then(d=>{
+        if(d.skipped)console.log('SE Sync: Email ja enviat anteriorment');
+        else if(d.sent)console.log('SE Sync: Email benvinguda enviat ✓');
+        else console.log('SE Sync: Email response:',JSON.stringify(d));
+      }).catch(e=>console.log('SE Sync: Error email',e.message));
+    }catch(e){console.log('SE Sync: Error email benvinguda',e.message);}
+  }
 }
 
 // ── REALTIME ──────────────────────────────────────────────────
