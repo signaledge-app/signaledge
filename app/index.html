@@ -269,6 +269,9 @@ body.dark .lev-badge{background:#252836;color:#9294a0;border-color:#3a3d50}
 .hist-filters{display:flex;gap:5px;flex-wrap:wrap}
 .filt-btn{font-size:10px;padding:2px 9px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer;color:#666;font-family:inherit}
 .filt-btn.active{background:#2962ff;color:#fff;border-color:#2962ff}
+.filt-btn.filt-pair.active[data-filt="pair-BTCUSDT"]{background:#f7931a;border-color:#f7931a;color:#fff}
+.filt-btn.filt-pair.active[data-filt="pair-ETHUSDT"]{background:#627eea;border-color:#627eea;color:#fff}
+.filt-btn.filt-pair.active[data-filt="pair-SOLUSDT"]{background:#9945ff;border-color:#9945ff;color:#fff}
 .trade-row{border:1px solid #eee;border-radius:7px;padding:.625rem .75rem;margin-bottom:.4rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff}
 .trade-row.win{border-left:3px solid #26a69a}.trade-row.loss{border-left:3px solid #ef5350}
 .trade-row.open{border-left:3px solid #2962ff;background:rgba(41,98,255,.03)}
@@ -359,6 +362,12 @@ body.dark .calc-pct-btn.active{background:#2962ff!important;border-color:#2962ff
 .stat-card{background:var(--card)!important;border-color:var(--border2)!important}
 .stat-val{color:var(--text)!important}
 .filt-btn{background:var(--card)!important;border-color:var(--border)!important;color:var(--text3)!important}
+.filt-btn.pair-btc{border-color:#f7931a!important;color:#f7931a!important;background:rgba(247,147,26,.12)!important}
+.filt-btn.pair-eth{border-color:#627eea!important;color:#627eea!important;background:rgba(98,126,234,.12)!important}
+.filt-btn.pair-sol{border-color:#9945ff!important;color:#9945ff!important;background:rgba(153,69,255,.12)!important}
+.filt-btn.pair-btc.active{background:#f7931a!important;color:#fff!important}
+.filt-btn.pair-eth.active{background:#627eea!important;color:#fff!important}
+.filt-btn.pair-sol.active{background:#9945ff!important;color:#fff!important}
 .trade-row{background:var(--card)!important;border-color:var(--border2)!important}
 .open-trade-card{background:var(--card)!important}
 .lb{background:var(--bg3)!important;border-color:var(--border2)!important}
@@ -872,6 +881,9 @@ body.dark .bm-hint{color:#666}
       <button class="filt-btn" data-filt="open">● Abiertos</button>
       <button class="filt-btn" data-filt="long">▲ Longs</button>
       <button class="filt-btn" data-filt="short">▼ Shorts</button>
+      <button class="filt-btn filt-pair pair-btc" data-filt="pair-BTCUSDT">₿ BTC</button>
+      <button class="filt-btn filt-pair pair-eth" data-filt="pair-ETHUSDT">Ξ ETH</button>
+      <button class="filt-btn filt-pair pair-sol" data-filt="pair-SOLUSDT">◎ SOL</button>
       <div style="position:relative;display:inline-block" id="export-dropdown-wrap">
         <button onclick="toggleExportMenu()" style="font-size:10px;padding:2px 10px;border-radius:10px;border:1px solid #2962ff;background:transparent;color:#2962ff;cursor:pointer;font-family:inherit;font-weight:500">📥 Exportar ▾</button>
         <div id="export-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:999;min-width:130px;overflow:hidden">
@@ -1253,13 +1265,19 @@ function addTradeToHistory(sig){
 }
 function closeTrade_hist(id,result,closePrice){resetTradeAlerts();
   const t=tradeHistory.find(x=>x.id===id);if(!t)return;
-  t.result=result;t.closePrice=closePrice||price;t.closeTs=Date.now();t.closedAt=new Date().toISOString();t.duration=Math.round((t.closeTs-t.ts)/60000);
+  t.result=result;t.closePrice=closePrice||(t.tp1||price);t.closeTs=Date.now();t.closedAt=new Date().toISOString();t.duration=Math.round((t.closeTs-t.ts)/60000);
   const raw=t.dir==='long'?(t.closePrice-t.ep)/t.ep:(t.ep-t.closePrice)/t.ep;
   const restPnl=raw*100*t.lev;
   t.pnlPct=t.partialDone?(t.partialPnlPct*0.5)+(restPnl*0.5):restPnl;
   t.pnl=t.pnlPct.toFixed(2);
+  // Si és el trade actiu al dashboard, resetejar-lo
+  if(trade&&(trade.histId===id||activeTradeId===id)){
+    trade=null;activeTradeId=null;partialExecuted=false;autoClosePending=false;
+    if(typeof drawTradeLines==='function')drawTradeLines(null);
+    const bar=document.getElementById('parc-bar');if(bar)bar.style.display='none';
+    const pb=document.getElementById('partial-banner');if(pb)pb.style.display='none';
+  }
   saveHistory();renderHistorial();updateHistCount();
-  // Sync directe a Supabase
   const _u=typeof seUser!=='undefined'?seUser:window.seUser;if(_u&&typeof seSaveTrade==='function')seSaveTrade(_u.id,t);
   const em=result==='tp2'?'🎯':result==='tp1'?'✓':result==='sl'?'✗':'◎';
   lg(`${em} [${result.toUpperCase()}] ${t.pnl>0?'+':''}${t.pnl}%${t.partialDone?' (incl. parcial)':''}`);
@@ -1294,6 +1312,15 @@ function deleteTradeFromHistory(id){
     const _u=typeof seUser!=='undefined'?seUser:window.seUser;
     if(_u&&typeof seDeleteTrade==='function')seDeleteTrade(_u.id,id);
   };
+}
+function saveTradeNote(id){
+  const inp=document.getElementById('note-'+id);
+  if(!inp)return;
+  const note=inp.value.trim();
+  updateTradeNote(id,note);
+  const fb=document.getElementById('note-saved-'+id);
+  if(fb){fb.style.display='block';setTimeout(()=>{fb.style.display='none';},2000);}
+  inp.rows=note?2:1;
 }
 function updateTradeNote(id,note){
   const t=tradeHistory.find(x=>x.id===id);
@@ -1371,7 +1398,7 @@ async function renderOpenTrade(){
         ${openT.partialDone
           ? `<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px;padding:5px 14px;border-radius:4px;cursor:pointer;font-weight:500;font-family:inherit" onclick="closeTrade_hist('${openT.id}','sl',${currentSL})">🔒 BE ($${ff(currentSL)})</button>`
           : `<button class="btn-sl" onclick="closeTrade_hist('${openT.id}','sl',${currentSL})">✗ SL ($${ff(currentSL)})</button>`}
-        <button class="btn-manual" onclick="showCloseModal('${openT.id}',${price})">◎ Cerrar</button>
+        <button class="btn-manual" onclick="showCloseModal('${openT.id}','${openT.pair||'BTCUSDT'}')">◎ Cerrar</button>
         <button class="btn-bitunix" onclick="setActiveTrade('${openT.id}');openBitunixModal()">📋</button>
         <button class="btn" onclick="shareOpenTrade('${openT.id}')" title="Compartir trade" style="font-size:10px;padding:5px 10px">📤</button>
       </div>
@@ -1404,7 +1431,7 @@ function renderDashTrades(){
         ${!t.partialDone?`<button class="dot-btn tp1" onclick="manualPartial('${t.id}')">TP1</button>`:''}
         <button class="dot-btn tp2" onclick="closeTrade_hist('${t.id}','tp2',${t.tp2})">TP2</button>
         <button class="dot-btn sl" onclick="closeTrade_hist('${t.id}','sl',${currentSL})">SL</button>
-        <button class="dot-btn close" onclick="showCloseModal('${t.id}',${price})">✕</button>
+        <button class="dot-btn close" onclick="showCloseModal('${t.id}','${t.pair||'BTCUSDT'}')">✕</button>
         <button class="dot-btn" style="background:#555;color:#fff" onclick="setActiveTrade('${t.id}');openBitunixModal()" title="Copiar orden">📋</button>
       </div>
     </div>`;
@@ -1436,11 +1463,16 @@ function setActiveTrade(id){
 }
 function renderHistList(){
   const el=document.getElementById('hist-list');
-  let filtered=typeof filterByDate==="function"?filterByDate(tradeHistory):tradeHistory;
-  if(currentFilt==='win')filtered=tradeHistory.filter(t=>t.result!=='open'&&t.pnlPct>0);
-  else if(currentFilt==='loss')filtered=tradeHistory.filter(t=>t.result!=='open'&&t.pnlPct<=0);
-  else if(currentFilt==='open')filtered=tradeHistory.filter(t=>t.result==='open');
-  else if(currentFilt==='long')filtered=tradeHistory.filter(t=>t.dir==='long');
+  const byDate=typeof filterByDate==='function'?filterByDate(tradeHistory):tradeHistory;
+  const openTrades=tradeHistory.filter(t=>t.result==='open');
+  const closedByDate=byDate.filter(t=>t.result!=='open');
+  let filtered=[...openTrades,...closedByDate];
+  if(currentFilt==='win')filtered=closedByDate.filter(t=>t.pnlPct>0);
+  else if(currentFilt==='loss')filtered=closedByDate.filter(t=>t.pnlPct<=0);
+  else if(currentFilt==='open')filtered=openTrades;
+  else if(currentFilt==='long')filtered=[...openTrades,...closedByDate].filter(t=>t.dir==='long');
+  else if(currentFilt==='short')filtered=[...openTrades,...closedByDate].filter(t=>t.dir==='short');
+  else if(currentFilt.startsWith('pair-')){const p=currentFilt.replace('pair-','');filtered=[...openTrades,...closedByDate].filter(t=>(t.pair||'BTCUSDT')===p);}
   else if(currentFilt==='short')filtered=tradeHistory.filter(t=>t.dir==='short');
   if(!filtered.length){el.innerHTML=`<div class="hist-empty"><div class="hist-empty-icon">📋</div><div style="font-size:13px;font-weight:500;margin-bottom:4px">Sin trades registrados</div><div style="font-size:11px">Marca una entrada en el Dashboard para registrarla aquí</div></div>`;return;}
   const resLabel={tp1:'✓ TP1',tp2:'🎯 TP2',sl:'✗ SL',be:'🔒 BE',open:'● Abierto',manual:'◎ Manual'};
@@ -1450,7 +1482,8 @@ function renderHistList(){
   el.innerHTML=filtered.map(t=>{
     const isOpen=t.result==='open';
     const tExec=!isOpen||t.et!=='Limit'||!trade||(t.dir==='long'?price<=t.ep:price>=t.ep);
-    const pLive=isOpen&&tExec?(t.dir==='long'?(price-t.ep)/t.ep*100*t.lev:(t.ep-price)/t.ep*100*t.lev):null;
+    const liveP=(t.pair||'BTCUSDT')===currentPair?price:(t.lastPrice||null);
+    const pLive=isOpen&&tExec&&liveP?(t.dir==='long'?(liveP-t.ep)/t.ep*100*t.lev:(t.ep-liveP)/t.ep*100*t.lev):null;
     const isBE=t.result==='sl'&&t.partialDone;const rowCls=isOpen?(t.partialDone?'partial-open':'open'):isBE?'manual':t.pnlPct>0?'win':t.pnlPct<0?'loss':'manual';
     const dur=t.duration?`${t.duration<60?t.duration+'min':(t.duration/60).toFixed(1)+'h'}`:'--';
     const currentSL=t.partialDone?t.breakevenSL:t.sl;
@@ -1478,7 +1511,13 @@ function renderHistList(){
       </div>
       <span class="tr-result ${resClass[getResult(t)]||'open'}">${resLabel[getResult(t)]||'--'}</span>
       <button class="tr-del" onclick="event.stopPropagation();deleteTradeFromHistory('${t.id}')" title="Eliminar">✕</button>
-      <div class="tr-note-row" onclick="event.stopPropagation()"><textarea class="tr-note" rows="1" placeholder="Añade una nota..." onblur="updateTradeNote('${t.id}',this.value)">${t.note||''}</textarea></div>
+      <div class="tr-note-row" onclick="event.stopPropagation()">
+        <div style="display:flex;gap:4px;align-items:flex-end">
+          <textarea class="tr-note" id="note-${t.id}" rows="1" placeholder="✏️ Añade una nota..." onfocus="this.rows=2" onblur="if(!this.value.trim())this.rows=1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();saveTradeNote('${t.id}')}">${t.note||''}</textarea>
+          <button onclick="saveTradeNote('${t.id}')" style="flex-shrink:0;padding:4px 10px;border-radius:6px;border:none;background:#2962ff;color:#fff;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;height:26px;white-space:nowrap">Guardar</button>
+        </div>
+        ${t.note?`<div id="note-saved-${t.id}" style="font-size:9px;color:#26a69a;margin-top:2px;display:none">✓ Guardado</div>`:`<div id="note-saved-${t.id}" style="font-size:9px;color:#26a69a;margin-top:2px;display:none">✓ Guardado</div>`}
+      </div>
     </div>`;
   }).join('');}
 function renderHistorial(){renderStats();renderOpenTrade();renderDashTrades();renderHistList();if(typeof renderBreakdown==="function")renderBreakdown();if(typeof renderPnlChart==="function")renderPnlChart();if(typeof renderAdvancedStats==="function")renderAdvancedStats();}
@@ -1677,7 +1716,7 @@ const maxD=maxDist[cfg.t]||0.02;
 const filtered=cands.filter(c=>{const e=c.lvls.e;return Math.abs(e-price)/price<=maxD;});
 const order={confirmed:0,zone:1,watch:2};
 filtered.sort((a,b)=>{if(a.withTrend&&!b.withTrend)return -1;if(!a.withTrend&&b.withTrend)return 1;const statusDiff=(order[a.status]||2)-(order[b.status]||2);if(statusDiff!==0)return statusDiff;return parseFloat(b.lvls.r1)-parseFloat(a.lvls.r1);});
-const mapped=filtered.map(c=>({...c,candleStr:candleStrength(c.dir),volStr:vs,type:cfg.t,isAct:!!(trade&&Math.abs(trade.e-c.lvls.e)<15),aligned:(c.dir==='long'&&(ck==='sl'||ck==='ml'))||(c.dir==='short'&&(ck==='ss'||ck==='ms')),cstr:ck==='sl'||ck==='ss'?'strong':ck==='ml'||ck==='ms'?'medium':'weak',patNotes:pats.map(p=>({...p,reinforces:(c.dir==='long'&&p.dir==='bull')||(c.dir==='short'&&p.dir==='bear'),weakens:(c.dir==='long'&&p.dir==='bear')||(c.dir==='short'&&p.dir==='bull')})),}));
+const mapped=filtered.map(c=>({...c,candleStr:candleStrength(c.dir),volStr:vs,type:cfg.t,isAct:!!(trade&&(trade.pair||'BTCUSDT')===currentPair&&trade.source===c.source&&trade.dir===c.dir&&trade.e===c.lvls.e),aligned:(c.dir==='long'&&(ck==='sl'||ck==='ml'))||(c.dir==='short'&&(ck==='ss'||ck==='ms')),cstr:ck==='sl'||ck==='ss'?'strong':ck==='ml'||ck==='ms'?'medium':'weak',patNotes:pats.map(p=>({...p,reinforces:(c.dir==='long'&&p.dir==='bull')||(c.dir==='short'&&p.dir==='bear'),weakens:(c.dir==='long'&&p.dir==='bear')||(c.dir==='short'&&p.dir==='bull')})),}));
 const seen=new Map();
 const deduped=mapped.filter(s=>{const key=Math.round(s.lvls.tp1)+'_'+Math.round(s.lvls.tp2)+'_'+s.dir;if(!seen.has(key)){seen.set(key,s);return true;}const prev=seen.get(key);if(parseFloat(s.lvls.r1)>parseFloat(prev.lvls.r1)){seen.set(key,s);return true;}return false;});
 return deduped.slice(0,3);}
@@ -1728,9 +1767,15 @@ function enterTrade(sig){
   const epReal=sig.et==='Limit'?l.e:price;
   trade={dir:sig.dir,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,lev,tf,ep:epReal,sp:l.sp,r1:l.r1,r2:l.r2,source:sig.source,et:sig.et,levelType:sig.levelType,partialDone:false,pair:currentPair||'BTCUSDT'};partialExecuted=false;trade.histId=addTradeToHistory(sig);activeTradeId=trade.histId;drawTradeLines(trade);updAtb();renderDashTrades();document.getElementById('parc-bar').style.display='flex';
   calcSetSig(sig);update();lg('✓ '+trade.dir.toUpperCase()+' ['+trade.et+'] R:R='+trade.r1);}
-function closeTrade_dashboard(result){
+async function closeTrade_dashboard(result){
   if(!trade)return;
-  const closePrice=result==='tp1'?trade.tp1:result==='tp2'?trade.tp2:result==='sl'?trade.sl:price;
+  // Si el trade és d'un altre parell, fer fetch del preu correcte
+  let livePrice=price;
+  const tradePair=trade.pair||currentPair;
+  if(tradePair!==currentPair){
+    try{const r=await fetch('https://api.binance.com/api/v3/ticker/price?symbol='+tradePair);const d=await r.json();livePrice=parseFloat(d.price)||price;}catch(e){}
+  }
+  const closePrice=result==='tp1'?trade.tp1:result==='tp2'?trade.tp2:result==='sl'?trade.sl:livePrice;
   if(trade.histId)closeTrade_hist(trade.histId,result||'manual',closePrice);
   const p=trade.dir==='long'?(price-trade.ep):(trade.ep-price);
   lg('Cerrado '+(p>=0?'✓ +':'✗ ')+(p/trade.ep*100*trade.lev).toFixed(2)+'%');
@@ -1744,9 +1789,8 @@ function closeTrade_dashboard(result){
 function isLimitExecuted(t){if(!t||t.et!=='Limit')return true;if(t.dir==='long')return price<=t.ep*(1+0.0005);return price>=t.ep*(1-0.0005);}
 function updAtb(){renderDashTrades();if(!trade){document.getElementById('atb').style.display='none';return;}const bar=document.getElementById('atb');
   const executed=isLimitExecuted(trade);
-  const multiTrades=tradeHistory.filter(t=>t.result==='open').length>1;
-  bar.style.display=multiTrades?'none':'flex';bar.className='atb '+trade.dir+(trade.partialDone?' partial':'')+(executed?'':' pending');
-  const p=trade.dir==='long'?(price-trade.ep):(trade.ep-price),pc=(p/trade.ep*100*trade.lev).toFixed(2);const srcLbl=trade.source==='rt'?`🔁RT ${trade.levelType||''}`:trade.source==='fvg'?'⚡FVG':'📦OB';const currentSL=trade.partialDone?trade.ep:trade.sl;const badge=trade.partialDone?'<span style="font-size:9px;background:#fff8e1;color:#e65100;padding:1px 6px;border-radius:8px;border:1px solid #ffcc80;margin-left:4px">🎯 Parcial</span>':'';bar.innerHTML=`<div style="flex:1"><div style="font-size:11px;font-weight:600">${trade.dir==='long'?'▲ LONG':'▼ SHORT'} · ${srcLbl} · ${trade.et} · ${trade.lev}x · R:R ${trade.r1}${badge}</div><div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;margin-top:2px"><span style="color:#2962ff">$${ff(trade.e)}</span><span style="color:${trade.partialDone?'#f57c00':'#ef5350'}">${trade.partialDone?'🔒BE':'SL'} $${ff(currentSL)}</span>${!trade.partialDone?`<span style="color:#f57c00">TP1 $${ff(trade.tp1)}</span>`:''}<span style="color:#26a69a">TP2 $${ff(trade.tp2)}</span></div></div>${executed?`<span class="pnl ${p>=0?'pos':'neg'}">${p>=0?'+':''}${pc}%</span>`:`<span class="pnl" style="color:#999;font-size:11px">⏳ Esperando $${ff(trade.ep)}</span>`}<div style="display:flex;gap:4px;flex-shrink:0">${executed&&!trade.partialDone?`<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px" onclick="manualPartial('${trade.histId}')">🎯 TP1 Parcial</button>`:''}<button class="btn" style="background:#26a69a;color:#fff;border:none;font-size:10px" onclick="closeTrade_dashboard('tp2')">TP2</button>${trade.partialDone?`<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px" onclick="closeTrade_dashboard('sl')">🔒 BE tocado</button>`:`<button class="bct" onclick="closeTrade_dashboard('sl')">SL</button>`}<button class="btn" onclick="showCloseModal('${trade.histId}',${price})">Cerrar</button><button class="btn-bitunix" onclick="openBitunixModal()" style="font-size:10px;padding:3px 8px">📋</button></div>`;}
+  bar.style.display='none';bar.className='atb '+trade.dir+(trade.partialDone?' partial':'')+(executed?'':' pending');
+  const p=trade.dir==='long'?(price-trade.ep):(trade.ep-price),pc=(p/trade.ep*100*trade.lev).toFixed(2);const srcLbl=trade.source==='rt'?`🔁RT ${trade.levelType||''}`:trade.source==='fvg'?'⚡FVG':'📦OB';const currentSL=trade.partialDone?trade.ep:trade.sl;const badge=trade.partialDone?'<span style="font-size:9px;background:#fff8e1;color:#e65100;padding:1px 6px;border-radius:8px;border:1px solid #ffcc80;margin-left:4px">🎯 Parcial</span>':'';bar.innerHTML=`<div style="flex:1"><div style="font-size:11px;font-weight:600">${trade.dir==='long'?'▲ LONG':'▼ SHORT'} · ${srcLbl} · ${trade.et} · ${trade.lev}x · R:R ${trade.r1}${badge}</div><div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;margin-top:2px"><span style="color:#2962ff">$${ff(trade.e)}</span><span style="color:${trade.partialDone?'#f57c00':'#ef5350'}">${trade.partialDone?'🔒BE':'SL'} $${ff(currentSL)}</span>${!trade.partialDone?`<span style="color:#f57c00">TP1 $${ff(trade.tp1)}</span>`:''}<span style="color:#26a69a">TP2 $${ff(trade.tp2)}</span></div></div>${executed?`<span class="pnl ${p>=0?'pos':'neg'}">${p>=0?'+':''}${pc}%</span>`:`<span class="pnl" style="color:#999;font-size:11px">⏳ Esperando $${ff(trade.ep)}</span>`}<div style="display:flex;gap:4px;flex-shrink:0">${executed&&!trade.partialDone?`<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px" onclick="manualPartial('${trade.histId}')">🎯 TP1 Parcial</button>`:''}<button class="btn" style="background:#26a69a;color:#fff;border:none;font-size:10px" onclick="closeTrade_dashboard('tp2')">TP2</button>${trade.partialDone?`<button class="btn" style="background:#f57c00;color:#fff;border:none;font-size:10px" onclick="closeTrade_dashboard('sl')">🔒 BE tocado</button>`:`<button class="bct" onclick="closeTrade_dashboard('sl')">SL</button>`}<button class="btn" onclick="showCloseModal('${trade.histId}','${trade.pair||currentPair}')">Cerrar</button><button class="btn-bitunix" onclick="openBitunixModal()" style="font-size:10px;padding:3px 8px">📋</button></div>`;}
 function analyzeTF(tfn,cs,p){if(!cs||cs.length<6)return{tf:tfn,dir:'neu',sig:'none',bull:0,bear:0,detail:'--'};const obs=detectOBs(cs,p),bull=obs.filter(o=>o.type==='bull'),bear=obs.filter(o=>o.type==='bear');const last=cs[cs.length-1],prev=cs[cs.length-2];let bc=false,bz=false,ec=false,ez=false;bull.forEach(o=>{if(p>=o.low&&p<=o.high*1.005)bz=true;if(last.low<=o.high*1.003&&last.close>last.open&&last.close>prev.close)bc=true;});bear.forEach(o=>{if(p<=o.high&&p>=o.low*.995)ez=true;if(last.high>=o.low*.997&&last.close<last.open&&last.close<prev.close)ec=true;});if(bc&&!ec)return{tf:tfn,dir:'bull',sig:'confirmed',bull:bull.length,bear:bear.length,detail:'OB alcista ✓'};if(ec&&!bc)return{tf:tfn,dir:'bear',sig:'confirmed',bull:bull.length,bear:bear.length,detail:'OB bajista ✓'};if(bz&&!ez)return{tf:tfn,dir:'bull',sig:'zone',bull:bull.length,bear:bear.length,detail:'En zona alcista'};if(ez&&!bz)return{tf:tfn,dir:'bear',sig:'zone',bull:bull.length,bear:bear.length,detail:'En zona bajista'};if(bull.length>bear.length)return{tf:tfn,dir:'bull',sig:'weak',bull:bull.length,bear:bear.length,detail:bull.length+' OBs ▲'};if(bear.length>bull.length)return{tf:tfn,dir:'bear',sig:'weak',bull:bull.length,bear:bear.length,detail:bear.length+' OBs ▼'};return{tf:tfn,dir:'neu',sig:'none',bull:0,bear:0,detail:'Neutro'};}
 function getConf(a){const w={confirmed:1.5,zone:1.0,weak:0.5,none:0};const bulls=a.filter(x=>x.dir==='bull'),bears=a.filter(x=>x.dir==='bear');const bs=bulls.reduce((s,x)=>s+(w[x.sig]||0),0),es=bears.reduce((s,x)=>s+(w[x.sig]||0),0);if(bulls.length===3)return bs>=3?{k:'sl',l:'🟢 FUERTE ALCISTA',d:'3/3 TFs largo.'}:{k:'ml',l:'🟡 MEDIO ALCISTA',d:'2-3 TFs alcistas.'};if(bears.length===3)return es>=3?{k:'ss',l:'🔴 FUERTE BAJISTA',d:'3/3 TFs corto.'}:{k:'ms',l:'🟠 MEDIO BAJISTA',d:'2-3 TFs bajistas.'};if(bulls.length===2)return{k:'ml',l:'🟡 MEDIO ALCISTA',d:'2/3 TFs alcistas.'};if(bears.length===2)return{k:'ms',l:'🟠 MEDIO BAJISTA',d:'2/3 TFs bajistas.'};return{k:'wk',l:'⚪ SIN CONFLUENCIA',d:'TFs contradictorios.'};}
 function renderMTF(analyses,conf){const sl={confirmed:'✓',zone:'◎',weak:'~',none:'–'};document.getElementById('mtfgrid').innerHTML=analyses.map(a=>`<div class="mtf-c ${a.dir==='bull'?'bull':a.dir==='bear'?'bear':'neutral'}"><div class="mtf-tf">${a.tf}</div><div class="mtf-d ${a.dir==='bull'?'bull':a.dir==='bear'?'bear':'neu'}">${a.dir==='bull'?'▲ ALCISTA':a.dir==='bear'?'▼ BAJISTA':'➖ NEUTRO'}</div><div class="mtf-sb">${sl[a.sig]||'–'} ${a.detail}</div></div>`).join('');const cr=document.getElementById('confrow');cr.className='conf-r '+conf.k;const dots=analyses.map(a=>a.dir==='bull'?'#26a69a':a.dir==='bear'?'#ef5350':'#bdbdbd');cr.innerHTML=`<span class="conf-b ${conf.k}">${conf.l}</span><span class="conf-desc">${conf.d} · ${analyses.map(a=>a.tf).join(' · ')}</span><div style="display:flex;gap:4px">${dots.map(c=>`<div style="width:10px;height:10px;border-radius:50%;background:${c}"></div>`).join('')}</div>`;const cl={sl:'3/3 🟢',ss:'3/3 🔴',ml:'2/3 🟡',ms:'2/3 🟠',wk:'--'};document.getElementById('mc').textContent=cl[conf.k]||'--';document.getElementById('mtfst').textContent='Act. '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+(mtfCache[tf]?' 💾':'');
@@ -3811,8 +3855,25 @@ function showProximityAlert(type,levelPrice,pct){
   setTimeout(()=>{if(el)el.innerHTML='';el.style.display='none';},8000);
 }
 
-function showCloseModal(id, closePrice){
+async function showCloseModal(id, pairOrPrice){
   const t=tradeHistory.find(x=>x.id===id);if(!t)return;
+  // Determinar el preu correcte
+  let closePrice;
+  if(typeof pairOrPrice==='string'&&pairOrPrice.includes('USDT')){
+    // És un parell — fer fetch del preu actual
+    const tradePair=pairOrPrice;
+    if(tradePair===currentPair){
+      closePrice=price;
+    } else {
+      try{
+        const r=await fetch('https://api.binance.com/api/v3/ticker/price?symbol='+tradePair);
+        const d=await r.json();
+        closePrice=parseFloat(d.price)||price;
+      }catch(e){closePrice=price;}
+    }
+  } else {
+    closePrice=parseFloat(pairOrPrice)||price;
+  }
   const isLong=t.dir==='long';
   const p=isLong?(closePrice-t.ep)/t.ep*100*t.lev:(t.ep-closePrice)/t.ep*100*t.lev;
   const pColor=p>=0?'#26a69a':'#ef5350';
@@ -3922,8 +3983,13 @@ function showAutoTP1Modal(tp1Price){
 
 function confirmAutoClose(result,closePrice){
   const m=document.getElementById('auto-close-modal');if(m)m.remove();
-  closeTrade_dashboard(result);
+  if(trade&&trade.histId)closeTrade_hist(trade.histId,result,closePrice);
+  trade=null;activeTradeId=null;
+  if(typeof drawTradeLines==='function')drawTradeLines(null);
   autoClosePending=false;
+  renderHistorial();updateHistCount();
+  const _u=typeof seUser!=='undefined'?seUser:window.seUser;
+  if(_u&&typeof seSyncAll==='function')seSyncAll(_u.id);
 }
 function cancelAutoClose(ignore){
   const m1=document.getElementById('auto-close-modal');if(m1)m1.remove();
@@ -3934,7 +4000,15 @@ function cancelAutoClose(ignore){
 function confirmAutoTP1(pct,tp1Price){
   const m=document.getElementById('auto-tp1-modal');if(m)m.remove();
   autoClosePending=false;
-  if(pct===100){closeTrade_dashboard('tp1');return;}
+  if(pct===100){
+    if(trade&&trade.histId)closeTrade_hist(trade.histId,'tp1',tp1Price);
+    trade=null;activeTradeId=null;
+    if(typeof drawTradeLines==='function')drawTradeLines(null);
+    renderHistorial();updateHistCount();
+    const _u=typeof seUser!=='undefined'?seUser:window.seUser;
+    if(_u&&typeof seSyncAll==='function')seSyncAll(_u.id);
+    return;
+  }
   const pd=executePartial(trade.histId,pct);if(!pd)return;
   if(pct>=50){trade.sl=trade.ep;trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);}
   else{trade.partialDone=true;partialExecuted=true;}
