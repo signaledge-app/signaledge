@@ -823,6 +823,15 @@ body.dark .bm-hint{color:#666}
     <div class="pnl-chart-title"><span>📈 PnL acumulado</span><span id="pnl-total-lbl"></span></div>
     <div class="pnl-canvas-wrap"><canvas id="pnl-canvas"></canvas></div>
   </div>
+  <div class="date-filter">
+    <label>Desde</label><input type="date" id="df-from" onchange="applyDateFilter()">
+    <label>Hasta</label><input type="date" id="df-to" onchange="applyDateFilter()">
+    <div class="date-quick">
+      <button class="dq-btn active" onclick="setDateQuick('all',this)">Todo</button>
+      <button class="dq-btn" onclick="setDateQuick('today',this)">Hoy</button>
+      <button class="dq-btn" onclick="setDateQuick('week',this)">7 días</button>
+      <button class="dq-btn" onclick="setDateQuick('month',this)">30 días</button>
+    </div>
   </div>
   <div class="breakdown-section" id="breakdown-section" style="display:none">
     <div class="breakdown-tabs">
@@ -886,15 +895,6 @@ body.dark .bm-hint{color:#666}
       </div>
     </div>
   </div>
-  <div class="date-filter">
-    <label>Desde</label><input type="date" id="df-from" onchange="applyDateFilter()">
-    <label>Hasta</label><input type="date" id="df-to" onchange="applyDateFilter()">
-    <div class="date-quick">
-      <button class="dq-btn active" onclick="setDateQuick('all',this)">Todo</button>
-      <button class="dq-btn" onclick="setDateQuick('today',this)">Hoy</button>
-      <button class="dq-btn" onclick="setDateQuick('week',this)">7 días</button>
-      <button class="dq-btn" onclick="setDateQuick('month',this)">30 días</button>
-    </div>
   <div id="hist-list"></div>
 </div>
 </div>
@@ -2008,18 +2008,8 @@ function initChart(){
   const el=document.getElementById('cc');el.innerHTML='';
   const vc=document.getElementById('vc');if(vc)vc.innerHTML='';
   const c=getChartColors();
-  const isMobile=window.innerWidth<=768;
-  const baseOpts={
-    layout:{background:{type:'solid',color:c.bg},textColor:c.text,fontSize:isMobile?10:11},
-    grid:{vertLines:{color:c.grid,style:0},horzLines:{color:c.grid,style:0}},
-    rightPriceScale:{borderColor:c.border,textColor:c.text},
-    timeScale:{borderColor:c.border,textColor:c.text,timeVisible:true,secondsVisible:false,uniformDistribution:true,rightOffset:isMobile?3:5,barSpacing:isMobile?4:6,minBarSpacing:1},
-    handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false},
-    handleScale:{mouseWheel:true,pinch:true,axisPressedMouseMove:{time:true,price:false}},
-    kineticScroll:{touch:true,mouse:false},
-    trackingMode:{exitMode:1},
-  };
-  chart=LightweightCharts.createChart(el,{...baseOpts,width:el.clientWidth,height:el.parentElement?.offsetHeight||420,crosshair:{mode:isMobile?LightweightCharts.CrosshairMode.Magnet:LightweightCharts.CrosshairMode.Normal,vertLine:{color:'#aaa',width:1,style:2,labelBackgroundColor:'#2962ff'},horzLine:{color:'#aaa',width:1,style:2,labelBackgroundColor:'#2962ff',visible:!isMobile}},rightPriceScale:{...baseOpts.rightPriceScale,scaleMargins:{top:.08,bottom:.02},entireTextOnly:true}});
+  const baseOpts={layout:{background:{type:'solid',color:c.bg},textColor:c.text,fontSize:11},grid:{vertLines:{color:c.grid,style:0},horzLines:{color:c.grid,style:0}},rightPriceScale:{borderColor:c.border,textColor:c.text},timeScale:{borderColor:c.border,textColor:c.text,timeVisible:true,secondsVisible:false,uniformDistribution:true},handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true},handleScale:{mouseWheel:true,pinch:true,axisPressedMouseMove:true}};
+  chart=LightweightCharts.createChart(el,{...baseOpts,width:el.clientWidth,height:el.parentElement?.offsetHeight||420,crosshair:{mode:LightweightCharts.CrosshairMode.Normal,vertLine:{color:'#aaa',width:1,style:2,labelBackgroundColor:'#2962ff'},horzLine:{color:'#aaa',width:1,style:2,labelBackgroundColor:'#2962ff'}},rightPriceScale:{...baseOpts.rightPriceScale,scaleMargins:{top:.08,bottom:.02},entireTextOnly:true}});
   window.chart=chart;
   cSeries=chart.addCandlestickSeries({upColor:'#26a69a',downColor:'#ef5350',borderUpColor:'#26a69a',borderDownColor:'#ef5350',wickUpColor:'#26a69a',wickDownColor:'#ef5350'});
   chart.subscribeCrosshairMove(p=>{
