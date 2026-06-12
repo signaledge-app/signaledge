@@ -295,7 +295,7 @@ body.dark .lev-badge{background:#252836;color:#9294a0;border-color:#3a3d50}
 .hist-empty{text-align:center;padding:2.5rem;color:#999}
 .hist-empty-icon{font-size:36px;margin-bottom:.5rem}
 .partial-badge{font-size:9px;padding:1px 6px;border-radius:8px;background:#fff8e1;color:#e65100;border:1px solid #ffcc80;font-weight:500;margin-left:4px}
-.chart-wrapper{display:flex;flex-direction:column;border-radius:6px;overflow:hidden;margin-bottom:.5rem;border:1px solid var(--border);background:var(--chart);touch-action:pan-y;}
+.chart-wrapper{display:flex;flex-direction:column;border-radius:6px;overflow:hidden;margin-bottom:.5rem;border:1px solid var(--border);background:var(--chart);touch-action:none;}
 .chart-main{position:relative;flex-shrink:0}
 .chart-divider{height:5px;background:var(--border2);cursor:row-resize;display:flex;align-items:center;justify-content:center;user-select:none;transition:background .15s;position:relative}
 .chart-divider:hover{background:#2962ff33}
@@ -2365,7 +2365,8 @@ window.addEventListener('load',()=>{
 })();
 // ── BLOQUEJAR SWIPE HORITZONTAL AL GRÀFIC (mòbil) ────────────
 (function(){
-  var _tx=0,_ty=0,_locked=null,_inChart=false;
+  var _tx=0,_ty=0,_locked=null,_inChart=false,_fromEdge=false;
+  var EDGE=30; // px des de la vora que es considera gest de navegació
   document.addEventListener('touchstart',function(e){
     var wrapper=document.getElementById('chart-wrapper');
     _inChart=!!(wrapper&&wrapper.contains(e.target));
@@ -2373,6 +2374,8 @@ window.addEventListener('load',()=>{
       _tx=e.touches[0].clientX;
       _ty=e.touches[0].clientY;
       _locked=null;
+      // Si comença a menys de EDGE px de la vora esquerra o dreta → és gest del navegador
+      _fromEdge=(_tx<EDGE||_tx>window.innerWidth-EDGE);
     }
   },{passive:true});
   document.addEventListener('touchmove',function(e){
@@ -2383,8 +2386,12 @@ window.addEventListener('load',()=>{
       if(dx>4&&dx>dy){_locked='h';}
       else if(dy>4&&dy>dx){_locked='v';}
     }
-    if(_locked==='h'){e.preventDefault();}
-  },{passive:false});
+    // Bloquejar sempre que sigui horitzontal dins del gràfic, incloent des de la vora
+    if(_locked==='h'){
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  },{passive:false,capture:true});
 })();
 loadHistory();loadPrefs();loadPushTFs();loadPinned();syncCB();updLev();updTFinfo();updatePushBar();initChart();connectWS(tf);connectTicker();renderHistorial();updateHistCount();calcUpdate();setTimeout(fetchExtLevels,2000);startExtLevelsInterval();
 // ── OPTIMITZACIÓ RENDIMENT: alentir quan pestanya oculta ─────
