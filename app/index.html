@@ -1173,10 +1173,10 @@ function loadHistory(){
     const r=localStorage.getItem(HIST_KEY);
     tradeHistory=r?JSON.parse(r):[];
     // Carregar tots els trades oberts
-    const openTrades=tradeHistory.filter(t=>t.result==='open').sort((a,b)=>new Date(a.openedAt)-new Date(b.openedAt));
+    const openTrades=tradeHistory.filter(t=>t.result==='open'&&(t.pair||'BTCUSDT')===currentPair).sort((a,b)=>new Date(a.openedAt)-new Date(b.openedAt));
     if(openTrades.length>0){
       const openT=openTrades[0]; // Activar el primer per defecte
-      trade={dir:openT.dir,e:openT.e||openT.ep,sl:openT.sl,tp1:openT.tp1,tp2:openT.tp2,lev:openT.lev,tf:openT.tf,ep:openT.ep,sp:openT.sp,r1:openT.r1,r2:openT.r2,source:openT.source,et:openT.et,levelType:openT.levelType,partialDone:openT.partialDone||false,breakevenSL:openT.breakevenSL||null,histId:openT.id};
+      trade={dir:openT.dir,e:openT.e||openT.ep,sl:openT.sl,tp1:openT.tp1,tp2:openT.tp2,lev:openT.lev,tf:openT.tf,ep:openT.ep,sp:openT.sp,r1:openT.r1,r2:openT.r2,source:openT.source,et:openT.et,levelType:openT.levelType,partialDone:openT.partialDone||false,breakevenSL:openT.breakevenSL||null,pair:openT.pair||'BTCUSDT',histId:openT.id};
       activeTradeId=openT.id;
     }
   }catch(e){tradeHistory=[];}
@@ -1365,7 +1365,7 @@ function setActiveTrade(id){
   const openTrades=tradeHistory.filter(t=>t.result==='open');
   const openT=openTrades.find(t=>t.id===id);
   if(openT){
-    trade={dir:openT.dir,e:openT.e||openT.ep,sl:openT.sl,tp1:openT.tp1,tp2:openT.tp2,lev:openT.lev,tf:openT.tf,ep:openT.ep,sp:openT.sp,r1:openT.r1,r2:openT.r2,source:openT.source,et:openT.et,levelType:openT.levelType,partialDone:openT.partialDone||false,breakevenSL:openT.breakevenSL||null,histId:openT.id};
+    trade={dir:openT.dir,e:openT.e||openT.ep,sl:openT.sl,tp1:openT.tp1,tp2:openT.tp2,lev:openT.lev,tf:openT.tf,ep:openT.ep,sp:openT.sp,r1:openT.r1,r2:openT.r2,source:openT.source,et:openT.et,levelType:openT.levelType,partialDone:openT.partialDone||false,breakevenSL:openT.breakevenSL||null,pair:openT.pair||'BTCUSDT',histId:openT.id};
     drawTradeLines(trade);
     // Actualitzar calculadora amb els nivells del trade seleccionat
     calcActiveSig={dir:openT.dir,source:openT.source,lvls:{e:openT.e||openT.ep,sl:openT.sl,tp1:openT.tp1,tp2:openT.tp2,lq:liq(openT.ep,openT.dir,openT.lev),sp:openT.sp,r1:openT.r1,r2:openT.r2}};
