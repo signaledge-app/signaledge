@@ -308,7 +308,8 @@ async function seLoadTrades(userId){
         if(typeof updateHistCount==='function')updateHistCount();
       }
     }
-    const openTrade=cloudTrades.find(t=>t.result==='open');
+    const cp=typeof currentPair!=='undefined'?currentPair:'BTCUSDT';
+    const openTrade=cloudTrades.find(t=>t.result==='open'&&(t.pair||'BTCUSDT')===cp);
     if(openTrade&&typeof trade!=='undefined'&&!trade){
       trade={dir:openTrade.dir,e:openTrade.e||openTrade.ep,sl:openTrade.sl,tp1:openTrade.tp1,tp2:openTrade.tp2,lev:openTrade.lev,tf:openTrade.tf,ep:openTrade.ep,sp:openTrade.sp,r1:openTrade.r1,r2:openTrade.r2,source:openTrade.source,et:openTrade.et,partialDone:openTrade.partialDone||false,pair:openTrade.pair||'BTCUSDT',histId:openTrade.id};
       setTimeout(()=>{if(typeof drawTradeLines==='function'&&trade)drawTradeLines(trade);if(typeof renderHistorial==='function')renderHistorial();},1000);
