@@ -123,12 +123,13 @@ function seSubscribeRealtime(userId){
         const idx=tradeHistory.findIndex(x=>x.id===t.id);
         const mapped={
           id:t.id,dir:t.dir,source:t.source,et:t.et,
-          tf:t.tf,lev:t.lev,ep:t.ep,sl:t.sl,tp1:t.tp1,tp2:t.tp2,
-          sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,
+          tf:t.tf,lev:t.lev,e:t.e||t.ep,ep:t.ep,sl:t.sl,tp1:t.tp1,tp2:t.tp2,
+          sp:t.sp,r1:t.r1,r2:t.r2,result:t.result,pair:t.pair||'BTCUSDT',
           closePrice:t.close_price,pnlPct:t.pnl_pct,
           partialDone:t.partial_done,partialPct:t.partial_pct,
           partialPnlPct:t.partial_pnl_pct||null,breakevenSL:t.breakeven_sl||null,
-          notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at
+          notes:t.notes,openedAt:t.opened_at,closedAt:t.closed_at,
+          date:t.opened_at?new Date(t.opened_at).toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''
         };
         if(idx>=0){tradeHistory[idx]=mapped;}
         else{tradeHistory.unshift(mapped);}
@@ -138,8 +139,14 @@ function seSubscribeRealtime(userId){
         if(typeof trade!=='undefined'&&trade&&trade.histId===t.id){
           if(t.result!=='open'){
             trade=null;
+            if(typeof activeTradeId!=='undefined')activeTradeId=null;
+            if(typeof autoClosePending!=='undefined')autoClosePending=false;
+            if(typeof partialExecuted!=='undefined')partialExecuted=false;
             if(typeof drawTradeLines==='function')drawTradeLines(null);
+            const bar=typeof document!=='undefined'?document.getElementById('parc-bar'):null;
+            if(bar)bar.style.display='none';
             if(typeof renderOpenTrade==='function')renderOpenTrade();
+            if(typeof renderDashTrades==='function')renderDashTrades();
           } else {
             trade.partialDone=t.partial_done||false;
             trade.partialPct=t.partial_pct||null;
