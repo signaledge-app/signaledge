@@ -2312,6 +2312,29 @@ window.addEventListener('load',()=>{
   const active=document.getElementById('pair-opt-'+currentPair);
   if(active)active.style.background='var(--bg3)';
 })();
+// ── BLOQUEJAR SWIPE HORITZONTAL AL GRÀFIC (mòbil) ────────────
+(function(){
+  const chartWrapper=document.getElementById('chart-wrapper');
+  if(!chartWrapper)return;
+  let _tx=0,_ty=0,_locked=false;
+  chartWrapper.addEventListener('touchstart',function(e){
+    if(e.touches.length===1){
+      _tx=e.touches[0].clientX;
+      _ty=e.touches[0].clientY;
+      _locked=false;
+    }
+  },{passive:true});
+  chartWrapper.addEventListener('touchmove',function(e){
+    if(e.touches.length!==1)return;
+    const dx=Math.abs(e.touches[0].clientX-_tx);
+    const dy=Math.abs(e.touches[0].clientY-_ty);
+    if(!_locked){
+      if(dx>dy&&dx>8){_locked='h';}
+      else if(dy>dx&&dy>8){_locked='v';}
+    }
+    if(_locked==='h'){e.preventDefault();}
+  },{passive:false});
+})();
 loadHistory();loadPrefs();loadPushTFs();loadPinned();syncCB();updLev();updTFinfo();updatePushBar();initChart();connectWS(tf);connectTicker();renderHistorial();updateHistCount();calcUpdate();setTimeout(fetchExtLevels,2000);startExtLevelsInterval();
 // ── OPTIMITZACIÓ RENDIMENT: alentir quan pestanya oculta ─────
 document.addEventListener('visibilitychange',()=>{
