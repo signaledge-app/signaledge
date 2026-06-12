@@ -295,7 +295,7 @@ body.dark .lev-badge{background:#252836;color:#9294a0;border-color:#3a3d50}
 .hist-empty{text-align:center;padding:2.5rem;color:#999}
 .hist-empty-icon{font-size:36px;margin-bottom:.5rem}
 .partial-badge{font-size:9px;padding:1px 6px;border-radius:8px;background:#fff8e1;color:#e65100;border:1px solid #ffcc80;font-weight:500;margin-left:4px}
-.chart-wrapper{display:flex;flex-direction:column;border-radius:6px;overflow:hidden;margin-bottom:.5rem;border:1px solid var(--border);background:var(--chart)}
+.chart-wrapper{display:flex;flex-direction:column;border-radius:6px;overflow:hidden;margin-bottom:.5rem;border:1px solid var(--border);background:var(--chart);touch-action:pan-y;}
 .chart-main{position:relative;flex-shrink:0}
 .chart-divider{height:5px;background:var(--border2);cursor:row-resize;display:flex;align-items:center;justify-content:center;user-select:none;transition:background .15s;position:relative}
 .chart-divider:hover{background:#2962ff33}
@@ -1143,28 +1143,58 @@ function renderPartialBanner(t){
 function manualPartial(id){
   const t=tradeHistory.find(x=>x.id===id);if(!t||t.partialDone)return;
   const raw=t.dir==='long'?(t.tp1-t.ep)/t.ep:(t.ep-t.tp1)/t.ep;
-  const pct=prompt(
-    '🎯 Ejecutar parcial en TP1 $'+ff(t.tp1)+'\n\n'+
-    '¿Qué % de la posición quieres cerrar?\n(Escribe un número entre 1 y 100)\n\nEjemplos:\n• 50% → cierra la mitad, SL → Breakeven\n• 25% → cierra un cuarto\n• 100% → cierra toda la posición',
-    '50'
-  );
-  if(pct===null)return;
-  const pctNum=parseFloat(pct);
-  if(isNaN(pctNum)||pctNum<=0||pctNum>100){alert('⚠️ Porcentaje no válido. Introduce un número entre 1 y 100.');return;}
-  const pnlPct=(raw*100*t.lev*(pctNum/100)).toFixed(2);
-  const confirmed=confirm(
-    '🎯 Confirmar cierre del '+pctNum+'% en TP1\n\nPrecio: $'+ff(t.tp1)+'\nGanancia ('+pctNum+'%): +'+pnlPct+'%\n'+
-    (pctNum>=50?'SL se moverá a Breakeven $'+ff(t.ep)+'\n':'')+'\n¿Confirmar?'
-  );
-  if(!confirmed)return;
-  if(pctNum===100){closeTrade_dashboard('tp1');return;}
-  t.partialPct=pctNum;
-  const pd=executePartial(id,pctNum);if(!pd)return;
-  if(pctNum>=50&&trade&&trade.histId===id){trade.sl=trade.ep;trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);}
-  else if(trade&&trade.histId===id){trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);}
-  renderPartialBanner(pd);renderHistorial();
+  const ex=document.getElementById('partial-modal-overlay');if(ex)ex.remove();
+  const o=document.createElement('div');
+  o.id='partial-modal-overlay';
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999999;display:flex;align-items:center;justify-content:center;padding:16px';
+  const opts=[25,50,75,100];
+  const cols={25:'#2962ff',50:'#26a69a',75:'#f57c00',100:'#ef5350'};
+  const btns=opts.map(p=>{
+    const pnl=(raw*100*t.lev*(p/100)).toFixed(2);
+    const col=cols[p];
+    return '<button data-pct="'+p+'" style="flex:1;padding:10px 4px;border-radius:8px;border:1px solid '+col+';background:transparent;color:'+col+';cursor:pointer;font-family:inherit;font-size:12px;font-weight:700">'+p+'%<div style="font-size:10px;font-weight:400;margin-top:2px">+'+pnl+'%</div></button>';
+  }).join('');
+  o.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;width:100%;max-width:320px;box-shadow:0 16px 48px rgba(0,0,0,.4)">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
+    '<div style="font-size:15px;font-weight:700">🎯 Cierre parcial</div>'+
+    '<button id="pm-x" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">✕</button></div>'+
+    '<div style="font-size:12px;color:var(--text3);margin-bottom:16px">TP1 · <strong style="color:var(--text)">$'+ff(t.tp1)+'</strong> · '+t.dir.toUpperCase()+' '+t.lev+'x</div>'+
+    '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">¿Qué % cerrar?</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:14px">'+btns+'</div>'+
+    '<div id="pm-info" style="font-size:11px;color:var(--text3);text-align:center;min-height:18px;margin-bottom:10px"></div>'+
+    '<div style="display:flex;gap:8px">'+
+    '<button id="pm-cancel" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;font-family:inherit;font-size:13px">Cancelar</button>'+
+    '<button id="pm-confirm" style="flex:1;padding:10px;border-radius:8px;border:none;background:#ccc;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700" disabled>Confirmar</button>'+
+    '</div></div>';
+  o.addEventListener('click',function(e){if(e.target===o)o.remove();});
+  document.body.appendChild(o);
+  document.getElementById('pm-x').onclick=function(){o.remove();};
+  document.getElementById('pm-cancel').onclick=function(){o.remove();};
+  var selectedPct=null;
+  o.querySelectorAll('[data-pct]').forEach(function(btn){
+    btn.onclick=function(){
+      selectedPct=parseInt(btn.dataset.pct);
+      o.querySelectorAll('[data-pct]').forEach(function(b){b.style.opacity='0.4';});
+      btn.style.opacity='1';
+      var pnl=(raw*100*t.lev*(selectedPct/100)).toFixed(2);
+      var beMsg=selectedPct>=50?' · SL → BE $'+ff(t.ep):'';
+      document.getElementById('pm-info').innerHTML='Cierre del <strong>'+selectedPct+'%</strong> → +'+pnl+'%'+beMsg;
+      var cb=document.getElementById('pm-confirm');
+      cb.disabled=false;
+      cb.style.background=cols[selectedPct]||'#26a69a';
+    };
+  });
+  document.getElementById('pm-confirm').onclick=function(){
+    if(!selectedPct)return;
+    o.remove();
+    if(selectedPct===100){closeTrade_dashboard('tp1');return;}
+    t.partialPct=selectedPct;
+    var pd=executePartial(id,selectedPct);if(!pd)return;
+    if(selectedPct>=50&&trade&&trade.histId===id){trade.sl=trade.ep;trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);}
+    else if(trade&&trade.histId===id){trade.partialDone=true;partialExecuted=true;drawTradeLines(trade);}
+    renderPartialBanner(pd);renderHistorial();
+  };
 }
-
 // ── HISTORIAL ─────────────────────────────────────────────────
 const HIST_KEY='btc_trade_history_v1';
 let tradeHistory=[],currentFilt='all';
@@ -1185,12 +1215,33 @@ function saveHistory(){try{localStorage.setItem(HIST_KEY,JSON.stringify(tradeHis
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function editEntryPrice(id){
   const t=tradeHistory.find(x=>x.id===id);if(!t)return;
-  const nou=prompt('✏️ Editar precio de entrada real:\n(Actual: $'+ff(t.ep)+')',ff(t.ep));
-  if(nou===null)return;const v=parseFloat(nou);
-  if(!v||v<=0){alert('Precio no válido');return;}
-  t.ep=v;if(t.breakevenSL)t.breakevenSL=v;
-  if(trade&&trade.histId===id){trade.ep=v;if(trade.partialDone)trade.sl=v;}
-  saveHistory();renderHistorial();if(trade)drawTradeLines(trade);lg('✏️ Precio entrada actualizado: $'+ff(v));
+  const ex=document.getElementById('edit-ep-overlay');if(ex)ex.remove();
+  const o=document.createElement('div');
+  o.id='edit-ep-overlay';
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999999;display:flex;align-items:center;justify-content:center;padding:16px';
+  o.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:280px;box-shadow:0 16px 48px rgba(0,0,0,.4)">'+
+    '<div style="font-size:14px;font-weight:700;margin-bottom:4px">✏️ Precio de entrada real</div>'+
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:14px">Actual: <strong>$'+ff(t.ep)+'</strong></div>'+
+    '<input id="edit-ep-input" type="number" value="'+ff(t.ep)+'" step="0.01" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:15px;font-family:inherit;box-sizing:border-box;margin-bottom:12px">'+
+    '<div style="display:flex;gap:8px">'+
+    '<button id="edit-ep-cancel" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;font-family:inherit;font-size:13px">Cancelar</button>'+
+    '<button id="edit-ep-ok" style="flex:1;padding:10px;border-radius:8px;border:none;background:#2962ff;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700">Guardar</button>'+
+    '</div></div>';
+  o.addEventListener('click',function(e){if(e.target===o)o.remove();});
+  document.body.appendChild(o);
+  var inp=document.getElementById('edit-ep-input');
+  inp.focus();inp.select();
+  document.getElementById('edit-ep-cancel').onclick=function(){o.remove();};
+  function doSave(){
+    var v=parseFloat(inp.value);
+    if(!v||v<=0){inp.style.borderColor='#ef5350';return;}
+    o.remove();
+    t.ep=v;if(t.breakevenSL)t.breakevenSL=v;
+    if(trade&&trade.histId===id){trade.ep=v;if(trade.partialDone)trade.sl=v;}
+    saveHistory();renderHistorial();if(trade)drawTradeLines(trade);lg('✏️ Precio entrada actualizado: $'+ff(v));
+  }
+  document.getElementById('edit-ep-ok').onclick=doSave;
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')doSave();if(e.key==='Escape')o.remove();});
 }
 function addTradeToHistory(sig){
   const l=sig.lvls;
@@ -2314,23 +2365,23 @@ window.addEventListener('load',()=>{
 })();
 // ── BLOQUEJAR SWIPE HORITZONTAL AL GRÀFIC (mòbil) ────────────
 (function(){
-  const chartWrapper=document.getElementById('chart-wrapper');
-  if(!chartWrapper)return;
-  let _tx=0,_ty=0,_locked=false;
-  chartWrapper.addEventListener('touchstart',function(e){
+  var _tx=0,_ty=0,_locked=null,_inChart=false;
+  document.addEventListener('touchstart',function(e){
+    var wrapper=document.getElementById('chart-wrapper');
+    _inChart=!!(wrapper&&wrapper.contains(e.target));
     if(e.touches.length===1){
       _tx=e.touches[0].clientX;
       _ty=e.touches[0].clientY;
-      _locked=false;
+      _locked=null;
     }
   },{passive:true});
-  chartWrapper.addEventListener('touchmove',function(e){
-    if(e.touches.length!==1)return;
-    const dx=Math.abs(e.touches[0].clientX-_tx);
-    const dy=Math.abs(e.touches[0].clientY-_ty);
+  document.addEventListener('touchmove',function(e){
+    if(!_inChart||e.touches.length!==1)return;
+    var dx=Math.abs(e.touches[0].clientX-_tx);
+    var dy=Math.abs(e.touches[0].clientY-_ty);
     if(!_locked){
-      if(dx>dy&&dx>8){_locked='h';}
-      else if(dy>dx&&dy>8){_locked='v';}
+      if(dx>4&&dx>dy){_locked='h';}
+      else if(dy>4&&dy>dx){_locked='v';}
     }
     if(_locked==='h'){e.preventDefault();}
   },{passive:false});
