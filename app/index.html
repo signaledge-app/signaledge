@@ -10,7 +10,7 @@
   gtag('config', 'G-HDDSLP9JW0');
 </script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -28,7 +28,7 @@
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#222;min-height:100vh;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#222;min-height:100vh;touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior-x:none}
 .page-wrapper{display:flex;align-items:flex-start;max-width:1280px;margin:0 auto;padding:0 12px}
 .sidebar{width:245px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;padding:12px 10px 40px;background:#f5f5f5}
 .container{flex:1;min-width:0;padding:0 0 40px 10px;max-width:960px}
@@ -298,7 +298,7 @@ body.dark .lev-badge{background:#252836;color:#9294a0;border-color:#3a3d50}
 .hist-empty{text-align:center;padding:2.5rem;color:#999}
 .hist-empty-icon{font-size:36px;margin-bottom:.5rem}
 .partial-badge{font-size:9px;padding:1px 6px;border-radius:8px;background:#fff8e1;color:#e65100;border:1px solid #ffcc80;font-weight:500;margin-left:4px}
-.chart-wrapper{display:flex;flex-direction:column;border-radius:6px;overflow:hidden;margin-bottom:.5rem;border:1px solid var(--border);background:var(--chart);touch-action:none;}
+.chart-wrapper{display:flex;flex-direction:column;border-radius:6px;overflow:hidden;margin-bottom:.5rem;border:1px solid var(--border);background:var(--chart);touch-action:none;overscroll-behavior:none;}
 .chart-main{position:relative;flex-shrink:0}
 .chart-divider{height:5px;background:var(--border2);cursor:row-resize;display:flex;align-items:center;justify-content:center;user-select:none;transition:background .15s;position:relative}
 .chart-divider:hover{background:#2962ff33}
@@ -2409,33 +2409,23 @@ window.addEventListener('load',()=>{
 })();
 // ── BLOQUEJAR SWIPE HORITZONTAL AL GRÀFIC (mòbil) ────────────
 (function(){
-  var _tx=0,_ty=0,_locked=null,_inChart=false,_fromEdge=false;
-  var EDGE=30; // px des de la vora que es considera gest de navegació
+  var _tx=0,_ty=0,_locked=null,_inChart=false;
   document.addEventListener('touchstart',function(e){
     var wrapper=document.getElementById('chart-wrapper');
-    _inChart=!!(wrapper&&wrapper.contains(e.target));
-    if(e.touches.length===1){
-      _tx=e.touches[0].clientX;
-      _ty=e.touches[0].clientY;
-      _locked=null;
-      // Si comença a menys de EDGE px de la vora esquerra o dreta → és gest del navegador
-      _fromEdge=(_tx<EDGE||_tx>window.innerWidth-EDGE);
-    }
-  },{passive:true});
+    _inChart=!!(wrapper&&(wrapper.contains(e.target)||e.target===wrapper));
+    if(e.touches.length===1){_tx=e.touches[0].clientX;_ty=e.touches[0].clientY;_locked=null;}
+  },{passive:true,capture:true});
   document.addEventListener('touchmove',function(e){
     if(!_inChart||e.touches.length!==1)return;
     var dx=Math.abs(e.touches[0].clientX-_tx);
     var dy=Math.abs(e.touches[0].clientY-_ty);
-    if(!_locked){
-      if(dx>4&&dx>dy){_locked='h';}
-      else if(dy>4&&dy>dx){_locked='v';}
-    }
-    // Bloquejar sempre que sigui horitzontal dins del gràfic, incloent des de la vora
+    if(!_locked&&(dx>3||dy>3)){_locked=dx>=dy?'h':'v';}
     if(_locked==='h'){
       e.preventDefault();
-      e.stopPropagation();
+      e.stopImmediatePropagation();
     }
   },{passive:false,capture:true});
+  document.addEventListener('touchend',function(){_locked=null;_inChart=false;},{passive:true,capture:true});
 })();
 loadHistory();loadPrefs();loadPushTFs();loadPinned();syncCB();updLev();updTFinfo();updatePushBar();initChart();connectWS(tf);connectTicker();renderHistorial();updateHistCount();calcUpdate();setTimeout(fetchExtLevels,2000);startExtLevelsInterval();
 // ── OPTIMITZACIÓ RENDIMENT: alentir quan pestanya oculta ─────
