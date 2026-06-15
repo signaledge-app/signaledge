@@ -33,6 +33,38 @@ async function seLogout(){
   try{await seDb.auth.signOut();}catch(e){}
 }
 
+// ── VERIFICACIÓ DE SUBSCRIPCIÓ ────────────────────────────────
+async function seCheckSubscription(user){
+  if(!seDb||!user)return false;
+  try{
+    const{data,error}=await seDb
+      .from('subscriptions')
+      .select('status,expires_at,plan')
+      .eq('email',user.email)
+      .maybeSingle();
+    if(error||!data){
+      window._userIsPro=false;
+      console.log('SE Sync: sense subscripció');
+      return false;
+    }
+    const isPro=data.status==='active'&&(!data.expires_at||new Date(data.expires_at)>new Date());
+    window._userIsPro=isPro;
+    console.log('SE Sync: subscripció →',data.status,'isPro:',isPro);
+    if(seUser){
+      await seDb.from('user_prefs').upsert({
+        user_id:seUser.id,
+        is_pro:isPro,
+        updated_at:new Date().toISOString()
+      },{onConflict:'user_id'});
+    }
+    return isPro;
+  }catch(e){
+    console.log('SE Sync checkSubscription error:',e.message);
+    window._userIsPro=false;
+    return false;
+  }
+}
+
 // ── QUAN ES FA LOGIN ──────────────────────────────────────────
 async function seOnLogin(user){
   console.log('SE Sync: Login ✓',user.email);
@@ -41,6 +73,7 @@ async function seOnLogin(user){
   seUpdateLoginBtn(true,user);
   if(typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(user);
   seShowIndicator(true);
+  await seCheckSubscription(user);
   await seLoadPrefs(user.id);
   await seLoadTrades(user.id);
   await seLoadPinned(user.id);
@@ -170,6 +203,7 @@ function seOnLogout(){
   console.log('SE Sync: Logout');
   seUser=null;
   window.seUser=null;
+  window._userIsPro=false;
   seUpdateLoginBtn(false,null);
   if(typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(null);
   seShowIndicator(false);
