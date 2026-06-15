@@ -1533,6 +1533,7 @@ function renderHistList(){
         <div class="tr-pnl-sub">${isOpen?'ahora':t.closePrice?'$'+ff(t.closePrice):''}</div>
       </div>
       <span class="tr-result ${resClass[getResult(t)]||'open'}">${resLabel[getResult(t)]||'--'}</span>
+      ${!isOpen?`<button onclick="event.stopPropagation();showTradeDetail('${t.id}')" title="Compartir/Guardar" style="flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;margin-right:2px">📤</button>`:''}
       <button class="tr-del" onclick="event.stopPropagation();deleteTradeFromHistory('${t.id}')" title="Eliminar">✕</button>
       <div class="tr-note-row" onclick="event.stopPropagation()">
         <div style="display:flex;gap:4px;align-items:flex-end">
@@ -2477,18 +2478,21 @@ document.addEventListener('visibilitychange',()=>{
 // ── GESTOS SWIPE MÒBIL ───────────────────────────────────────
 (function(){
   const TABS=['dashboard','historial','mercado'];
-  let startX=0,startY=0;
+  let startX=0,startY=0,_startedInChart=false;
   document.addEventListener('touchstart',e=>{
     startX=e.touches[0].clientX;
     startY=e.touches[0].clientY;
+    const t=e.target;
+    _startedInChart=!!(t.closest('#cc,.chart-wrapper,.chart-main,.chart-vol,#chart-main-panel')||t.tagName==='CANVAS');
   },{passive:true});
   document.addEventListener('touchend',e=>{
     const dx=e.changedTouches[0].clientX-startX;
     const dy=e.changedTouches[0].clientY-startY;
     if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
     const target=e.target;
+    if(_startedInChart)return;
     if(target.closest('#trade-detail-overlay,#tutorial-overlay,#price-alerts-panel,#bitunix-modal-overlay,#tab-mercado'))return;
-    if(target.closest('#cc,.chart-wrapper,.chart-main,.chart-vol,canvas,#chart-main-panel'))return;
+    if(target.closest('.pnl-canvas-wrap,#hist-list,.trade-row,.tr-note-row'))return;
     const activeBtn=document.querySelector('.tab-btn.active');
     if(!activeBtn)return;
     const currentTab=activeBtn.dataset.tab;
@@ -3119,7 +3123,7 @@ updatePriceAlertsCount();
 </script>
 
 <!-- MODAL DETALL TRADE -->
-<div id="trade-detail-overlay" style="display:none" onclick="if(event.target===this)closeTDModal()">
+<div id="trade-detail-overlay" onclick="if(event.target===this)closeTDModal()">
   <div id="trade-detail-modal">
     <div class="tdm-header" id="tdm-header">
       <button class="tdm-close" onclick="closeTDModal()">✕</button>
