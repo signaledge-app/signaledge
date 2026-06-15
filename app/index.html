@@ -2439,23 +2439,12 @@ window.addEventListener('load',()=>{
 })();
 // ── BLOQUEJAR SWIPE HORITZONTAL AL GRÀFIC (mòbil) ────────────
 (function(){
-  var _tx=0,_ty=0,_locked=null,_inChart=false;
+  var _inChart=false;
   document.addEventListener('touchstart',function(e){
     var wrapper=document.getElementById('chart-wrapper');
     _inChart=!!(wrapper&&(wrapper.contains(e.target)||e.target===wrapper));
-    if(e.touches.length===1){_tx=e.touches[0].clientX;_ty=e.touches[0].clientY;_locked=null;}
   },{passive:true,capture:true});
-  document.addEventListener('touchmove',function(e){
-    if(!_inChart||e.touches.length!==1)return;
-    var dx=Math.abs(e.touches[0].clientX-_tx);
-    var dy=Math.abs(e.touches[0].clientY-_ty);
-    if(!_locked&&(dx>3||dy>3)){_locked=dx>=dy?'h':'v';}
-    if(_locked==='h'){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-    }
-  },{passive:false,capture:true});
-  document.addEventListener('touchend',function(){_locked=null;_inChart=false;},{passive:true,capture:true});
+  document.addEventListener('touchend',function(){_inChart=false;},{passive:true,capture:true});
 })();
 loadHistory();loadPrefs();loadPushTFs();loadPinned();syncCB();updLev();updTFinfo();updatePushBar();initChart();connectWS(tf);connectTicker();renderHistorial();updateHistCount();calcUpdate();setTimeout(fetchExtLevels,2000);startExtLevelsInterval();
 // ── OPTIMITZACIÓ RENDIMENT: alentir quan pestanya oculta ─────
@@ -2489,8 +2478,8 @@ document.addEventListener('visibilitychange',()=>{
     const dx=e.changedTouches[0].clientX-startX;
     const dy=e.changedTouches[0].clientY-startY;
     if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
-    const target=e.target;
     if(_startedInChart)return;
+    const target=e.target;
     if(target.closest('#trade-detail-overlay,#tutorial-overlay,#price-alerts-panel,#bitunix-modal-overlay,#tab-mercado'))return;
     if(target.closest('.pnl-canvas-wrap,#hist-list,.trade-row,.tr-note-row'))return;
     const activeBtn=document.querySelector('.tab-btn.active');
