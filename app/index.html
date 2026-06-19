@@ -3131,6 +3131,7 @@ updatePriceAlertsCount();
       <textarea class="tdm-note-area" id="tdm-note" rows="2" placeholder="Añade una nota sobre este trade..."></textarea>
       <div id="tdm-share-btns" style="display:flex;gap:8px;margin-top:10px">
         <button onclick="shareTradeCard('share')" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#2962ff,#1565c0);color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">📤 Compartir</button>
+        <button onclick="shareTradeCard('twitter')" style="flex:1;padding:10px;border-radius:8px;border:none;background:#000;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">𝕏 Twitter</button>
         <button onclick="shareTradeCard('download')" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">💾 Guardar</button>
       </div>
     </div>
@@ -3201,6 +3202,19 @@ function showTradeDetail(id){
   if(shareBtns)shareBtns.style.display=isOpen?'none':'flex';
 
   document.getElementById('trade-detail-overlay').classList.add('open');
+}
+function showCopiedToast(){
+  const ex=document.getElementById('se-copied-toast');if(ex)ex.remove();
+  const t=document.createElement('div');
+  t.id='se-copied-toast';
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#000;color:#fff;padding:.7rem 1.1rem;border-radius:10px;display:flex;align-items:center;gap:8px;z-index:9999999;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:13px;font-weight:600;opacity:0;transition:opacity .25s,transform .25s;max-width:90vw';
+  t.innerHTML='<span style="font-size:16px">📋</span><span>Imagen copiada — pégala con <strong>Ctrl+V</strong> en el tweet</span>';
+  document.body.appendChild(t);
+  requestAnimationFrame(()=>{t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';});
+  setTimeout(()=>{
+    t.style.opacity='0';t.style.transform='translateX(-50%) translateY(20px)';
+    setTimeout(()=>t.remove(),300);
+  },3200);
 }
 function shareTradeCard(mode='twitter'){
   const canvas=document.getElementById('share-canvas');
@@ -3406,15 +3420,35 @@ function shareTradeCard(mode='twitter'){
 
   // ── COMPARTIR ─────────────────────────────────────────────
   canvas.style.display='block';
-  canvas.toBlob(blob=>{
+  canvas.toBlob(async blob=>{
     canvas.style.display='none';
     const url=URL.createObjectURL(blob);
     const pairShort=(typeof currentPair!=='undefined'?currentPair:'BTC').replace('USDT','');
     const shareText=`${isPnlPos?'🚀':'📉'} ${pnl} en ${pairShort}/USDT ${isLong?'LONG':'SHORT'}\n${srcTag} · ${subtitle}\n\nSeñales gratis en signaledgeapp.com\n#BTC #Bitcoin #Trading #SMC #SignalEdge`;
+    const tweetText=`${isPnlPos?'🚀':'📉'} ${pnl} en ${pairShort}/USDT ${isLong?'LONG':'SHORT'}\n${srcTag} · ${subtitle}\n\nSeñales gratis con SignalEdge\n#BTC #Bitcoin #Trading #SMC #SignalEdge`;
     const file=new File([blob],'signaledge-trade.png',{type:'image/png'});
     if(mode==='download'){
       const a=document.createElement('a');a.href=url;a.download='signaledge-trade.png';a.click();
       setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }else if(mode==='twitter'){
+      // 1) Copiar la imatge al porta-retalls — així es pot enganxar directament al tweet
+      let copiedOk=false;
+      try{
+        if(navigator.clipboard&&window.ClipboardItem){
+          await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+          copiedOk=true;
+        }
+      }catch(e){copiedOk=false;}
+      if(!copiedOk){
+        // Fallback: si no es pot copiar (navegador sense suport), descarreguem
+        const a=document.createElement('a');a.href=url;a.download='signaledge-trade.png';a.click();
+        setTimeout(()=>URL.revokeObjectURL(url),1500);
+      }
+      // 2) Avisar (toast propi de la app) i obrir Twitter amb el text ja preparat
+      if(copiedOk)showCopiedToast();
+      setTimeout(()=>{
+        window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(tweetText),'_blank');
+      },copiedOk?350:400);
     }else{
       // Share natiu (mòbil) — WhatsApp, Telegram, Twitter, Instagram...
       if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
@@ -3814,7 +3848,7 @@ function resetTradeAlerts(){
 }
 
 function vibrate(pattern){
-  try{if(navigator.vibrate)navigator.vibrate(pattern);}catch(e){}
+  // Vibraciones desactivadas
 }
 
 function notify(title,body,tag){
