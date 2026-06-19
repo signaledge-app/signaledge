@@ -823,16 +823,6 @@ body.dark .bm-hint{color:#666}
     <div class="pnl-chart-title"><span>📈 PnL acumulado</span><span id="pnl-total-lbl"></span></div>
     <div class="pnl-canvas-wrap"><canvas id="pnl-canvas"></canvas></div>
   </div>
-  <div class="date-filter">
-    <label>Desde</label><input type="date" id="df-from" onchange="applyDateFilter()">
-    <label>Hasta</label><input type="date" id="df-to" onchange="applyDateFilter()">
-    <div class="date-quick">
-      <button class="dq-btn active" onclick="setDateQuick('all',this)">Todo</button>
-      <button class="dq-btn" onclick="setDateQuick('today',this)">Hoy</button>
-      <button class="dq-btn" onclick="setDateQuick('week',this)">7 días</button>
-      <button class="dq-btn" onclick="setDateQuick('month',this)">30 días</button>
-    </div>
-  </div>
   <div class="breakdown-section" id="breakdown-section" style="display:none">
     <div class="breakdown-tabs">
       <button class="bk-tab active" onclick="switchBkTab('tf',this)">📊 Timeframe</button>
@@ -874,6 +864,16 @@ body.dark .bm-hint{color:#666}
     </div>
   </div>
 
+  <div class="date-filter">
+    <label>Desde</label><input type="date" id="df-from" onchange="applyDateFilter()">
+    <label>Hasta</label><input type="date" id="df-to" onchange="applyDateFilter()">
+    <div class="date-quick">
+      <button class="dq-btn active" onclick="setDateQuick('all',this)">Todo</button>
+      <button class="dq-btn" onclick="setDateQuick('today',this)">Hoy</button>
+      <button class="dq-btn" onclick="setDateQuick('week',this)">7 días</button>
+      <button class="dq-btn" onclick="setDateQuick('month',this)">30 días</button>
+    </div>
+  </div>
   <div class="hist-header">
     <span class="hist-title">Registro de trades</span>
     <div class="hist-filters">
