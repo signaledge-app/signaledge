@@ -3431,24 +3431,32 @@ function shareTradeCard(mode='twitter'){
       const a=document.createElement('a');a.href=url;a.download='signaledge-trade.png';a.click();
       setTimeout(()=>URL.revokeObjectURL(url),1000);
     }else if(mode==='twitter'){
-      // 1) Copiar la imatge al porta-retalls — així es pot enganxar directament al tweet
-      let copiedOk=false;
-      try{
-        if(navigator.clipboard&&window.ClipboardItem){
-          await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-          copiedOk=true;
+      const isMobileShare=navigator.share&&navigator.canShare&&navigator.canShare({files:[file]});
+      if(isMobileShare){
+        // Mòbil: usar el share natiu del sistema — la imatge va adjunta automàticament,
+        // l'usuari tria Twitter/X des del menú natiu de compartir
+        navigator.share({title:'Mi resultado en SignalEdge',text:tweetText,files:[file]}).catch(()=>{
+          const a=document.createElement('a');a.href=url;a.download='signaledge-trade.png';a.click();
+          setTimeout(()=>URL.revokeObjectURL(url),1000);
+        });
+      }else{
+        // PC: copiar la imatge al porta-retalls i obrir Twitter amb el text — l'usuari enganxa amb Ctrl+V
+        let copiedOk=false;
+        try{
+          if(navigator.clipboard&&window.ClipboardItem){
+            await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+            copiedOk=true;
+          }
+        }catch(e){copiedOk=false;}
+        if(!copiedOk){
+          const a=document.createElement('a');a.href=url;a.download='signaledge-trade.png';a.click();
+          setTimeout(()=>URL.revokeObjectURL(url),1500);
         }
-      }catch(e){copiedOk=false;}
-      if(!copiedOk){
-        // Fallback: si no es pot copiar (navegador sense suport), descarreguem
-        const a=document.createElement('a');a.href=url;a.download='signaledge-trade.png';a.click();
-        setTimeout(()=>URL.revokeObjectURL(url),1500);
+        if(copiedOk)showCopiedToast();
+        setTimeout(()=>{
+          window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(tweetText),'_blank');
+        },copiedOk?350:400);
       }
-      // 2) Avisar (toast propi de la app) i obrir Twitter amb el text ja preparat
-      if(copiedOk)showCopiedToast();
-      setTimeout(()=>{
-        window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(tweetText),'_blank');
-      },copiedOk?350:400);
     }else{
       // Share natiu (mòbil) — WhatsApp, Telegram, Twitter, Instagram...
       if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
