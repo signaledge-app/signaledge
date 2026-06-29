@@ -1274,7 +1274,7 @@ function closeTrade_hist(id,result,closePrice){resetTradeAlerts();
   t.result=result;t.closePrice=closePrice||(t.tp1||price);t.closeTs=Date.now();t.closedAt=new Date().toISOString();t.duration=Math.round((t.closeTs-t.ts)/60000);
   const raw=t.dir==='long'?(t.closePrice-t.ep)/t.ep:(t.ep-t.closePrice)/t.ep;
   const restPnl=raw*100*t.lev;
-  t.pnlPct=t.partialDone?(t.partialPnlPct*0.5)+(restPnl*0.5):restPnl;
+  t.pnlPct=t.partialDone?t.partialPnlPct+(restPnl*0.5):restPnl;
   t.pnl=t.pnlPct.toFixed(2);
   // Si és el trade actiu al dashboard, resetejar-lo
   if(trade&&(trade.histId===id||activeTradeId===id)){
