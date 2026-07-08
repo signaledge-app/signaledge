@@ -73,7 +73,17 @@ async function seOnLogin(user){
   seUpdateLoginBtn(true,user);
   if(typeof seUpdateProfileMenu==='function')seUpdateProfileMenu(user);
   seShowIndicator(true);
+  // Tancar pantalla de login si estava oberta
+  const loginOverlay=document.getElementById('se-login-overlay');
+  if(loginOverlay)loginOverlay.remove();
+  // Registrar primer login per al trial
+  const firstLoginKey='se_first_login_'+user.email;
+  if(!localStorage.getItem(firstLoginKey)){
+    localStorage.setItem(firstLoginKey,new Date().toISOString());
+  }
   await seCheckSubscription(user);
+  // Comprovar trial
+  seCheckTrialOrPro(user);
   await seLoadPrefs(user.id);
   await seLoadTrades(user.id);
   await seLoadPinned(user.id);
@@ -506,4 +516,111 @@ async function seLoadPriceAlerts(userId){
     }
     console.log('SE Sync: '+alerts.length+' alertes carregades ✓');
   }catch(e){console.log('seLoadPriceAlerts error:',e.message);}
+}
+
+
+// ── LOGIN OBLIGATORI ──────────────────────────────────────────
+function seShowLoginWall(){
+  if(document.getElementById('se-login-overlay'))return;
+  const o=document.createElement('div');
+  o.id='se-login-overlay';
+  o.style.cssText='position:fixed;inset:0;background:linear-gradient(135deg,#0d1420,#0f1f3d);z-index:9999999;display:flex;align-items:center;justify-content:center;padding:20px';
+  o.innerHTML=`
+    <div style="text-align:center;max-width:340px;width:100%">
+      <div style="font-size:48px;margin-bottom:12px">📊</div>
+      <div style="font-size:26px;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:-1px">SignalEdge</div>
+      <div style="font-size:13px;color:#8a9ab5;margin-bottom:32px;line-height:1.6">Señales de trading BTC, ETH y SOL<br>en tiempo real. Gratis 30 días.</div>
+      <button onclick="seLoginGoogle()" style="width:100%;padding:14px;border-radius:12px;border:none;background:#fff;color:#333;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-21 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 16 19.2 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.6 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.6 0 10.6-1.9 14.5-5.1l-6.7-5.5C29.8 37 27 38 24 38c-5.8 0-10.6-3.9-12.3-9.3l-7 5.4C8.1 41.8 15.5 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.9 2.8-2.8 5.1-5.3 6.7l6.7 5.5C41.5 37.3 45 31.1 45 24c0-1.3-.2-2.7-.5-4z"/></svg>
+        Continuar con Google
+      </button>
+      <div style="font-size:11px;color:#4a5a72;line-height:1.6">🔒 Solo usamos Google para identificarte.<br>No compartimos tus datos con nadie.</div>
+    </div>`;
+  document.body.appendChild(o);
+}
+
+function seCheckTrialOrPro(user){
+  if(!user)return;
+  // Si ja és PRO, no cal res
+  if(window._userIsPro===true){
+    seHidePaywall();
+    return;
+  }
+  // Comprovar dies de trial
+  const firstLoginKey='se_first_login_'+user.email;
+  const firstLogin=localStorage.getItem(firstLoginKey);
+  if(!firstLogin){
+    // Primer cop — guardar data i donar accés
+    localStorage.setItem(firstLoginKey,new Date().toISOString());
+    seShowTrialBanner(30);
+    return;
+  }
+  const daysUsed=Math.floor((Date.now()-new Date(firstLogin).getTime())/(1000*60*60*24));
+  const daysLeft=30-daysUsed;
+  if(daysLeft>0){
+    seShowTrialBanner(daysLeft);
+  }else{
+    // Trial acabat → mostrar paywall
+    seShowPaywall();
+  }
+}
+
+function seShowTrialBanner(daysLeft){
+  // Eliminar paywall si existia
+  seHidePaywall();
+  // Banner discret a la part superior
+  let banner=document.getElementById('se-trial-banner');
+  if(banner)banner.remove();
+  if(daysLeft>7)return; // Només mostrar quan queden 7 dies o menys
+  banner=document.createElement('div');
+  banner.id='se-trial-banner';
+  const urgent=daysLeft<=3;
+  banner.style.cssText=`position:fixed;top:0;left:0;right:0;z-index:99999;background:${urgent?'#ef5350':'#2962ff'};color:#fff;padding:8px 16px;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:12px`;
+  banner.innerHTML=`<span>${urgent?'⚠️':'⏳'} Trial: te quedan <strong>${daysLeft} día${daysLeft!==1?'s':''}</strong> gratis</span><button onclick="typeof showUpgradeModal==='function'&&showUpgradeModal()" style="background:#fff;color:${urgent?'#ef5350':'#2962ff'};border:none;padding:3px 12px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Suscribirse →</button><button onclick="this.parentElement.remove()" style="background:transparent;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:14px;padding:0 4px">✕</button>`;
+  document.body.appendChild(banner);
+}
+
+function seShowPaywall(){
+  let o=document.getElementById('se-paywall-overlay');
+  if(o)return;
+  o=document.createElement('div');
+  o.id='se-paywall-overlay';
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:9999999;display:flex;align-items:center;justify-content:center;padding:20px';
+  o.innerHTML=`
+    <div style="background:var(--card,#1a1d27);border:1px solid #2a2d3e;border-radius:20px;max-width:360px;width:100%;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6)">
+      <div style="background:linear-gradient(135deg,#2962ff,#00d4ff);padding:28px 24px 24px;text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">⚡</div>
+        <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Trial finalizado</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.8)">Tu prueba gratuita de 30 días ha terminado</div>
+      </div>
+      <div style="padding:24px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+          <div style="background:#0d1420;border:2px solid #2962ff;border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="window.open('https://tourayebra.gumroad.com/l/signaledgeapp-pro-mensual','_blank')">
+            <div style="font-size:10px;color:#8a9ab5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Mensual</div>
+            <div style="font-size:24px;font-weight:800;color:#fff">€9.99</div>
+            <div style="font-size:10px;color:#8a9ab5;margin-top:2px">al mes</div>
+            <div style="margin-top:10px;background:#2962ff;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Elegir</div>
+          </div>
+          <div style="background:#0d1420;border:2px solid #00d4ff;border-radius:12px;padding:16px;text-align:center;cursor:pointer;position:relative" onclick="window.open('https://tourayebra.gumroad.com/l/signaledgeapp-pro-anual','_blank')">
+            <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#f57c00;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap">AHORRA 34%</div>
+            <div style="font-size:10px;color:#8a9ab5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Anual</div>
+            <div style="font-size:24px;font-weight:800;color:#fff">€79</div>
+            <div style="font-size:10px;color:#8a9ab5;margin-top:2px">al año · €6.58/mes</div>
+            <div style="margin-top:10px;background:#00d4ff;color:#0d1420;border:none;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Elegir</div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:#4a5a72;line-height:1.8;margin-bottom:16px;text-align:center">
+          ✅ BTC · ETH · SOL &nbsp;✅ Señales ilimitadas<br>✅ Historial sync &nbsp;✅ Alertas push
+        </div>
+        <div style="font-size:10px;color:#4a5a72;text-align:center">
+          ¿Ya tienes suscripción? <button onclick="seCheckSubscription(seUser).then(()=>seCheckTrialOrPro(seUser))" style="background:none;border:none;color:#2962ff;cursor:pointer;font-size:10px;font-family:inherit;text-decoration:underline">Verificar aquí</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(o);
+}
+
+function seHidePaywall(){
+  const o=document.getElementById('se-paywall-overlay');
+  if(o)o.remove();
 }
