@@ -76,14 +76,9 @@ async function seOnLogin(user){
   // Tancar pantalla de login si estava oberta
   const loginOverlay=document.getElementById('se-login-overlay');
   if(loginOverlay)loginOverlay.remove();
-  // Registrar primer login per al trial
-  const firstLoginKey='se_first_login_'+user.email;
-  if(!localStorage.getItem(firstLoginKey)){
-    localStorage.setItem(firstLoginKey,new Date().toISOString());
-  }
   await seCheckSubscription(user);
-  // Comprovar trial
-  seCheckTrialOrPro(user);
+  // Comprovar trial (Supabase s'encarrega, es fa a seCheckTrialOrPro via user_prefs)
+  await seCheckTrialOrPro(user);
   await seLoadPrefs(user.id);
   await seLoadTrades(user.id);
   await seLoadPinned(user.id);
@@ -539,29 +534,38 @@ function seShowLoginWall(){
   document.body.appendChild(o);
 }
 
-function seCheckTrialOrPro(user){
+async function seCheckTrialOrPro(user){
   if(!user)return;
   // Si ja és PRO, no cal res
   if(window._userIsPro===true){
     seHidePaywall();
+    if(typeof updateProMenuStatus==='function')updateProMenuStatus();
     return;
   }
-  // Comprovar dies de trial
-  const firstLoginKey='se_first_login_'+user.email;
-  const firstLogin=localStorage.getItem(firstLoginKey);
-  if(!firstLogin){
-    // Primer cop — guardar data i donar accés
-    localStorage.setItem(firstLoginKey,new Date().toISOString());
-    seShowTrialBanner(30);
-    return;
-  }
-  const daysUsed=Math.floor((Date.now()-new Date(firstLogin).getTime())/(1000*60*60*24));
-  const daysLeft=30-daysUsed;
-  if(daysLeft>0){
-    seShowTrialBanner(daysLeft);
-  }else{
-    // Trial acabat → mostrar paywall
-    seShowPaywall();
+  // Llegir trial_started_at de Supabase (user_prefs)
+  try{
+    const{data}=await seDb.from('user_prefs').select('trial_started_at').eq('user_id',user.id).maybeSingle();
+    let trialStart=data?.trial_started_at;
+    if(!trialStart){
+      // Primer cop — guardar data d'inici de trial
+      const now=new Date().toISOString();
+      await seDb.from('user_prefs').upsert({user_id:user.id,trial_started_at:now,updated_at:now},{onConflict:'user_id'});
+      trialStart=now;
+    }
+    // Guardar globalment per al menú
+    window._trialStartedAt=trialStart;
+    const daysUsed=Math.floor((Date.now()-new Date(trialStart).getTime())/(1000*60*60*24));
+    const daysLeft=30-daysUsed;
+    if(typeof updateProMenuStatus==='function')updateProMenuStatus();
+    if(daysLeft>0){
+      seShowTrialBanner(daysLeft);
+    }else{
+      // Trial acabat → mostrar paywall
+      seShowPaywall();
+    }
+  }catch(e){
+    console.log('SE trial check error:',e.message);
+    // En cas d'error, donar accés per no bloquejar l'usuari
   }
 }
 
