@@ -3790,6 +3790,85 @@ function seInitDarkMode(){
   if(saved==='1')document.body.classList.add('dark');
   seUpdateDarkMenuItem();
 }
+function openProStatus(){
+  const isPro=window._userIsPro===true;
+  // Calcular dies restants de trial
+  let daysLeft=30;
+  let trialInfo='';
+  if(!isPro&&window._trialStartedAt){
+    const daysUsed=Math.floor((Date.now()-new Date(window._trialStartedAt).getTime())/(1000*60*60*24));
+    daysLeft=Math.max(0,30-daysUsed);
+    trialInfo=daysLeft>0?`Te quedan <strong>${daysLeft} días</strong> de prueba gratuita.`:'Tu prueba gratuita ha finalizado.';
+  }
+
+  let existing=document.getElementById('pro-status-overlay');
+  if(existing)existing.remove();
+
+  const o=document.createElement('div');
+  o.id='pro-status-overlay';
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:9999999;display:flex;align-items:center;justify-content:center;padding:20px';
+  o.innerHTML=isPro?`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:320px;width:100%;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.4)">
+      <div style="font-size:40px;margin-bottom:10px">⭐</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:6px">Plan Pro activo</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:20px">Tienes acceso completo a SignalEdge Pro.</div>
+      <button onclick="document.getElementById('pro-status-overlay').remove()" style="width:100%;padding:10px;border-radius:8px;border:none;background:#2962ff;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Cerrar</button>
+    </div>`:`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;max-width:340px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.4)">
+      <div style="background:linear-gradient(135deg,#2962ff,#00d4ff);padding:24px;text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">⚡</div>
+        <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px">SignalEdge Pro</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.85)">${trialInfo}</div>
+      </div>
+      <div style="padding:20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+          <div onclick="window.open('https://tourayebra.gumroad.com/l/signaledgeapp-pro-mensual','_blank')" style="background:var(--bg3);border:2px solid #2962ff;border-radius:12px;padding:14px;text-align:center;cursor:pointer">
+            <div style="font-size:10px;color:var(--text4);margin-bottom:4px">MENSUAL</div>
+            <div style="font-size:22px;font-weight:800">€9.99</div>
+            <div style="font-size:10px;color:var(--text4);margin-bottom:10px">al mes</div>
+            <div style="background:#2962ff;color:#fff;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700">Elegir</div>
+          </div>
+          <div onclick="window.open('https://tourayebra.gumroad.com/l/signaledgeapp-pro-anual','_blank')" style="background:var(--bg3);border:2px solid #00d4ff;border-radius:12px;padding:14px;text-align:center;cursor:pointer;position:relative">
+            <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#f57c00;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap">AHORRA 34%</div>
+            <div style="font-size:10px;color:var(--text4);margin-bottom:4px">ANUAL</div>
+            <div style="font-size:22px;font-weight:800">€79</div>
+            <div style="font-size:10px;color:var(--text4);margin-bottom:10px">€6.58/mes</div>
+            <div style="background:#00d4ff;color:#0d1420;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700">Elegir</div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--text4);text-align:center;margin-bottom:14px;line-height:1.8">✅ BTC · ETH · SOL &nbsp;✅ Señales ilimitadas<br>✅ Historial sync &nbsp;✅ Alertas push</div>
+        <button onclick="document.getElementById('pro-status-overlay').remove()" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit">Cerrar</button>
+      </div>
+    </div>`;
+  o.addEventListener('click',e=>{if(e.target===o)o.remove();});
+  document.body.appendChild(o);
+}
+
+function updateProMenuStatus(){
+  const el=document.getElementById('pm-pro-status');
+  if(!el)return;
+  if(window._userIsPro===true){
+    el.textContent='Pro ⭐';
+    el.style.background='#e8f5e9';
+    el.style.color='#1b5e20';
+    el.style.borderColor='#a5d6a7';
+  }else if(window._trialStartedAt){
+    const daysUsed=Math.floor((Date.now()-new Date(window._trialStartedAt).getTime())/(1000*60*60*24));
+    const daysLeft=Math.max(0,30-daysUsed);
+    if(daysLeft>0){
+      el.textContent='Trial · '+daysLeft+'d';
+      el.style.background='#e8f0ff';
+      el.style.color='#2962ff';
+      el.style.borderColor='#c5d8ff';
+    }else{
+      el.textContent='Expirado';
+      el.style.background='#fce4ec';
+      el.style.color='#880e4f';
+      el.style.borderColor='#f48fb1';
+    }
+  }
+}
+
 function seToggleDark(){
   const isDark=!document.body.classList.contains('dark');
   localStorage.setItem('se_dark_mode',isDark?'1':'0');
@@ -3833,6 +3912,12 @@ document.addEventListener('click',function(e){
   <button class="pm-item" onclick="document.getElementById('se-profile-menu').style.display='none';startTutorial()">
     <span class="pm-icon">📖</span>
     <span>Tutorial</span>
+  </button>
+  <div class="pm-divider"></div>
+  <button class="pm-item" onclick="document.getElementById('se-profile-menu').style.display='none';openProStatus()">
+    <span class="pm-icon">⭐</span>
+    <span>Plan Pro</span>
+    <span id="pm-pro-status" style="margin-left:auto;font-size:10px;padding:2px 7px;border-radius:10px;background:#e8f0ff;color:#2962ff;border:1px solid #c5d8ff">Trial</span>
   </button>
   <div class="pm-divider"></div>
   <button class="pm-item" onclick="document.getElementById('se-profile-menu').style.display='none';openFeedback()">
