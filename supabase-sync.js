@@ -599,13 +599,13 @@ function seShowPaywall(){
       </div>
       <div style="padding:24px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
-          <div style="background:#0d1420;border:2px solid #2962ff;border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="window.open('https://tourayebra.gumroad.com/l/signaledgeapp-pro-mensual','_blank')">
+          <div style="background:#0d1420;border:2px solid #2962ff;border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="window.open('https://signaledgeapp.gumroad.com/l/signaledgeapp-pro-mensual','_blank')">
             <div style="font-size:10px;color:#8a9ab5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Mensual</div>
             <div style="font-size:24px;font-weight:800;color:#fff">€9.99</div>
             <div style="font-size:10px;color:#8a9ab5;margin-top:2px">al mes</div>
             <div style="margin-top:10px;background:#2962ff;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Elegir</div>
           </div>
-          <div style="background:#0d1420;border:2px solid #00d4ff;border-radius:12px;padding:16px;text-align:center;cursor:pointer;position:relative" onclick="window.open('https://tourayebra.gumroad.com/l/signaledgeapp-pro-anual','_blank')">
+          <div style="background:#0d1420;border:2px solid #00d4ff;border-radius:12px;padding:16px;text-align:center;cursor:pointer;position:relative" onclick="window.open('https://signaledgeapp.gumroad.com/l/signaledgeapp-pro-anual','_blank')">
             <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#f57c00;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap">AHORRA 34%</div>
             <div style="font-size:10px;color:#8a9ab5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Anual</div>
             <div style="font-size:24px;font-weight:800;color:#fff">€79</div>
