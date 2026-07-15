@@ -420,7 +420,7 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
   <div class="stats-grid">
     <div class="reveal"><div class="stat-val">3+</div><div class="stat-label" id="t-st1">Tipos de señal</div></div>
     <div class="reveal"><div class="stat-val">1m</div><div class="stat-label" id="t-st2">Actualización</div></div>
-    <div class="reveal"><div class="stat-val">7d</div><div class="stat-label" id="t-st3">Prueba gratis</div></div>
+    <div class="reveal"><div class="stat-val">30d</div><div class="stat-label" id="t-st3">Prueba gratis</div></div>
     <div class="reveal"><div class="stat-val">☁️</div><div class="stat-label" id="t-st4">Sync PC + móvil</div></div>
   </div>
 </section>
@@ -574,15 +574,15 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
 <section class="cta-section" id="pricing-section">
   <div style="max-width:900px;margin:0 auto;text-align:center;">
     <h2 class="cta-title reveal" id="t-pricing-title">Planes SignalEdge Pro</h2>
-    <p class="cta-sub reveal" id="t-pricing-sub">30 días gratis · Sin tarjeta de crédito</p>
+    <p class="cta-sub reveal" id="t-pricing-sub">30 días de prueba · Sin tarjeta de crédito</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px;max-width:700px;margin-left:auto;margin-right:auto;" class="reveal pricing-grid">
       <!-- Mensual -->
       <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(0,212,255,0.2);border-radius:16px;padding:36px 28px;text-align:center;transition:transform .2s,border-color .2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(0,212,255,0.5)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(0,212,255,0.2)'">
         <div style="font-size:12px;font-weight:600;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;" id="t-plan-monthly-label">Mensual</div>
         <div style="font-family:'Syne',sans-serif;font-size:42px;font-weight:800;color:var(--text);letter-spacing:-2px;">€9.99</div>
         <div style="font-size:13px;color:var(--text3);margin-bottom:28px;" id="t-plan-monthly-period">/ mes</div>
-        <a href="https://signaledgeapp.gumroad.com/l/signaledgeapp-pro-mensual" target="_blank" class="btn-secondary" style="display:block;text-align:center;margin-bottom:20px;" id="btn-plan-monthly">Empezar gratis →</a>
-        <div style="font-size:11px;color:var(--text3);" id="t-plan-monthly-trial">30 días de prueba gratis</div>
+        <a href="https://signaledgeapp.gumroad.com/l/signaledgeapp-pro-mensual" target="_blank" class="btn-secondary" style="display:block;text-align:center;margin-bottom:20px;" id="btn-plan-monthly">Suscribirse →</a>
+        <div style="font-size:11px;color:var(--text3);" id="t-plan-monthly-trial">Cancela cuando quieras</div>
       </div>
       <!-- Anual -->
       <div style="background:rgba(0,212,255,0.05);border:1.5px solid rgba(0,212,255,0.5);border-radius:16px;padding:36px 28px;text-align:center;position:relative;transition:transform .2s,border-color .2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
@@ -590,8 +590,8 @@ footer{position:relative;z-index:1;padding:32px 5vw;border-top:1px solid var(--b
         <div style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;" id="t-plan-annual-label">Anual</div>
         <div style="font-family:'Syne',sans-serif;font-size:42px;font-weight:800;color:var(--text);letter-spacing:-2px;">€79</div>
         <div style="font-size:13px;color:var(--text3);margin-bottom:28px;" id="t-plan-annual-period">/ año · <span style="color:var(--green);">ahorra 40%</span></div>
-        <a href="https://signaledgeapp.gumroad.com/l/signaledgeapp-pro-anual" target="_blank" class="btn-primary" style="display:block;text-align:center;margin-bottom:20px;" id="btn-plan-annual">Empezar gratis →</a>
-        <div style="font-size:11px;color:var(--text3);" id="t-plan-annual-trial">30 días de prueba gratis</div>
+        <a href="https://signaledgeapp.gumroad.com/l/signaledgeapp-pro-anual" target="_blank" class="btn-primary" style="display:block;text-align:center;margin-bottom:20px;" id="btn-plan-annual">Suscribirse →</a>
+        <div style="font-size:11px;color:var(--text3);" id="t-plan-annual-trial">Cancela cuando quieras</div>
       </div>
     </div>
     <div style="margin-top:32px;display:flex;gap:20px;justify-content:center;flex-wrap:wrap;" class="reveal">
@@ -686,7 +686,7 @@ const TEXTS={
     't-faq-q2':'What are Order Blocks (OB) in trading?','t-faq-a2':'An Order Block is the last bearish candle before a bullish impulse, or the last bullish candle before a bearish impulse. They represent zones where institutions and large operators have placed orders. When price returns to these zones, it tends to react strongly. SignalEdge detects them automatically across all available timeframes.',
     't-faq-q3':'What is a Fair Value Gap (FVG)?','t-faq-a3':'A Fair Value Gap (FVG) is a price imbalance created when three consecutive candles leave an uncovered gap. The market tends to return to these zones to fill the gap before continuing the trend. They are high-probability signals when combined with other confluences like OB or structural levels.',
     't-faq-q4':'What is multi-timeframe confluence?','t-faq-a4':'Multi-timeframe confluence means a signal is confirmed across multiple timeframes simultaneously. For example, if on 1m there is a bullish OB and on 15m and 1h the trend is also bullish, the signal has a higher probability of success. SignalEdge automatically calculates this confluence and shows it as a score for each signal.',
-    't-faq-q5':'Is there a free trial?','t-faq-a5':'Yes, SignalEdge Pro includes a 7-day free trial. No credit card required to get started. After the trial, choose between the monthly plan (€9.99/mo) or the annual plan (€79/year). Cancel anytime.',
+    't-faq-q5':'Is there a free trial?','t-faq-a5':'Yes, SignalEdge Pro includes a 30-day free trial. No credit card required to get started. After the trial, choose between the monthly plan (€9.99/mo) or the annual plan (€79/year). Cancel anytime.',
     't-faq-q6':'Does SignalEdge execute trades automatically?','t-faq-a6':'No. SignalEdge is an analysis and trade management tool. It has no access to your funds or any exchange API. You see the signal, decide whether to trade, and execute manually on your exchange (Binance, Bybit, etc.). This is a deliberate design decision: control always stays in your hands.',
     't-faq-q7':'Does it work on mobile?','t-faq-a7':'Yes. SignalEdge is a Progressive Web App (PWA) optimized for iOS and Android. You can add it to your home screen to use it like a native app. Google sync makes trades opened on PC instantly available on mobile and vice versa.',
     't-seo-h1':'Real-time BTC signal detector','t-seo-p1':'SignalEdge analyzes the Bitcoin, Ethereum and Solana markets every second using real-time data from Binance. The algorithm automatically identifies high-probability zones based on Smart Money Concepts (SMC): institutional Order Blocks, Fair Value Gaps and Retest levels on market structure.',
