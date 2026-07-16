@@ -578,7 +578,7 @@ body.dark .bm-hint{color:#666}
     <div class="calc-group">
       <div class="calc-lbl">Capital disponible</div>
       <div class="calc-row">
-        <input class="calc-inp" type="number" id="calc-capital" value="1000" min="1" oninput="syncCapitalUsar();calcUpdate();savePrefs()">
+        <input class="calc-inp" type="number" id="calc-capital" value="1000" min="1" onchange="syncCapitalUsar();calcUpdate();savePrefs()">
         <span class="calc-unit">USDT</span>
       </div>
     </div>
@@ -588,7 +588,7 @@ body.dark .bm-hint{color:#666}
         <button onclick="syncCapitalUsar(true)" style="font-size:8px;padding:1px 6px;border-radius:4px;border:1px solid #ddd;background:#fff;color:#999;cursor:pointer;font-family:inherit">= Total</button>
       </div>
       <div class="calc-row">
-        <input class="calc-inp" type="number" id="calc-capital-usar" value="1000" min="1" oninput="calcUpdate();savePrefs()" style="border-color:#2962ff">
+        <input class="calc-inp" type="number" id="calc-capital-usar" value="1000" min="1" onchange="calcUpdate();savePrefs()" style="border-color:#2962ff">
         <span class="calc-unit">USDT</span>
       </div>
       <div class="calc-sub" id="calc-usar-sub" style="color:#2962ff"></div>
@@ -2525,7 +2525,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').then(
 document.getElementById('cob').addEventListener('change',savePrefs);
 document.getElementById('cfvg').addEventListener('change',savePrefs);
 document.getElementById('crt').addEventListener('change',savePrefs);
-document.getElementById('calc-capital').addEventListener('input',savePrefs);
+document.getElementById('calc-capital').addEventListener('change',savePrefs);
 document.getElementById('calc-riesgo').addEventListener('input',savePrefs);
 document.getElementById('calc-margen-fix').addEventListener('input',savePrefs);
 
