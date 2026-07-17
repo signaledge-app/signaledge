@@ -1261,9 +1261,11 @@ function editEntryPrice(id){
   document.getElementById('edit-ep-ok').onclick=doSave;
   inp.addEventListener('keydown',function(e){if(e.key==='Enter')doSave();if(e.key==='Escape')o.remove();});
 }
-function addTradeToHistory(sig){
+function addTradeToHistory(sig,overrides){
   const l=sig.lvls;
-  const t={id:genId(),ts:Date.now(),date:new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),dir:sig.dir,source:sig.source,et:sig.et,tf,lev,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,r1:l.r1,r2:l.r2,sp:l.sp,ep:price,result:'open',pnl:null,pnlPct:null,closePrice:null,closeTs:null,duration:null,note:'',levelType:sig.levelType||null,partialDone:false,partialPnlPct:null,breakevenSL:null,openedAt:new Date().toISOString(),pair:currentPair||'BTCUSDT'};
+  const ov=overrides||{};
+  const eVal=ov.e!=null?ov.e:l.e,slVal=ov.sl!=null?ov.sl:l.sl,tp1Val=ov.tp1!=null?ov.tp1:l.tp1,tp2Val=ov.tp2!=null?ov.tp2:l.tp2,epVal=ov.ep!=null?ov.ep:price;
+  const t={id:genId(),ts:Date.now(),date:new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),dir:sig.dir,source:sig.source,et:sig.et,tf,lev,e:eVal,sl:slVal,tp1:tp1Val,tp2:tp2Val,r1:l.r1,r2:l.r2,sp:l.sp,ep:epVal,result:'open',pnl:null,pnlPct:null,closePrice:null,closeTs:null,duration:null,note:'',levelType:sig.levelType||null,partialDone:false,partialPnlPct:null,breakevenSL:null,openedAt:new Date().toISOString(),pair:currentPair||'BTCUSDT'};
   tradeHistory.unshift(t);saveHistory();renderHistorial();updateHistCount();
   // Sync directe a Supabase
   const _u=typeof seUser!=='undefined'?seUser:window.seUser;if(_u&&typeof seSaveTrade==='function')seSaveTrade(_u.id,t);
@@ -1798,7 +1800,7 @@ function enterTrade(sig){
     tp1Real=sig.dir==='long'?price+tp1Dist:price-tp1Dist;
     tp2Real=sig.dir==='long'?price+tp2Dist:price-tp2Dist;
   }
-  trade={dir:sig.dir,e:epReal,sl:slReal,tp1:tp1Real,tp2:tp2Real,lev,tf,ep:epReal,sp:l.sp,r1:l.r1,r2:l.r2,source:sig.source,et:sig.et,levelType:sig.levelType,partialDone:false,pair:currentPair||'BTCUSDT'};partialExecuted=false;trade.histId=addTradeToHistory(sig);activeTradeId=trade.histId;drawTradeLines(trade);updAtb();renderDashTrades();document.getElementById('parc-bar').style.display='flex';
+  trade={dir:sig.dir,e:epReal,sl:slReal,tp1:tp1Real,tp2:tp2Real,lev,tf,ep:epReal,sp:l.sp,r1:l.r1,r2:l.r2,source:sig.source,et:sig.et,levelType:sig.levelType,partialDone:false,pair:currentPair||'BTCUSDT'};partialExecuted=false;trade.histId=addTradeToHistory(sig,{e:epReal,sl:slReal,tp1:tp1Real,tp2:tp2Real,ep:epReal});activeTradeId=trade.histId;drawTradeLines(trade);updAtb();renderDashTrades();document.getElementById('parc-bar').style.display='flex';
   calcSetSig(sig);update();lg('✓ '+trade.dir.toUpperCase()+' ['+trade.et+'] R:R='+trade.r1);}
 async function closeTrade_dashboard(result){
   if(!trade)return;
@@ -3603,16 +3605,24 @@ function openBitunixModalSig(sig){
   const isLong=sig.dir==='long';
   const entry=sig.et==='Limit'?l.e:price;
   const levVal=lev;
-  const tp1Pct=entry>0?((l.tp1-entry)/entry*100*levVal*(isLong?1:-1)).toFixed(1):0;
-  const tp2Pct=entry>0?((l.tp2-entry)/entry*100*levVal*(isLong?1:-1)).toFixed(1):0;
-  const slPct=entry>0?((l.sl-entry)/entry*100*levVal*(isLong?-1:1)).toFixed(1):0;
+  // Si és Market i el preu real difereix del preu de la senyal, recalcular SL/TP des de l'entrada real (mateixa lògica que enterTrade)
+  let slShow=l.sl,tp1Show=l.tp1,tp2Show=l.tp2;
+  if(sig.et==='Market'&&price&&price!==l.e&&l.e>0){
+    const slDist=Math.abs(l.e-l.sl),tp1Dist=Math.abs(l.tp1-l.e),tp2Dist=Math.abs(l.tp2-l.e);
+    slShow=isLong?price-slDist:price+slDist;
+    tp1Show=isLong?price+tp1Dist:price-tp1Dist;
+    tp2Show=isLong?price+tp2Dist:price-tp2Dist;
+  }
+  const tp1Pct=entry>0?((tp1Show-entry)/entry*100*levVal*(isLong?1:-1)).toFixed(1):0;
+  const tp2Pct=entry>0?((tp2Show-entry)/entry*100*levVal*(isLong?1:-1)).toFixed(1):0;
+  const slPct=entry>0?((slShow-entry)/entry*100*levVal*(isLong?-1:1)).toFixed(1):0;
   const badge=document.getElementById('bm-dir-badge');
   if(badge){badge.textContent=isLong?'▲ LONG':'▼ SHORT';badge.className='bm-dir-badge '+(isLong?'long':'short');}
   document.getElementById('bm-pair').textContent=`BTCUSDT · ${sig.et||'LIMIT'} · ${levVal}x`;
   document.getElementById('bm-entry').textContent=ff(entry);
-  document.getElementById('bm-sl').textContent=ff(l.sl)+'  (−'+slPct+'%)';
-  document.getElementById('bm-tp1').textContent=ff(l.tp1)+'  (+'+tp1Pct+'%)';
-  document.getElementById('bm-tp2').textContent=ff(l.tp2)+'  (+'+tp2Pct+'%)';
+  document.getElementById('bm-sl').textContent=ff(slShow)+'  (−'+slPct+'%)';
+  document.getElementById('bm-tp1').textContent=ff(tp1Show)+'  (+'+tp1Pct+'%)';
+  document.getElementById('bm-tp2').textContent=ff(tp2Show)+'  (+'+tp2Pct+'%)';
   document.getElementById('bm-tp1-pct').textContent='+'+tp1Pct+'%';
   document.getElementById('bm-tp2-pct').textContent='+'+tp2Pct+'%';
   const btn=document.getElementById('bm-copy-all-btn');
