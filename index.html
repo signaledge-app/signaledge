@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- ── SEO Meta Tags ── -->
 <title>SignalEdge — Señales BTC/ETH/SOL en tiempo real | Detector OB, FVG, Retest</title>
-<meta name="description" content="Detecta señales de trading en tiempo real para BTC, ETH y SOL. Order Blocks, Fair Value Gaps y Retests con confluencia multi-timeframe. Gestión de capital integrada. 100% gratis.">
+<meta name="description" content="Detecta señales de trading en tiempo real para BTC, ETH y SOL. Order Blocks, Fair Value Gaps y Retests con confluencia multi-timeframe. Gestión de capital integrada. Prueba gratis 30 días.">
 <meta name="keywords" content="BTC trading signals, bitcoin signals real time, order block detector, fair value gap scanner, FVG bitcoin, crypto trading tool free, señales trading bitcoin, herramienta trading crypto, ETH signals, SOL signals, multi-timeframe confluence">
 <meta name="robots" content="index, follow">
 <meta name="author" content="SignalEdge">
@@ -17,7 +17,7 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://signaledgeapp.com/">
 <meta property="og:title" content="SignalEdge — Señales BTC/ETH/SOL en tiempo real">
-<meta property="og:description" content="Detecta Order Blocks, FVGs y Retests automáticamente en BTC, ETH y SOL. Multi-timeframe, gestión de capital y historial de trades. Gratis.">
+<meta property="og:description" content="Detecta Order Blocks, FVGs y Retests automáticamente en BTC, ETH y SOL. Multi-timeframe, gestión de capital y historial de trades. Prueba gratis 30 días.">
 <meta property="og:image" content="https://signaledgeapp.com/icon-512.png">
 <meta property="og:site_name" content="SignalEdge">
 <meta property="og:locale" content="es_ES">
@@ -26,7 +26,7 @@
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="SignalEdge — Señales BTC/ETH/SOL en tiempo real">
-<meta name="twitter:description" content="Detecta Order Blocks, FVGs y Retests automáticamente. Multi-timeframe, gestión de capital integrada. 100% gratis.">
+<meta name="twitter:description" content="Detecta Order Blocks, FVGs y Retests automáticamente. Multi-timeframe, gestión de capital integrada. Prueba gratis 30 días.">
 <meta name="twitter:image" content="https://signaledgeapp.com/icon-512.png">
 
 <!-- Google tag (gtag.js) -->
@@ -677,7 +677,7 @@ const TEXTS={
     't-mp2':'Market cycle','t-mpd2':'Are we in accumulation, uptrend, distribution or downtrend? See which phase BTC is in right now.',
     't-mp3':'30d comparison','t-mpd3':'Which performed better this month — BTC, ETH or SOL? Auto-ranking to know where to put your capital.',
     't-sig-h':'This is what<br>signals look like.',
-    't-cta':'Try it free<br>for 7 days.','t-ctasub':'No credit card. No installation. Cancel anytime.',
+    't-cta':'Try it free<br>for 30 days.','t-ctasub':'No credit card. No installation. Cancel anytime.',
     't-footer':'BTC · ETH · SOL · Real-time signals · Not financial advice ·',
     't-ck-text':'🍪 We use cookies and Google Analytics to improve the app.','t-ck-link':'Privacy policy','t-ck-no':'Essential only','t-ck-ok':'Accept',
     't-disclaimer':'⚠️ SignalEdge does not provide financial advice. Signals are purely informational. Trading cryptocurrencies involves a high risk of capital loss.','t-priv-link':'Privacy policy','t-footer-link':'Privacy',
@@ -709,7 +709,7 @@ function setLang(lang){
   if(sub)sub.textContent=t['hero-sub'];
   // Actualitzar meta description dinàmicament
   const metaDesc=document.querySelector('meta[name="description"]');
-  if(metaDesc&&lang==='en')metaDesc.content='Detect real-time trading signals for BTC, ETH and SOL. Order Blocks, Fair Value Gaps and Retests with multi-timeframe confluence. Integrated capital management. 100% free.';
+  if(metaDesc&&lang==='en')metaDesc.content='Detect real-time trading signals for BTC, ETH and SOL. Order Blocks, Fair Value Gaps and Retests with multi-timeframe confluence. Integrated capital management. Free 30-day trial.';
   document.querySelectorAll('a[href*="privacy.html"]').forEach(a=>{a.href='/privacy.html?lang='+lang;});
   localStorage.setItem('se_lang',lang);
 }
