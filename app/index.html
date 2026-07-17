@@ -729,6 +729,8 @@ body.dark .bm-hint{color:#666}
     </div>
   </div>
   <div id="galert" style="display:none"></div>
+  <div id="sig-alert-banner" style="display:none"></div>
+  <div id="pinned-sig-banner" style="display:none;align-items:center;gap:8px;background:#fff;border:1.5px dashed #2962ff;border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;flex-wrap:wrap"></div>
   <div class="mtf-p">
     <div class="mtf-h"><span class="mtf-ht">📊 Multi-Timeframe</span><span class="mtf-st" id="mtfst">Esperando...</span></div>
     <div class="mtf-g" id="mtfgrid">
@@ -739,8 +741,6 @@ body.dark .bm-hint{color:#666}
     <div class="conf-r wk" id="confrow"><span class="conf-b wk">--</span><span class="conf-desc">Esperando datos...</span></div>
     <div class="trend-main neutral" id="trendmain">📊 Tendencia principal: calculando...</div>
   </div>
-  <div id="pinned-sig-banner" style="display:none;align-items:center;gap:8px;background:#fff;border:1.5px dashed #2962ff;border-radius:8px;padding:.5rem .75rem;margin-bottom:.5rem;flex-wrap:wrap"></div>
-  <div id="sig-alert-banner" style="display:none"></div>
   <div id="partial-banner" style="display:none"></div>
   <div id="atb" style="display:none"></div>
   <div id="dash-open-trades" style="display:none"></div>
@@ -2325,14 +2325,26 @@ function showSigBanner(sig,type){
   el.style.display='flex';
   const titleColor=isNow?(isL?'#26a69a':'#ef5350'):(isL?'#388e3c':'#e65100');
   window._bannerSig=sig;
-  el.innerHTML=`<span style="font-size:22px;flex-shrink:0">${isNow?(isL?'🚀':'🔻'):'⚡'}</span>
-    <div style="flex:1"><div class="sab-title" style="color:${titleColor}">${isNow?'ENTRA YA':'Entrada fuerte'} — ${srcL} ${sig.dir.toUpperCase()} · <span style="background:${titleColor};color:#fff;padding:1px 6px;border-radius:4px;font-size:11px">${tf}</span> · ${sig.et} · R:R ${l.r1}</div>
-    <div class="sab-lvls"><span style="color:#2962ff">${sig.et==='Market'?'🟢':'🔵'} $${ff(l.e)}</span><span style="color:#ef5350">SL $${ff(l.sl)} (${l.sp}%)</span><span style="color:#f57c00">TP1 $${ff(l.tp1)} (${l.r1}R)</span><span style="color:#26a69a">TP2 $${ff(l.tp2)} (${l.r2}R)</span></div></div>
-    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0"><div style="display:flex;gap:4px;align-items:center"><span class="sab-timer" id="sab-timer">3:00</span><button class="btn" onclick="closeSigBanner()" style="font-size:11px;padding:2px 7px">✕</button></div>
-    <div style="display:flex;gap:4px">
-    <button class="btn" id="sab-preview-btn" onclick="(function(){var s=window._bannerSig;var btn=document.getElementById('sab-preview-btn');if(typeof previewSig!=='undefined'&&previewSig===s){clearPreview();btn.classList.remove('active');btn.textContent='👁';}else{drawPreviewLines(s,btn);btn.classList.add('active');btn.textContent='👁✓';}})()" style="font-size:11px;padding:4px 8px" title="Ver niveles en gráfico">👁</button>
-    <button class="btn" onclick="enterTrade(window._bannerSig);closeSigBanner();" style="background:${titleColor};color:#fff;border:none;font-size:10px;font-weight:600;padding:4px 10px;white-space:nowrap">▶ Marcar ${sig.et}</button>
-    </div></div>`;
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+    <span style="font-size:16px;flex-shrink:0">${isNow?(isL?'🚀':'🔻'):'⚡'}</span>
+    <div style="flex:1;min-width:0">
+      <span style="font-size:9px;font-weight:700;background:#2962ff;color:#fff;padding:1px 6px;border-radius:10px;margin-right:4px;vertical-align:middle">📌 ANCLADA</span>
+      <span style="font-size:11px;font-weight:700;color:${titleColor}">${isNow?'ENTRA YA':'Entrada fuerte'}</span>
+      <span style="font-size:10px;color:#666"> · ${srcL} ${sig.dir==='long'?'LONG':'SHORT'} · <span style="background:${titleColor};color:#fff;padding:0 5px;border-radius:3px">${tf}</span> · R:R ${l.r1}</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:1px">
+        <span style="font-size:10px;color:#2962ff">$${ff(l.e)}</span>
+        <span style="font-size:10px;color:#ef5350">SL $${ff(l.sl)}</span>
+        <span style="font-size:10px;color:#f57c00">TP1 $${ff(l.tp1)}</span>
+        <span style="font-size:10px;color:#26a69a">TP2 $${ff(l.tp2)}</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+    <span class="sab-timer" id="sab-timer" style="font-size:10px;color:#999;font-family:monospace">3:00</span>
+    <button class="btn" id="sab-preview-btn" onclick="(function(){var s=window._bannerSig;var btn=document.getElementById('sab-preview-btn');if(typeof previewSig!=='undefined'&&previewSig===s){clearPreview();btn.classList.remove('active');btn.textContent='👁';}else{drawPreviewLines(s,btn);btn.classList.add('active');btn.textContent='👁✓';}})()" style="font-size:10px;padding:2px 6px" title="Ver niveles">👁</button>
+    <button class="btn" onclick="enterTrade(window._bannerSig);closeSigBanner();" style="background:${titleColor};color:#fff;border:none;font-size:10px;font-weight:600;padding:4px 10px;white-space:nowrap">▶ ${sig.et}</button>
+    <button class="btn" onclick="closeSigBanner()" style="font-size:11px;padding:2px 6px">✕</button>
+  </div>`;
   if(sigBannerInterval)clearInterval(sigBannerInterval);
   sigBannerInterval=setInterval(()=>{const rem=Math.max(0,sigBannerExpiry-Date.now());const m=Math.floor(rem/60000);const s=Math.floor((rem%60000)/1000);const tEl=document.getElementById('sab-timer');if(tEl)tEl.textContent=m+':'+String(s).padStart(2,'0');if(rem<=0)closeSigBanner();},1000);
 }
