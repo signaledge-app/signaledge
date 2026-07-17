@@ -1788,7 +1788,17 @@ function enterTrade(sig){
   if(openTrades.length>=3){lg('⚠ Máximo 3 trades simultáneos');return;}const l=sig.lvls;
   clearPreview();
   const epReal=sig.et==='Limit'?l.e:price;
-  trade={dir:sig.dir,e:l.e,sl:l.sl,tp1:l.tp1,tp2:l.tp2,lev,tf,ep:epReal,sp:l.sp,r1:l.r1,r2:l.r2,source:sig.source,et:sig.et,levelType:sig.levelType,partialDone:false,pair:currentPair||'BTCUSDT'};partialExecuted=false;trade.histId=addTradeToHistory(sig);activeTradeId=trade.histId;drawTradeLines(trade);updAtb();renderDashTrades();document.getElementById('parc-bar').style.display='flex';
+  // Si és Market, recalcular SL i TPs des del preu real d'entrada
+  let slReal=l.sl,tp1Real=l.tp1,tp2Real=l.tp2;
+  if(sig.et==='Market'&&price&&price!==l.e&&l.e>0){
+    const slDist=Math.abs(l.e-l.sl);
+    const tp1Dist=Math.abs(l.tp1-l.e);
+    const tp2Dist=Math.abs(l.tp2-l.e);
+    slReal=sig.dir==='long'?price-slDist:price+slDist;
+    tp1Real=sig.dir==='long'?price+tp1Dist:price-tp1Dist;
+    tp2Real=sig.dir==='long'?price+tp2Dist:price-tp2Dist;
+  }
+  trade={dir:sig.dir,e:epReal,sl:slReal,tp1:tp1Real,tp2:tp2Real,lev,tf,ep:epReal,sp:l.sp,r1:l.r1,r2:l.r2,source:sig.source,et:sig.et,levelType:sig.levelType,partialDone:false,pair:currentPair||'BTCUSDT'};partialExecuted=false;trade.histId=addTradeToHistory(sig);activeTradeId=trade.histId;drawTradeLines(trade);updAtb();renderDashTrades();document.getElementById('parc-bar').style.display='flex';
   calcSetSig(sig);update();lg('✓ '+trade.dir.toUpperCase()+' ['+trade.et+'] R:R='+trade.r1);}
 async function closeTrade_dashboard(result){
   if(!trade)return;
